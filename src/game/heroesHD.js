@@ -74,6 +74,7 @@ function hdFaldaVuelo(falda, adelante, atras) {
 
 /* Dibuja un personaje mejorado. p: { mano, inclina, bob, agacha, pies, capa, pelo, fase, t } */
 function hdDibujar(g, x, y, c, p) {
+  if (c.retoque) { const r = c.retoque(p, c); if (r) { c = r.c; p = r.p; } }   // retoque que ve la escena (Jelic surfea en el podio)
   if (c.forma) { const f = c.forma(p); if (f) { p = { ...p, mano: f.manos[p.fase] || f.manos.guardia }; c = f; } }   // transformación (Xitin → oso)
   if (c.manoDinamica) p = { ...p, mano: c.manoDinamica(p) };   // la mano sigue un arco cuadro a cuadro (martillazo de July)
   const bj = c.bajar || 0, baja = (p.bob || 0) + (p.agacha || 0) + bj, inc = p.inclina || 0;   // bajar: personajes más bajitos, de piernas cortas
@@ -371,9 +372,9 @@ const HD_MALIA = (() => {
     const pts = [], tx = hx + ux * L, ty = hy + uy * L;
     hdLinea(hx - ux * 3, hy - uy * 3, tx, ty, (x, y) => { pts.push([x, y, "#C68A4E"], [x + Math.round(-uy), y + Math.round(ux), "#8A5A2A"]); });
     const cx = Math.round(hx + ux * (L + 3)), cy = Math.round(hy + uy * (L + 3));
-    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = (dx / 4.2) ** 2 + (dy / 3.6) ** 2; if (d <= 1) pts.push([cx + dx, cy + dy, d > 0.55 ? (dx + dy < 0 ? "#E2B07A" : "#C68A4E") : "#7A4A22"]); }
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = (dx / 4.2) ** 2 + (dy / 3.6) ** 2; if (d <= 1) pts.push([cx + dx, cy + dy, d > 0.55 ? (dx + dy < 0 ? "#E2B07A" : "#C68A4E") : dx + dy < -1 ? "#FF7FA6" : "#F0407A"]); }   // lleno de mermelada de frutilla
     hdContorno(px, pts);
-    px(cx - 2, cy - 2, "#F2C893");
+    px(cx - 2, cy - 2, "#F2C893"); px(cx - 1, cy - 1, "#FFD0DE");   // brillo de la mermelada
   };
   return {
     id: "malia", nombre: "Malía", pal,
@@ -993,6 +994,73 @@ const HD_CUPE34 = {
 
 /* Cara de Cupe simétrica como el diseño publicado: la de frente, 1 px hacia el rival. */
 HD_CUPE34.cuerpo = HD_CUPE34.cuerpo.map((f, i) => (i <= 15 ? "." + HD_CUPE.cuerpo[i] : f));
+/* Cupe noble: capa real roja con borde de armiño que cae del hombro a las rodillas (en vez de los faldones). */
+Object.assign(HD_CUPE34.pal = { ...HD_CUPE.pal }, { V: "#C0263A", u: "#8A1A2A", E: "#FFFFFF", e: "#1A1020" });
+HD_CUPE34.cuerpo = HD_CUPE34.cuerpo.map((f, i) => (i === 27 ? f.replace(".........KK..", ".............") : f));
+/* Cara tierna: ojos grandes verticales más separados, naricita con boquita de perrito (ᴥ) y mejillas rosadas. */
+HD_CUPE34.pal.P = "#F7A8B8";
+{
+  const cara = { 9: { 13: "K", 14: "K", 21: "K", 22: "K" }, 10: { 13: "K", 14: "K", 21: "K", 22: "K" }, 11: { 13: "K", 14: "K", 17: "K", 18: "K", 21: "K", 22: "K" },
+    12: { 10: "P", 11: "P", 15: "K", 17: "K", 18: "K", 20: "K", 23: "P", 24: "P" }, 13: { 16: "K", 19: "K" } };
+  HD_CUPE34.cuerpo = HD_CUPE34.cuerpo.map((f, i) => [...f].map((k, x) => (i >= 9 && i <= 14 && x >= 8 && x <= 24 ? (cara[i] && cara[i][x]) || (k === "K" ? "W" : k) : k)).join(""));
+}
+{
+  const capa = { 16: "......KEeEK", 17: ".....KVVVVK", 18: ".....KVVVVK", 19: "....KVVVuVK", 20: "....KVVVuVK", 21: "....KVVuVVK", 22: "...KVVVuVVK", 23: "...KVVuVVVK",
+    24: "...KVVuVVVK", 25: "..KVVVuVVVK", 26: "..KVVuVVVVK", 27: "..KVVuVVVVK", 28: ".KVVVuVVVK", 29: ".KVVuVVVVK", 30: ".KEeEEEeEK", 31: "..KKKKKKKK" };
+  const mece = (dx) => Object.fromEntries(Object.entries(capa).map(([k, v]) => [k, +k < 22 ? v : dx > 0 ? "." + v : v.slice(1)]));   // de la cintura para abajo
+  HD_CUPE34.capa = [capa, mece(-1), mece(1)];
+}
+
+/* Cupe en el podio: saludo de esgrima (el florete frente a la cara y luego hacia abajo, al público),
+   después una reverencia inclinando la cabeza (cierra los ojos mientras está abajo), y desde arriba le llueven rosas. */
+{
+  const CICLO = 3800, mod = (a, n) => ((a % n) + n) % n;
+  const florete = (px, hx, hy, [dx, dy]) => {   // como su florete de siempre, pero apuntando a donde diga el saludo
+    const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, pts = [];
+    for (let i = 2; i <= 17; i++) pts.push([Math.round(hx + 1 + ux * i), Math.round(hy + uy * i), i === 17 ? "#FFFFFF" : "#D9DEE6"]);
+    for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) if (i * i + j * j <= 4) pts.push([Math.round(hx + 1 + ux * 2) + i, Math.round(hy + uy * 2) + j, i + j < 0 ? "#F2D27A" : "#C9A24B"]);
+    hdContorno(px, pts);
+  };
+  const POSES = {
+    guardia: { mano: HD_CUPE34.manos.guardia, dir: [0.5, -0.87] },
+    saluda: { mano: [23, 14], dir: [0.12, -1] },   // la hoja vertical frente a la cara
+    baja: { mano: [27, 22], dir: [1, 0.6] },   // la baja en diagonal hacia el público
+    reverencia: { mano: [26, 24], dir: [1, 0.4] },
+  };
+  const momento = (T) => (T < 500 ? "guardia" : T < 1300 ? "saluda" : T < 1700 ? "baja" : T < 3100 ? "reverencia" : "guardia");
+  /* En la reverencia la cabeza baja y se adelanta; el cuerpo y las piernas se quedan donde están. */
+  const inclinado = (cuerpo, n) => cuerpo.map((f, i) => (i >= 16 + n || i < n ? (i < n ? "" : f) : ".".repeat(n) + cuerpo[i - n]));
+  const CUERPOS = [0, 1, 2, 3].map((n) => inclinado(HD_CUPE34.cuerpo, n));
+  const ojosCerrados = HD_CUPE34.cuerpo.map((f, i) => (i === 9 || i === 10 ? [...f].map((k, x) => ((x >= 13 && x <= 14) || (x >= 21 && x <= 22) ? "W" : k)).join("") : f));   // solo queda la rayita de abajo
+  const INCLINADO_OJOS_CERRADOS = inclinado(ojosCerrados, 3);
+  HD_CUPE34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = mod(p.t || 0, CICLO), m = momento(T), pose = POSES[m];
+    const inclina = m === "reverencia" ? Math.min(1, (T - 1700) / 250, (3100 - T) / 250) : 0;   // se inclina despacio y vuelve
+    const cc = { ...c, cuerpo: inclina >= 1 ? INCLINADO_OJOS_CERRADOS : CUERPOS[Math.round(inclina * 3)], retoque: undefined, arma: (px, q) => florete(px, q.mano[0], q.mano[1], pose.dir) };   // el brazo de cerca queda como siempre, con su mano a la vista
+    return { c: cc, p: { ...p, fase: "guardia", mano: pose.mano, bob: 0, agacha: Math.round(inclina), inclina: 0 } };
+  };
+  /* Rosa roja de tallo largo, siempre de lado: cae dando vueltas (se da vuelta a cada rato) y en el escalón queda acostada. */
+  const rosa = (g, cx, cy, vuelta) => {
+    const R = "#D7263D", L = "#F26B7A", O = "#9B1428", V = "#2F7D32", v = "#4CAF50";
+    const pts = [[0, -1, O], [1, -1, R], [-1, 0, R], [0, 0, L], [1, 0, R], [0, 1, O], [1, 1, O], [2, -1, V], [2, 1, V], [2, 0, V], [3, 0, V], [4, 0, V], [5, 0, V], [6, 0, V], [4, -1, v]];
+    const s = vuelta ? -1 : 1, set = new Set(pts.map(([a, b]) => a + "," + b));
+    g.fillStyle = HDK; pts.forEach(([a, b]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, w]) => { if (!set.has((a + u) + "," + (b + w))) g.fillRect(cx + s * (a + u), cy + b + w, 1, 1); }));
+    pts.forEach(([a, b, col]) => { g.fillStyle = col; g.fillRect(cx + s * a, cy + b, 1, 1); });
+  };
+  HD_CUPE34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return;
+    const T = Math.max(0, p.t || 0);   // no se repite: una vez abrazadas, siguen así
+    g.save(); if (T > 3400) g.globalAlpha = Math.max(0, (CICLO - T) / 400);   // se desvanecen antes de que empiece otra vez
+    [[0, 1700], [27, 1850], [5, 2050], [23, 2250], [8, 2450]].forEach(([rx, sale]) => {
+      if (T < sale) return;
+      const k = Math.min(1, (T - sale) / 1000), suelo = y + HD_OY + 39;
+      const cx = Math.round(x + HD_OX + rx + Math.sin((T - sale) / 140) * 2 * (1 - k)), cy = Math.round(y - 6 + (suelo - y + 6) * k);
+      rosa(g, cx, cy, k < 1 ? Math.floor((T - sale) / 220) % 2 === 1 : rx > 15);
+    });
+    g.restore();
+  };
+}
 const HEROES_34 = [[HD_LATTE, HD_LATTE34], [HD_CUPE, HD_CUPE34]];
 
 /* Jelic en tres cuartos: visera con los dos ojos, hombrera y brazo de atrás a la izquierda, la U del pecho corrida hacia el rival. */
@@ -1054,6 +1122,18 @@ const gataCalico = (px, x0, y0, t, celebra) => {
   const mece = Math.floor(t / 300) % 2;   // la cola sube por el costado y la punta se mece
   [[-1, 8, "K"], [-1, 7, "D"], [-2, 7, "K"], [-1, 6, "D"], [-2, 6, "K"], [mece ? -1 : 0, 5, "O"], [mece ? -2 : -1, 5, "K"], [mece ? -1 : 0, 4, "K"]].forEach(([x, y, k]) => px(x0 + x, y0 + y, pal[k]));
 };
+/* La otra gata de Malala: también calico, apenas más grande y gordita que la otra (2 px más alta y ancha),
+   con una mancha negra junto a la nariz. Se sienta detrás de la gata chica. */
+const gataGordita = (px, x0, y0, t, celebra) => {
+  const pal = { K: HDK, W: "#F4F1EA", w: "#D9D2C4", O: "#E08A3C", o: "#B8692C", D: "#7A6656", E: "#2A1E14", P: "#E39A86", N: "#1A1020" };
+  const parpadea = celebra || Math.floor((t + 1700) / 150) % 23 === 0;   // al celebrar entrecierra los ojos de gusto
+  const filas = [
+    ".K.....K.", "KOK...KDK", "KOOKKKKDK", "KOOWWWDDK", parpadea ? "KWWWWWWWK" : "KWEWWWEWK", "KWEWPWEWK", ".KWNWWWK.",
+    "KoOWWWWDK", "KOOWWWWDK", "KOWWWWWwK", "KWWWWWWwK", ".KKKKKKK.",
+  ];
+  filas.forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) px(x0 + x, y0 + y, pal[k]); }));
+  if (celebra && Math.floor(t / 420) % 2 === 0) [[1, -3], [3, -3], [0, -2], [1, -2], [2, -2], [3, -2], [4, -2], [1, -1], [2, -1], [3, -1], [2, 0]].forEach(([x, y]) => px(x0 + 2 + x, y0 + y - 2, "#F472B6"));
+};
 const HD_MALALA34 = { ...HD_MALALA,
   /* Sin la capita crema: el pelo negro largo le cae por la espalda y las puntas se mecen. */
   capa: [
@@ -1070,11 +1150,57 @@ const HD_MALALA34 = { ...HD_MALALA,
   arma: (px, p) => {
     if (!["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.arma(px, p);
     const baja = (p.bob || 0) + (p.agacha || 0), inc = p.inclina || 0;   // la gata se queda quieta en el suelo
+    gataGordita((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? 5 : -2, 27, p.t, p.fase === "sube" || p.fase === "alto");   // detrás de la chica
     gataCalico((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? -1 : -8, 30, p.t, p.fase === "sube" || p.fase === "alto");
   },
   atras: (px, p) => { if (["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.atras(px, { ...p, fase: "golpe" }); },
 };
 
+/* Malala en el podio: suelta la escoba, sus dos gatas le saltan a los brazos y se queda celebrando abrazada
+   con ellas, dando saltitos, hasta que termina la escena. */
+{
+  const mod = (a, n) => ((a % n) + n) % n;
+  const SUELO_CHICA = [-1, 30], SUELO_GORDA = [5, 27], BRAZO_CHICA = [12, 16], BRAZO_GORDA = [4, 15];
+  const arco = (a, b, k) => [Math.round(a[0] + (b[0] - a[0]) * k), Math.round(a[1] + (b[1] - a[1]) * k - Math.sin(Math.PI * k) * 8)];
+  /* La escoba tirada en el escalón: plana, el palo a lo largo y las pajas apenas abiertas. */
+  const escobaTirada = (px, x0, y) => {
+    const pts = [];
+    for (let x = x0; x <= x0 + 15; x++) pts.push([x, y, "#9A6A3A"]);   // el palo, y las pajas al final (a la vista, junto a sus pies)
+    for (let x = x0 + 16; x <= x0 + 21; x++) { const a = Math.round((x - x0 - 15) / 3); for (let yy = y - a; yy <= y + Math.min(1, a); yy++) pts.push([x, yy, (x - x0) % 2 ? "#A8762A" : "#E0B04A"]); }
+    pts.push([x0 + 15, y, "#9A3B2A"]);
+    hdContorno(px, pts);
+  };
+  /* Una mano dibujada encima de las gatas: así se ve que las sostiene. */
+  const mano = (px, c, [hx, hy]) => { const pts = []; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) pts.push([hx + i, hy + j, i === -1 || j === -1 ? c.brazo.manoLuz || c.brazo.mano : c.brazo.mano]); hdContorno(px, pts); };
+  const corazon = (px, x, y) => [[0, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [1, 3]].forEach(([a, b]) => px(x + a, y + b, "#F472B6"));
+  HD_MALALA34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0);   // no se repite: una vez abrazadas, siguen así
+    if (T < 500) return null;   // empieza como siempre: escoba en la mano y gatas en el suelo
+    const conEscoba = T < 700, abrazo = T >= 1400, salto = abrazo ? Math.floor(T / 300) % 2 : 0;
+    const k = T < 900 ? 0 : T < 1400 ? (T - 900) / 500 : 1;   // 0 en el suelo, 1 en sus brazos
+    const [chica, gorda] = k <= 0 ? [SUELO_CHICA, SUELO_GORDA] : k >= 1 ? [BRAZO_CHICA, BRAZO_GORDA] : [arco(SUELO_CHICA, BRAZO_CHICA, k), arco(SUELO_GORDA, BRAZO_GORDA, k)];
+    const pose = abrazo ? { mano: [16, 26], cerca: [[4, 6], [-1, 3]] } : T >= 900 ? { mano: [19, 22], cerca: [[6, 2], [1, 3]] } : { mano: c.manos.guardia, cerca: null };
+    const cc = { ...c, retoque: undefined, arma: undefined,
+      atras: (px, q) => {   // la escoba queda tirada en el escalón, a su lado
+        if (conEscoba) return;
+        const baja = (q.bob || 0) + (q.agacha || 0);
+        escobaTirada((x, y, col) => px(x, y - baja, col), 8, 38);
+      },
+      arma: (px, q) => {   // las gatas van delante de los brazos y las manos encima de ellas
+        const baja = (q.bob || 0) + (q.agacha || 0), suelo = (x, y, col) => px(x, y - baja, col), enBrazos = k >= 1 ? px : suelo;
+        if (conEscoba) HD_MALALA.arma(px, q);
+        gataGordita(enBrazos, gorda[0], gorda[1], p.t, false);
+        gataCalico(enBrazos, chica[0], chica[1], p.t, false);
+        if (k >= 1) { mano(px, c, q.mano); mano(px, c, [c.brazoCerca.hombro[0] + pose.cerca[0][0], c.brazoCerca.hombro[1] + pose.cerca[0][1]]); }
+        if (abrazo) [[6, 2, 0], [17, 4, 500], [12, 0, 1000]].forEach(([hx, hy, d]) => {   // corazones que suben
+          const f = mod(T - 1400 + d, 1500) / 1500; if (f < 0.8) corazon(px, hx, hy - Math.round(f * 10));
+        });
+      },
+      brazoCerca: pose.cerca ? { ...c.brazoCerca, poses: {}, todas: pose.cerca } : c.brazoCerca };
+    return { c: cc, p: { ...p, fase: "guardia", mano: pose.mano, bob: -salto * 2, agacha: 0, inclina: 0 } };
+  };
+}
 /* Malía en tres cuartos: los dos ojos verdes con mejillas rosadas, la nariz entre los ojos, la oreja de elfo
    del lado de cerca y la cara redondeada; el delantal ya mira hacia el rival. */
 const HD_MALIA34 = { ...HD_MALIA, brazoCerca: { hombro: [9, 18] }, brazoGrueso: 2,
@@ -1092,6 +1218,25 @@ const HD_MALIA34 = { ...HD_MALIA, brazoCerca: { hombro: [9, 18] }, brazoGrueso: 
   arma: (px, p) => HD_MALIA.arma(px, p.fase === "guardia" || p.fase === "vuelve" ? { ...p, fase: "sube" } : p),
 };
 HEROES_34.push([HD_MALALA, HD_MALALA34], [HD_MALIA, HD_MALIA34]);
+/* Malía ataca con mermelada de frutilla: al golpear, un poco de mermelada sale volando del cucharón y salpica al rival.
+   Si está dándosela a probar (p.alimenta, al ganar), no la lanza. */
+HD_MALIA34.proyectil = (g, x, y, p) => {
+  if (p.alimenta || (p.fase !== "golpe" && p.fase !== "choque")) return;
+  const x0 = x + HD_OX + p.mano[0] + 19, y0 = y + HD_OY + p.mano[1] + (p.agacha || 0) - 1;
+  const gota = (cx, cy, r) => {
+    g.fillStyle = HDK; g.fillRect(cx - r - 1, cy - r, 2 * r + 3, 2 * r + 1); g.fillRect(cx - r, cy - r - 1, 2 * r + 1, 2 * r + 3);
+    g.fillStyle = "#F0407A"; g.fillRect(cx - r, cy - r, 2 * r + 1, 2 * r + 1);
+    g.fillStyle = "#FFD0DE"; g.fillRect(cx - r, cy - r, 1, 1);
+  };
+  if (p.fase === "golpe") { const k = p.k; gota(Math.round(x0 + 1 + k * 3), Math.round(y0 - Math.sin(Math.PI * k) * 2), 1); return; }
+  const cx = Math.round(x0 + 2), r = 2 + p.k * 6;   // salpicón donde el cucharón toca al rival: gotas que se abren y caen
+  for (let n = 0; n < 8; n++) {
+    const a = n * 0.785 + 0.2, sx = Math.round(cx + Math.cos(a) * r), sy = Math.round(y0 + Math.sin(a) * r * 0.8 + p.k * p.k * 5);
+    g.fillStyle = HDK; g.fillRect(sx - 1, sy - 1, 3, 3); g.fillStyle = n % 3 ? "#F0407A" : "#FF9FC0"; g.fillRect(sx, sy, 1, 1);
+  }
+  if (p.k < 0.4) gota(cx, y0, 2);
+};
+
 
 /* Kenny en tres cuartos: lentes oscuros con los dos cristales, nariz entre ellos, barba pareja y cara redondeada.
    Al celebrar, la mano de cerca rasguea el laúd en vez de levantarse. */
@@ -1912,6 +2057,38 @@ HD_JELIC34.capa = HD_JELIC.capa.map((fr) => Object.fromEntries(Object.entries(fr
 /* Jelic: brazos de armadura un poco más gruesos, con hombreras proporcionadas. */
 HD_JELIC34.brazoGrueso = 3;
 
+/* Jelic en el podio: se sube a su escudo como tabla de surf y se mece sobre ella como si corriera una ola (en los duelos celebra como siempre). */
+{
+  const pal = HD_JELIC.pal, X0 = 5;
+  const mod = (a, n) => ((a % n) + n) % n;
+  /* El escudo acostado: la base atrás, la punta adelante y la franja roja a lo largo. Se mece entero como una mecedora:
+     con inclina > 0 sube la punta y baja la base (y al revés), sin doblarse. */
+  const meceTabla = (inclina, x) => -Math.round(inclina * (x - X0 - 8) / 8);   // cuánto sube cada columna respecto del centro
+  const tablaSurf = (px, cy, inclina) => {
+    const pts = [];
+    for (let i = 0; i < 17; i++) {
+      const w = i < 9 ? 5 : Math.max(0, Math.round(5 * (16 - i) / 8)), v = Math.round(w * 0.4), dy = meceTabla(inclina, X0 + i);
+      for (let y = cy - v; y <= cy + v + 1; y++) {
+        const canto = y === cy + v + 1, borde = y === cy - v || i === 0;
+        pts.push([X0 + i, y + dy, canto ? pal.m : borde ? pal.L : y === cy && i > 1 && i < 14 ? pal.R : y < cy ? pal.Q : pal.A]);
+      }
+    }
+    hdContorno(px, pts);
+  };
+  HD_JELIC34.retoque = (p) => {
+    if (!p.enPodio) return null;
+    const t = p.t || 0, s = Math.sin(t / 1400 * 2 * Math.PI), mece = Math.round(s * 2);   // la punta sube y la base baja, y al revés
+    const bob = -9, cy = 42 + bob, flexa = 3 + Math.round(Math.cos(t / 700 * 2 * Math.PI)), cerca = [[-7, 2 + Math.round(s * 2)], [-4, 1]];
+    const c = { ...HD_JELIC34, retoque: undefined, arma: undefined,
+      brazoCerca: { ...HD_JELIC34.brazoCerca, poses: { guardia: cerca, sube: cerca, alto: cerca } },
+      atras: (px, q) => {
+        const baja = (q.bob || 0) + (q.agacha || 0);
+        tablaSurf((a, b, col) => px(a - (q.inclina || 0), b - baja, col), cy, mece);   // la tabla se mece sobre el escalón, el extremo que baja lo toca
+      } };
+    return { c, p: { ...p, mano: [28, 22 - Math.round(s * 2)], bob, agacha: flexa, inclina: Math.round(s), pies: [[9, 39 + meceTabla(mece, 9)], [18, 39 + meceTabla(mece, 18)]], capa: mod(Math.floor(t / 110), 3), pelo: mod(Math.floor(t / 140), 2) } };
+  };
+}
+
 /* Agattita: agarra el bastón con la mano encima del palo y más cerca del cuerpo (como Malala con la escoba). */
 HD_AGATTITA34.manoEncima = true;
 HD_AGATTITA34.manos = { guardia: [24, 25], impulso: [24, 18], golpe: [24, 9], choque: [24, 8], sigue: [24, 10], sube: [24, 14], alto: [24, 6] };
@@ -1925,6 +2102,89 @@ HD_UZU34.pelo = [ { 12: "..KK" + ".".repeat(23) + "KK" }, { 12: ".KK" + ".".repe
 HD_UZU34.cuerpo = HD_UZU34.cuerpo.map((f, i) => (i === 8 ? ".............K..K..K" : i === 9 ? "............KMKKMKKMK" : f));
 
 /* Personaje en tres cuartos por id. */
+/* Malía en el podio: pasa el dedo por el cucharón, se lo lleva a la boca con mermelada, cierra los ojos de gusto y le salen
+   estrellitas (como en los programas de cocina);
+   después levanta el cucharón como Excalibur y baja un rayo de luz dorada. Se queda así hasta que termina la escena. */
+{
+  const momento = (T) => (T < 400 ? "guardia" : T < 2100 ? "prueba" : T < 2500 ? "alza" : "excalibur");
+  const HOMBRO = HD_MALIA34.brazoCerca.hombro, mezcla = (a, b, k) => [Math.round(a[0] + (b[0] - a[0]) * k), Math.round(a[1] + (b[1] - a[1]) * k)];
+  /* Dónde va la mano libre: del costado al cucharón, lo recorre con el dedo y sube a la boca. */
+  const manoLibre = (T) => {
+    const reposo = [HOMBRO[0] - 1, HOMBRO[1] + 7], borde = [18, 18], otroBorde = [21, 17], boca = [14, 13];   // el cucharón a la altura del pecho, cerca del cuerpo
+    if (T < 800) return mezcla(reposo, borde, (T - 400) / 400);
+    if (T < 1100) return mezcla(borde, otroBorde, (T - 800) / 300);
+    if (T < 1500) return mezcla(otroBorde, boca, (T - 1100) / 400);
+    return boca;
+  };
+  HD_MALIA34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), m = momento(T);
+    if (m === "guardia") return null;
+    if (m === "prueba") {   // sostiene el cucharón a su lado; la otra mano prueba la mermelada
+      const cierra = (i, x) => (x === 12 || x === 13 || x === 16 || x === 17) && (i === 9 || i === 10);   // ojos cerrados: queda la rayita de abajo
+      const cuerpo = T >= 1500 ? c.cuerpo.map((f, i) => [...f].map((k, x) => (cierra(i, x) ? (i === 10 ? "K" : "S") : k)).join("")) : c.cuerpo;
+      const [hx, hy] = manoLibre(T), mano = [hx - HOMBRO[0], hy - HOMBRO[1]], codo = [Math.round(mano[0] / 2) - 3, Math.max(2, Math.round(mano[1] / 2) + 3)];
+      const arma = (px, q) => c.arma(px, { ...q, mano: [q.mano[0] - 1, q.mano[1] + 8] });   // lo toma de la mitad del mango, a la altura de la cadera
+      return { c: { ...c, retoque: undefined, cuerpo, arma, brazoCerca: { ...c.brazoCerca, poses: { sube: [mano, codo] } } }, p: { ...p, fase: "sube", mano: [19, 27], bob: 0, agacha: 0 } };
+    }
+    const brilla = m === "excalibur" ? Math.floor(T / 400) % 2 : 0;   // en alto, con un leve vaivén de orgullo
+    return { c: { ...c, retoque: undefined, brazoCerca: { ...c.brazoCerca, poses: {}, todas: [[12, -3], [5, 2]] } }, p: { ...p, fase: "alto", mano: [24, m === "alza" ? 20 : 16], bob: -brilla, agacha: 0 } };
+  };
+  const estrellita4 = (g, cx, cy, r, col) => { g.fillStyle = col; g.fillRect(cx - r, cy, 2 * r + 1, 1); g.fillRect(cx, cy - r, 1, 2 * r + 1); g.fillStyle = "#FFFFFF"; g.fillRect(cx, cy, 1, 1); };
+  const proyMalia = HD_MALIA34.proyectil;
+  HD_MALIA34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyMalia(g, x, y, p);
+    const T = Math.max(0, p.t || 0), f = Math.floor(T / 120), ox = x + HD_OX, oy = y + HD_OY;
+    if (T >= 700 && T < 2100) {   // la mano libre por delante del cucharón; desde que lo recorre, el dedo queda con mermelada
+      const [hx, hy] = manoLibre(T), pts = [];
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) pts.push([hx + i, hy + j, i === -1 || j === -1 ? "#F5CABF" : "#EBB2A6"]);
+      hdContorno((a, b, col) => { g.fillStyle = col; g.fillRect(ox + a, oy + b, 1, 1); }, pts);
+      if (T >= 900) {   // un buen pegote de mermelada en los dedos, con borde y una gota colgando: se ve hasta en la boca
+        const pegote = [[-1, -2], [0, -2], [1, -2], [2, -2], [0, -1], [1, -1], [2, -1], [2, 0], [2, 1]];
+        pegote.forEach(([a, b]) => { g.fillStyle = HDK; g.fillRect(ox + hx + a, oy + hy + b - 1, 1, 1); g.fillRect(ox + hx + a + 1, oy + hy + b, 1, 1); });
+        pegote.forEach(([a, b]) => { g.fillStyle = "#F0407A"; g.fillRect(ox + hx + a, oy + hy + b, 1, 1); });
+        g.fillStyle = "#FFD0DE"; g.fillRect(ox + hx, oy + hy - 2, 1, 1); g.fillStyle = "#C81E5A"; g.fillRect(ox + hx + 2, oy + hy + 1, 1, 1);
+      }
+    }
+    if (T >= 1500 && T < 2100) [[5, 3], [23, 5], [3, 12], [24, 15], [14, 0]].forEach(([a, b], i) => { if ((f + i) % 3) estrellita4(g, ox + a, oy + b, (f + i) % 2 ? 2 : 1, i % 2 ? "#FDE047" : "#FBBF24"); });
+    if (T < 2500) return;
+    const bx = ox + 25, by = oy + (p.bob || 0) - 2;   // el cucharón en alto: la luz baja del cielo hasta él
+    for (let i = 0; i < 8; i++) {   // rayos de luz alrededor del cucharón, como una espada legendaria
+      const a = i * Math.PI / 4 + (f % 2) * 0.2, r0 = 7, r1 = 10 + ((i + f) % 2) * 2;
+      for (let r = r0; r <= r1; r++) { g.fillStyle = r === r1 ? "rgba(255,251,220,.8)" : "rgba(253,224,71,.6)"; g.fillRect(Math.round(bx + Math.cos(a) * r), Math.round(by + 4 + Math.sin(a) * r), 1, 1); }
+    }
+    for (let yy = 0; yy < by - 4; yy++) {
+      const w = 2 + Math.round((yy / Math.max(1, by)) * 2) + (f % 2);
+      g.fillStyle = "rgba(253,224,71,.28)"; g.fillRect(bx - w, yy, 2 * w + 1, 1);
+      g.fillStyle = "rgba(255,251,220,.45)"; g.fillRect(bx - 1, yy, 3, 1);
+    }
+    for (let i = 0; i < 6; i++) {   // destellos que bajan por el rayo y giran alrededor del cucharón
+      const k = ((T / 900 + i / 6) % 1), sx = bx + Math.round(Math.sin(i * 2.1 + T / 300) * 3), sy = Math.round(k * (by - 6));
+      g.fillStyle = i % 2 ? "#FFFFFF" : "#FDE68A"; g.fillRect(sx, sy, 1, 1);
+    }
+    [[-7, 1], [7, -1], [-5, -6], [6, 6]].forEach(([a, b], i) => { if ((f + i) % 2) estrellita4(g, bx + a, by + 4 + b, 1, "#FDE047"); });
+  };
+}
+/* Malía: cara con más definición — ojos negros con párpado y un brillito blanco (miran hacia el rival), mejillas más suaves
+   hacia afuera, la nariz como sombra entre los ojos y la boquita más marcada. */
+{
+  Object.assign(HD_MALIA34.pal = { ...HD_MALIA34.pal }, { P: "#F4A3AE", m: "#A9445A", Z: "#FFFFFF" });
+  const marcas = [[11, 11, "S"], [11, 16, "S"], [11, 10, "P"], [11, 17, "P"], [11, 14, "s"], [13, 13, "m"], [13, 14, "m"],
+    [9, 12, "K"], [9, 13, "K"], [9, 16, "K"], [9, 17, "K"], [10, 12, "K"], [10, 13, "Z"], [10, 16, "K"], [10, 17, "Z"]];
+  const filas = HD_MALIA34.cuerpo.map((f) => [...f]);
+  marcas.forEach(([y, x, k]) => { filas[y][x] = k; });
+  HD_MALIA34.cuerpo = filas.map((f) => f.join(""));
+}
+/* Malía: una frutilla en el delantal, para que se entienda que su mermelada es de frutilla. */
+{
+  Object.assign(HD_MALIA34.pal = { ...HD_MALIA34.pal }, { R: "#E8304A", r: "#B01E36", T: "#FBE38A", G: "#3E9A42", g: "#2F7D32" });
+  const frutilla = { 24: [13, "GgG"], 25: [12, "RRgRR"], 26: [12, "RTRRr"], 27: [12, "RRRTr"], 28: [13, "RTr"], 29: [14, "r"] };   // al centro del delantal
+  const pinta = (f, [x0, txt]) => [...f].map((k, x) => (x >= x0 && x < x0 + txt.length ? txt[x - x0] : k)).join("");
+  HD_MALIA34.cuerpo = HD_MALIA34.cuerpo.map((f, i) => (frutilla[i] ? pinta(f, frutilla[i]) : f));
+  HD_MALIA34.falda = Object.fromEntries(Object.entries(HD_MALIA34.falda).map(([k, f]) => [k, frutilla[k] ? pinta(f, frutilla[k]) : f]));
+  /* La pierna de adelante marcaba una raya negra en la última fila del delantal: esa fila se vuelve a pintar encima, con la falda. */
+  HD_MALIA34.falda = { 27: HD_MALIA34.cuerpo[27], ...HD_MALIA34.falda };
+}
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
 export { HDK, HD_OX, HD_OY, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, hombreraOso, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }

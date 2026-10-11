@@ -11,8 +11,8 @@
      · nada de violencia: ganar es DESARMAR (el arma vuela y queda en el suelo;
        el rival queda de pie con las manos arriba). Algunos ganan a su manera:
        Malala lo convierte en sapo, Janet le clava el arma en el borde con una
-       flecha, el oso de Xitin lo hace huir, Jelic lo deja viendo estrellas y
-       Agattita lo atrapa con enredaderas y le brota una flor.
+       flecha, el oso de Xitin lo hace huir, Jelic lo deja viendo estrellas, Latte lo encandila, Cupe lo
+       desarma y lo nombra caballero, Malía le da mermelada y le da sueño, y Agattita lo atrapa con enredaderas y le brota una flor.
      · en el podio, quien gana celebra y el resto aplaude.
    ========================================================================== */
 import { HEROES as CLASICOS } from './heroesClasicos.js'
@@ -100,6 +100,7 @@ const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-
 
 /* Dibuja un personaje (y sus efectos) en su lugar. espejo: mira a la izquierda (el rival). */
 function figura(g, c, p, x, dy, espejo) {
+  x = Math.round(x);   // en píxeles enteros: a mitad de píxel se ve borroso
   g.save();
   if (espejo) { g.translate(W, 0); g.scale(-1, 1); }
   hdDibujar(g, x, YB + dy, c, p);
@@ -141,6 +142,27 @@ function rendido(c, conHombrera) {
   if (conHombrera) r.arma = (px) => hombreraOso(px, 5, 15);
   return r;
 }
+/* El rival hincado, con la mano en el pecho, listo para que Cupe lo nombre caballero. */
+function arrodillado(c) {
+  const [sx, sy] = c.hombro;
+  const r = { ...rendido(c), manos: { ...c.manos, guardia: [sx + 1, sy + 4] } };
+  if (c.brazoCerca) r.brazoCerca = { ...r.brazoCerca, todas: [[1, 7], [-2, 4]] };
+  return r;
+}
+/* El rival satisfecho: sin arma y con las dos manos sobre la barriga. */
+function pochito(c) {
+  const [sx, sy] = c.hombro;
+  const r = { ...rendido(c), manos: { ...c.manos, guardia: [sx + 1, sy + 7] } };
+  if (c.brazoCerca) r.brazoCerca = { ...r.brazoCerca, todas: [[3, 7], [-1, 4]] };
+  return r;
+}
+/* El rival se tapa los ojos con las dos manos: lo encandilaron los fuegos artificiales de Latte. */
+function encandilado(c) {
+  const [sx, sy] = c.hombro;
+  const r = { ...rendido(c), manos: { ...c.manos, guardia: [sx + 1, sy - 8] } };
+  if (c.brazoCerca) { const [nx] = c.brazoCerca.hombro; r.brazoCerca = { ...r.brazoCerca, todas: [[sx - 4 - nx, -8], [-2, -3]] }; }
+  return r;
+}
 /* El arma del rival dibujada suelta, centrada en (x, y) y girada en cuartos de vuelta (así el pixel art sigue nítido). */
 const armasSueltas = new Map()
 function armaSuelta(g, id, x, y, cuartos = 0) {
@@ -158,11 +180,114 @@ const sudor = (g, cx, cy, conExclamacion) => {
   g.fillStyle = K; g.fillRect(cx - 1, cy, 3, 4); g.fillStyle = "#7DD3FC"; g.fillRect(cx, cy + 1, 1, 2);
   if (conExclamacion) { g.fillStyle = K; g.fillRect(cx + 3, cy - 10, 3, 8); g.fillStyle = "#FBBF24"; g.fillRect(cx + 4, cy - 9, 1, 4); g.fillRect(cx + 4, cy - 4, 1, 1); }
 };
+/* Los naipes de Latte estallan en la cara del rival como fuegos artificiales: tres estallidos de colores, uno tras otro. */
+const fuegosLatte = (g, cx, cy, Tm) => {
+  [[0, 0, "#F472B6", 0], [-5, -5, "#FBBF24", 130], [5, -3, "#7DD3FC", 260]].forEach(([dx, dy, col, d]) => {
+    const k = (Tm - 900 - d) / 750; if (k < 0 || k >= 1) return;   // cada uno se abre y sus chispas caen
+    const ex = cx + dx, ey = cy + dy;
+    for (let n = 0; n < 12; n++) {
+      const a = (n / 12) * Math.PI * 2, r = 2 + k * 11;
+      g.fillStyle = k > 0.7 && n % 2 ? "rgba(255,255,255,.5)" : n % 3 === 0 ? "#FFFFFF" : col;
+      g.fillRect(Math.round(ex + Math.cos(a) * r), Math.round(ey + Math.sin(a) * r + k * k * 5), 1, 1);
+      if (k < 0.5) { g.fillStyle = col; g.fillRect(Math.round(ex + Math.cos(a) * r * 0.55), Math.round(ey + Math.sin(a) * r * 0.55), 1, 1); }
+    }
+    if (k < 0.15) { g.fillStyle = "#FFFFFF"; g.fillRect(ex - 1, ey - 1, 3, 3); }
+  });
+};
+/* Encandilado: chispitas que titilan frente a los ojos y humito de colores que sube de la cabeza. */
+const encandilamiento = (g, cx, cy, t) => {
+  const f = Math.floor(t / 110);
+  [[-6, 1], [-1, -1], [4, 1], [-3, 4], [2, 4]].forEach(([dx, dy], i) => {
+    if ((i + f) % 3 === 0) return;
+    const grande = (i + f) % 2, x = cx + dx, y = cy + dy;
+    g.fillStyle = i % 2 ? "#FDE047" : "#F9A8D4"; g.fillRect(x, y, 1, 1);
+    if (grande) { g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); g.fillStyle = "#FFFFFF"; g.fillRect(x, y, 1, 1); }
+  });
+  for (let i = 0; i < 3; i++) {   // humito que sube y se desvanece
+    const k = ((t / 900 + i / 3) % 1), x = Math.round(cx - 4 + i * 4 + Math.sin(t / 300 + i) * 1.5), y = Math.round(cy - 10 - k * 9);
+    g.fillStyle = `rgba(${["244,114,182", "200,200,215", "251,191,36"][i]},${0.6 * (1 - k)})`; g.fillRect(x - 1, y - 1, 3, 3); g.fillRect(x, y - 2, 1, 1);
+  }
+};
+/* La cara de cada rival (en su grilla): ojos [x, y, ancho, alto] y color de piel para cerrarlos,
+   boca que se llena de mermelada y dos puntos por donde pasa la lengüita al saborearse. */
+const CARAS = {
+  jelic: { ojos: [[15, 11, 1, 2], [19, 11, 1, 2]], piel: "S", boca: [[15, 14], [16, 14], [17, 14], [18, 14], [19, 14], [16, 15], [17, 15], [18, 15], [19, 15]], lame: [[16, 15], [19, 15]], poca: true },
+  agattita: { ojos: [[12, 8, 2, 3], [19, 8, 2, 3]], piel: "F", boca: [[16, 12], [17, 12], [16, 13], [17, 13]], lame: [[15, 13], [18, 13]] },
+  latte: { ojos: [[14, 12, 1, 2], [19, 12, 1, 2]], piel: "S", boca: [[14, 16], [15, 16], [16, 16], [17, 16]], lame: [[14, 16], [17, 16]] },
+  cupe: { ojos: [[13, 9, 2, 3], [21, 9, 2, 3]], piel: "W", boca: [[16, 12], [19, 12], [17, 13], [18, 13]], lame: [[17, 14], [18, 14]] },
+  malala: { ojos: [], parpados: [[10, 15], [11, 15], [13, 15], [14, 15]], piel: "S", boca: [[12, 16], [13, 16], [14, 16]], lame: [[12, 16], [14, 16]] },
+  malia: { ojos: [[12, 9, 2, 2], [16, 9, 2, 2]], piel: "S", boca: [[12, 13], [13, 13], [14, 13]], lame: [[12, 13], [15, 13]] },
+  kenny: { ojos: [[14, 9, 1, 1], [19, 9, 1, 1]], piel: "S", boca: [[14, 13], [15, 13], [16, 13], [17, 13]], lame: [[14, 13], [17, 13]] },
+  tivan: { ojos: [[14, 9, 1, 2], [18, 9, 1, 2]], piel: "S", boca: [[14, 12], [15, 12], [16, 12], [17, 12]], lame: [[14, 12], [17, 12]] },
+  patroclus: { ojos: [[12, 10, 1, 2], [16, 10, 1, 2]], piel: "S", boca: [[12, 13], [13, 13], [14, 13], [15, 13]], lame: [[12, 13], [15, 13]] },
+  uchis: { ojos: [[13, 8, 1, 2], [17, 8, 1, 2]], piel: "S", boca: [[14, 11], [15, 11], [16, 11], [17, 11]], lame: [[14, 11], [17, 11]] },
+  janet: { ojos: [[13, 9, 1, 2], [17, 9, 1, 2]], piel: "S", boca: [[11, 12], [12, 12], [13, 12], [14, 12]], lame: [[11, 12], [14, 12]] },
+  july: { ojos: [[11, 7, 1, 2], [15, 7, 1, 2]], piel: "S", boca: [[11, 11], [12, 11], [13, 11], [14, 11]], lame: [[11, 11], [14, 11]] },
+  edith: { ojos: [[14, 9, 1, 2], [18, 9, 1, 2]], piel: "S", boca: [[14, 12], [15, 12], [16, 12], [17, 12]], lame: [[14, 12], [17, 12]] },
+  uzu: { ojos: [[11, 15, 2, 2], [18, 15, 1, 2]], piel: "G", boca: [[12, 18], [14, 18], [16, 18], [18, 18]], lame: [[12, 18], [18, 18]] },
+  xitin: { ojos: [[14, 9, 1, 2], [18, 9, 1, 2]], piel: "S", boca: [[14, 13], [15, 13], [16, 13], [17, 13]], lame: [[14, 13], [17, 13]] },
+};
+/* La cara del rival con la boca llena de mermelada de frutilla (rosada y con borde, para que se lea en cualquier piel); lame: se pasa la lengüita; dormido: ojos cerrados (una rayita). */
+function caraMermelada(c, id, { lame = false, dormido = false, t = 0 } = {}) {
+  const cara = CARAS[id]; if (!cara) return c;
+  const filas = c.cuerpo.map((f) => [...f]), pon = (x, y, k) => { if (filas[y] && x >= 0) { while (filas[y].length <= x) filas[y].push("."); filas[y][x] = k; } };
+  /* Embadurnado: la mancha se sale de la boca por los lados y por abajo, con bordes disparejos y una gota que chorrea;
+     solo pinta sobre la cara (nunca sobre el contorno ni fuera de ella). */
+  const enCara = (x, y) => filas[y] && filas[y][x] && filas[y][x] !== "K" && filas[y][x] !== ".";
+  const unta = (x, y, k = "1") => { if (enCara(x, y)) pon(x, y, k); };
+  const xs = cara.boca.map(([x]) => x), ys = cara.boca.map(([, y]) => y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  cara.boca.forEach(([x, y]) => pon(x, y, "1"));
+  if (cara.poca) {   // cara chica (dentro de la visera): la mancha justa, con la sonrisa todavía a la vista
+    for (let x = x0 + 1; x <= x1 - 1; x++) pon(x, y0, "W");
+    unta(x0 - 1, y0); unta(x1 + 1, y1); unta(x0, y1 + 1); unta(x0, y1 + 2, "4");
+  } else {
+    for (let y = y0; y <= y1; y++) { unta(x0 - 1, y); unta(x0 - 2, y); unta(x1 + 1, y); }   // se sale por las comisuras
+    unta(x0 - 1, y0 - 1); unta(x1 + 1, y0 - 1);
+    for (let x = x0 - 1; x <= x1 + 1; x++) if ((x - x0) % 3 !== 2) unta(x, y1 + 1);   // por debajo, disparejo
+    unta(x0, y1 + 2); unta(x0, y1 + 3, "4");   // la gota que chorrea
+    unta(x1 - 1, y1 + 2);
+  }
+  {   // borde oscuro alrededor de la mancha: se lee como una forma sobre cualquier piel
+    const mancha = new Set(); filas.forEach((f, y) => f.forEach((k, x) => { if (k === "1" || k === "4") mancha.add(x + "," + y); }));
+    mancha.forEach((xy) => { const [x, y] = xy.split(",").map(Number); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, v]) => { if (!mancha.has((x + u) + "," + (y + v)) && enCara(x + u, y + v) && !["2", "3", "W"].includes(filas[y + v][x + u])) pon(x + u, y + v, "5"); }); });
+  }
+  pon(x0, y0, "2"); pon(x1, y0, "2");   // brillos de la mermelada
+  if (lame) { const [x, y] = cara.lame[Math.floor(t / 220) % 2]; pon(x, y, "3"); }
+  if (dormido) {
+    cara.ojos.forEach(([x, y, w, h]) => {
+      for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) pon(x + i, y + j, cara.piel);
+      for (let i = 0; i < Math.max(2, w); i++) pon(x + i, y + h - 1, "K");
+    });
+    (cara.parpados || []).forEach(([x, y]) => pon(x, y, "K"));
+  }
+  return { ...c, pal: { ...c.pal, 1: "#F0407A", 2: "#FFD0DE", 3: "#FF9FC0", 4: "#C81E5A", 5: "#5A0A28" }, cuerpo: filas.map((f) => f.join("")) };
+}
+const zzz = (g, x, y, t) => {   // Z que suben y se desvanecen
+  for (let i = 0; i < 3; i++) {
+    const k = ((t / 1400 + i / 3) % 1), zx = Math.round(x + k * 8), zy = Math.round(y - k * 12), r = k < 0.4 ? 1 : 2;
+    g.fillStyle = `rgba(255,255,255,${1 - k})`;
+    g.fillRect(zx - r, zy - r, 2 * r + 1, 1); g.fillRect(zx - r, zy + r, 2 * r + 1, 1); for (let d = -r; d <= r; d++) g.fillRect(zx - d, zy + d, 1, 1);
+  }
+};
 const pufVerde = (g, cx, cy, k) => {
   const r = 3 + Math.sin(Math.PI * Math.min(1, k)) * 10;
   for (let dy = -12; dy <= 12; dy++) for (let dx = -12; dx <= 12; dx++) { const d = Math.hypot(dx, dy * 1.1); if (d < r) { g.fillStyle = d < r * 0.5 ? "rgba(220,252,231,.9)" : "rgba(74,222,128,.85)"; g.fillRect(cx + dx, cy + dy, 1, 1); } }
 };
 
+/* El arma del rival salta, gira en el aire y queda tirada en el suelo, detrás de él. */
+function armaVuela(g, rival, xb, dy, Tm) {
+  const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), manoY = YB + dy + HD_OY + hy;
+  const q = Math.min(1, (Tm - 900) / 500), fx = W - 6, fy = SUELO + dy - 3;
+  const ax = lerp(manoX, fx, q), ay = lerp(manoY, fy, q) - Math.sin(Math.PI * q) * 20;
+  armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 6) : 1);
+}
+/* Nombramiento de Cupe: en qué momento está (0 levanta el florete, 1 toca un hombro, 2 lo pasa por arriba, 3 toca el otro). */
+const toqueCupe = (Tm) => (Tm >= 2200 && Tm < 3800 ? Math.floor((Tm - 2200) / 400) : -1);
+const destello = (g, cx, cy, t) => {
+  const r = 1 + (Math.floor(t / 80) % 2);
+  g.fillStyle = "#FDE68A"; g.fillRect(cx - r - 1, cy, 2 * r + 3, 1); g.fillRect(cx, cy - r - 1, 1, 2 * r + 3);
+  g.fillStyle = "#FFFFFF"; g.fillRect(cx - 1, cy, 3, 1); g.fillRect(cx, cy - 1, 1, 3);
+};
 /* Ganar: un solo ataque y después el ganador celebra. Cada uno vence a su manera. */
 function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   const Tm = reduce ? 3000 : t < 6000 ? t : 3400 + (t % 2600);   // tras la primera vez, solo se repite la celebración
@@ -177,7 +302,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   if (!golpeado) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
   else if (quien === "malala") {   // ¡sapo!
     if (Tm < 1150) { figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); pufVerde(g, cR, cabezaY + 18, (Tm - 900) / 250); }
-    else { sombra(g, cR, dy); sapoMalala(g, cR - 5, SUELO + dy - 8, t); if (Tm < 1400) pufVerde(g, cR, cabezaY + 22, 0.5 + (Tm - 1150) / 500); }
+    else {   // el sapo salta de un lado a otro, con una pausita en cada lado
+      const T = Math.max(0, Tm - 1400), salto = Math.floor(T / 650), k = Math.min(1, (T % 650) / 360);   // 650 ms por salto: calza justo con la repetición de 2600
+      const lado = (n) => (n % 2 ? 8 : -8), desde = salto === 0 ? 0 : lado(salto);   // el primero parte desde donde apareció
+      const sx = Math.round(cR - 5 + (Tm >= 1400 ? lerp(desde, lado(salto + 1), k) : 0)), alto = Tm >= 1400 && k < 1 ? Math.round(Math.sin(Math.PI * k) * 10) : 0;
+      sombra(g, sx + 5, dy); sapoMalala(g, sx, SUELO + dy - 8 - alto, t);
+      if (Tm < 1400) pufVerde(g, cR, cabezaY + 22, 0.5 + (Tm - 1150) / 500);
+    }
   } else if (quien === "xitin") {   // el oso ruge y el rival huye corriendo
     const huye = Math.max(0, (Tm - 1500) / 900);
     if (huye <= 0) { sombra(g, cR, dy); figura(g, rendido(rival.hd, rival.id === "xitin"), hdPose(rival.hd, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
@@ -192,6 +323,48 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     const vaiven = Math.round(Math.sin(t / 260) * 2);
     sombra(g, cR + vaiven, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb - vaiven, dy, true);
     pajaritos(g, cR + vaiven, cabezaY - 2, t);
+  } else if (quien === "latte") {   // los naipes le estallan en la cara y queda encandilado
+    const caraX = cR - 3, ojosY = cabezaY + 11;
+    if (Tm < 1300) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true); }
+    else {
+      const vaiven = Math.round(Math.sin(t / 300) * 1.5);
+      const tapado = encandilado(rival.hd);
+      sombra(g, cR + vaiven, dy); figura(g, tapado, hdPose(tapado, "guardia", t), xb - vaiven, dy, true);
+      encandilamiento(g, caraX + vaiven, ojosY, t);
+      if (rival.id !== "xitin") {   // suelta el arma, que cae detrás de él
+        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 400);
+        const ax = lerp(W - (xb + HD_OX + hx), W - 8, q), ay = lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 8;
+        armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 4) : 1);
+      }
+    }
+    fuegosLatte(g, caraX, ojosY - 2, Tm);
+  } else if (quien === "cupe") {   // lo desarma y después lo nombra caballero
+    sombra(g, cR, dy);
+    const k = Math.max(0, Math.min(1, (Tm - 1700) / 400));
+    if (k <= 0) { const r = rendido(rival.hd, rival.id === "xitin"); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
+    else {
+      const r = arrodillado(rival.hd), [pa, pd] = rival.hd.pies;
+      figura(g, r, { ...hdPose(r, "guardia", 0), agacha: Math.round(k * 7), pies: [[pa[0] - Math.round(k * 7), pa[1]], [pd[0] + Math.round(k * 2), pd[1]]] }, xb, dy, true);
+      if (Tm >= 3800) [[-4, 16], [3, 13], [7, 19]].forEach(([ox, oy], i) => { if ((Math.floor(t / 200) + i) % 3) destello(g, cR + ox, cabezaY + oy, t + i * 90); });   // ya es caballero: brilla
+    }
+    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm);
+  } else if (quien === "malia") {   // le da a probar la mermelada: queda con la panza llena y le da sueño
+    if (Tm < 1500) {   // se la come: la boca llena de mermelada y se saborea
+      const rc = Tm >= 1000 ? caraMermelada(rival.hd, rival.id, { lame: true, t }) : rival.hd;
+      sombra(g, cR, dy); figura(g, rc, hdPose(rc, "guardia", 0), xb, dy, true);
+      if (Tm >= 1050) {   // corazoncitos de "¡qué rico!"
+        [[-10, 4], [-3, 1]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 160) + i) % 2) { g.fillStyle = "#F472B6"; [[0, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [1, 3]].forEach(([a, b]) => g.fillRect(cR + ox + a, cabezaY + oy + b - Math.round((Tm - 1050) / 90), 1, 1)); } });
+      }
+    } else {
+      const k = Math.min(1, (Tm - 1500) / 1000), vaiven = Math.round(Math.sin(t / 700) * 1.2 * k), r = pochito(rival.hd);
+      const dormido = Tm > 2300, rc = caraMermelada(r, rival.id, { lame: !dormido, dormido, t }), pr = { ...hdPose(rc, "guardia", 0), agacha: Math.round(k * 3) };
+      sombra(g, cR + vaiven, dy); figura(g, rc, pr, xb - vaiven, dy, true);
+      if (Tm > 2300) zzz(g, cR + 6 + vaiven, cabezaY + 2 + Math.round(k * 3), t);
+      if (rival.id !== "xitin") {   // deja el arma en el suelo
+        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1500) / 400);
+        armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 8, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 5, q < 1 ? Math.floor(q * 2) : 1);
+      }
+    }
   } else if (quien === "agattita") {   // atrapado por enredaderas y con flor
     sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true);
     enredaRival(g, cR, cabezaY + 14, SUELO + dy - 1, Math.min(1, (Tm - 900) / 600));
@@ -209,11 +382,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       else armaSuelta(g, rival.id, ax, ay);
       flechaJanet(g, Math.round(ax - 10), Math.round(ay), 18);
       if (q >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, ay - 8, 1, 16); }
-    } else if (!xitinR) {   // gira en el aire y queda tirada en el suelo, detrás del rival
-      const fx = W - 6, fy = SUELO + dy - 3;
-      const ax = lerp(manoX, fx, q), ay = lerp(manoY, fy, q) - Math.sin(Math.PI * q) * 20;
-      armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 6) : 1);
-    }
+    } else if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
   }
 
   /* --- el ganador: ataca una vez y después celebra --- */
@@ -222,6 +391,19 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     figura(g, yo.hd, hdPose(yo.hd, "ataque", 1000), xa, dy, false);
     g.fillStyle = "#FFFFFF";
     [4, 7, 10].forEach((r) => { for (let a = -0.7; a <= 0.7; a += 0.12) g.fillRect(Math.round(xa + HD_OX + 30 + Math.cos(a) * r), Math.round(YB + dy + HD_OY + 6 + Math.sin(a) * r), 1, 1); });
+  } else if (quien === "malia" && Tm < 1700) {   // en vez de lanzar la mermelada, le acerca el cucharón a la boca
+    const p = hdPose(yo.hd, "ataque", tA), alza = ["golpe", "choque", "sigue"].includes(p.fase) ? 5 : 0;
+    sombra(g, centroX(xa, false), dy); figura(g, yo.hd, { ...p, alimenta: true, mano: [p.mano[0], p.mano[1] - alza] }, xa, dy, false);
+  } else if (quien === "cupe" && Tm >= 1400) {   // se queda cerca, levanta el florete y toca los hombros del rival hincado
+    const fase = toqueCupe(Tm), [rsx, rsy] = rival.hd.hombro, bj = yo.hd.bajar || 0;
+    const hombroX = W - (xb + HD_OX + rsx), hombroY = rsy + 7 + (rival.hd.bajar || 0);   // hombro del rival ya hincado
+    const junto = hombroX - HD_OX - 47 + (fase === 3 ? 3 : 0);   // la punta del florete justo en el hombro (el segundo, un poco más allá)
+    const xc = lerp(2 + dx + avance(yo.hd), junto, (Tm - 1400) / 600);   // camina hasta el rival
+    const p = Tm >= 3800 ? hdPose(yo.hd, "victoria", Tm - 3800 + 400)
+      : fase === 1 || fase === 3 ? { ...hdPose(yo.hd, "guardia", t), fase: "golpe", mano: [28, hombroY - bj - 1], k: 1 }
+      : fase >= 0 ? { ...hdPose(yo.hd, "guardia", t), fase: "alto", mano: yo.hd.manos.alto } : hdPose(yo.hd, "guardia", t);
+    sombra(g, centroX(xc, false), dy); figura(g, yo.hd, p, xc, dy, false);
+    if ((fase === 1 || fase === 3) && (Tm - 2200) % 400 < 220) destello(g, Math.round(xc + HD_OX + 46), YB + dy + HD_OY + hombroY - 1, t);
   } else {
     const pYo = Tm >= 1700 ? hdPose(yo.hd, "victoria", Tm - 1700 + 400) : hdPose(yo.hd, "ataque", tA);
     sombra(g, centroX(xa, false), dy); figura(g, yo.hd, pYo, xa, dy, false);
