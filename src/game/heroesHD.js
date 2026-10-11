@@ -75,6 +75,9 @@ function hdFaldaVuelo(falda, adelante, atras) {
 /* Dibuja un personaje mejorado. p: { mano, inclina, bob, agacha, pies, capa, pelo, fase, t } */
 function hdDibujar(g, x, y, c, p) {
   if (c.retoque) { const r = c.retoque(p, c); if (r) { c = r.c; p = r.p; } }   // retoque que ve la escena (Jelic surfea en el podio)
+  if (p.voltea) {   // mirando al otro lado (el giro de July): se dibuja en espejo sobre su propio centro
+    g.save(); g.translate(2 * (x + HD_OX) + 31, 0); g.scale(-1, 1); hdDibujar(g, x, y, c, { ...p, voltea: false }); g.restore(); return;
+  }
   if (c.forma) { const f = c.forma(p); if (f) { p = { ...p, mano: f.manos[p.fase] || f.manos.guardia }; c = f; } }   // transformación (Xitin → oso)
   if (c.manoDinamica) p = { ...p, mano: c.manoDinamica(p) };   // la mano sigue un arco cuadro a cuadro (martillazo de July)
   const bj = c.bajar || 0, baja = (p.bob || 0) + (p.agacha || 0) + bj, inc = p.inclina || 0;   // bajar: personajes más bajitos, de piernas cortas
@@ -309,13 +312,13 @@ const HD_MALALA = (() => {
     const pts = [], PAJA = "#E0B04A", PAJA2 = "#A8762A", ATADO = "#9A3B2A";
     if (horizontal) {
       for (let x = hx - 9; x <= hx + 11; x++) pts.push([x, hy, "#9A6A3A"], [x, hy + 1, "#6E4824"]);
-      for (let x = hx - 15; x <= hx - 10; x++) for (let y = hy - 2 - Math.round((hx - 10 - x) / 2); y <= hy + 3 + Math.round((hx - 10 - x) / 2); y++) pts.push([x, y, (y - hy) % 2 ? PAJA2 : PAJA]);
+      for (let x = hx - 14; x <= hx - 10; x++) for (let y = hy - 1 - Math.round((hx - 10 - x) / 3); y <= hy + 2 + Math.round((hx - 10 - x) / 3); y++) pts.push([x, y, (y - hy) % 2 ? PAJA2 : PAJA]);   // pajas un poco más cortas y angostas
       pts.push([hx - 10, hy - 1, ATADO], [hx - 10, hy + 2, ATADO]);
       hdContorno(px, pts);
       [[12, 0], [13, -1], [13, 1], [14, 0]].forEach(([dx, dy]) => px(hx + dx, hy + dy, dx === 13 && !dy ? "#FFFFFF" : "#A7F3D0"));
     } else {
       for (let y = hy - 13; y <= hy + 5; y++) pts.push([hx + 1, y, "#9A6A3A"], [hx + 2, y, "#6E4824"]);
-      for (let y = hy + 6; y <= hy + 12; y++) for (let x = hx - 1 - Math.round((y - hy - 6) / 2); x <= hx + 4 + Math.round((y - hy - 6) / 2); x++) pts.push([x, y, (x - hx) % 2 ? PAJA2 : PAJA]);
+      for (let y = hy + 6; y <= hy + 11; y++) for (let x = hx - Math.round((y - hy - 6) / 3); x <= hx + 3 + Math.round((y - hy - 6) / 3); x++) pts.push([x, y, (x - hx) % 2 ? PAJA2 : PAJA]);   // pajas un poco más cortas y angostas
       pts.push([hx, hy + 6, ATADO], [hx + 3, hy + 6, ATADO]);
       hdContorno(px, pts);
       [[1, -14], [0, -15], [2, -15], [1, -16]].forEach(([dx, dy]) => px(hx + 1 + dx - 1, hy + dy, "#A7F3D0"));
@@ -534,14 +537,28 @@ const HD_PATROCLUS = (() => {
     for (let i = 0; i < 5; i++) { const largo = 8 - i - (ola && i > 1 ? 1 : 0); px(bx - 1, by + i, HDK); for (let x = 0; x < largo; x++) px(bx + x, by + i, i === 2 ? "#3F6B3A" : "#FBBF24"); px(bx + largo, by + i, HDK); }
     for (let x = -1; x <= 8; x++) { px(bx + x, by - 1, HDK); }
   };
+  /* Remate de tótem: cabeza de águila tallada en madera, de perfil hacia el rival, con un ojo grande almendrado,
+     un pico amarillo largo que se curva en la punta, tocado de plumas con banda de metal y el ala plegada debajo. */
+  const TOTEM = [
+    "...KKKKKKKKK.....", "...KTRRTTRTK.....", "...KSSSSSSSK.....", "...KMMKKKKMK.....", "...KMKEEPEKK.....",
+    "...KmKEPPEKKKK...", "...KmMKKKKMKYYYK.", "...KmMMMMMMKYYYYK", "...KmmMMMMMKyYYyK", "...KmmMMMMMKyyyK.",
+    "...KMMMMMMMMKKK..", "...KMnMMMnMK.....", "...KmMMnMMMK.....", "....KKKKKKK......",
+  ];
+  const ptt = { K: HDK, M: "#7A4A34", m: "#5A3424", n: "#A87A5E", Y: "#E8D44A", y: "#B8A030", E: "#CFE3EA", P: "#5A5F66", T: "#3E8A8A", R: "#C0283A", S: "#B8BCC4" };
+  /* vertical: el remate arriba del palo; horizontal (al embestir): un cuarto de vuelta con el palo, la coronilla
+     por delante y el pico mirando al suelo. */
+  const totem = (px, cx, abajo, horizontal) => TOTEM.forEach((f, sy) => [...f].forEach((k, sx) => {
+    if (!ptt[k]) return;
+    if (horizontal) px(abajo + (TOTEM.length - 1 - sy), cx - 7 + sx, ptt[k]); else px(cx - 7 + sx, abajo - (TOTEM.length - 1 - sy), ptt[k]);
+  }));
   const borde = (px, hx, hy, horizontal, t) => {
     const pts = [];
     if (horizontal) {
-      for (let x = hx - 10; x <= hx + 15; x++) pts.push([x, hy, (x % 5 === 0) ? "#6E4824" : "#9A6A3A"], [x, hy + 1, "#6E4824"]);
-      hdContorno(px, pts); banderin(px, hx + 6, hy + 3, t); lobo(px, hx + 19, hy);
+      for (let x = hx - 10; x <= hx + 11; x++) pts.push([x, hy, (x % 5 === 0) ? "#6E4824" : "#9A6A3A"], [x, hy + 1, "#6E4824"]);
+      hdContorno(px, pts); totem(px, hy, hx + 12, true);
     } else {
-      for (let y = hy - 18; y <= hy + 8; y++) pts.push([hx + 1, y, (y % 5 === 0) ? "#6E4824" : "#9A6A3A"], [hx + 2, y, "#6E4824"]);
-      hdContorno(px, pts); banderin(px, hx + 4, hy - 15, t); lobo(px, hx + 2, hy - 22);
+      for (let y = hy - 11; y <= hy + 8; y++) pts.push([hx + 1, y, (y % 5 === 0) ? "#6E4824" : "#9A6A3A"], [hx + 2, y, "#6E4824"]);
+      hdContorno(px, pts); totem(px, hx + 2, hy - 12, false);
     }
   };
   return {
@@ -1147,13 +1164,15 @@ const HD_MALALA34 = { ...HD_MALALA,
   }[i] || f)),
   hombro: [14, 20],
   manos: { guardia: [21, 24], impulso: [10, 27], golpe: [23, 21], choque: [24, 21], sigue: [23, 22], sube: [22, 16], alto: [25, 11] },
-  arma: (px, p) => {
-    if (!["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.arma(px, p);
-    const baja = (p.bob || 0) + (p.agacha || 0), inc = p.inclina || 0;   // la gata se queda quieta en el suelo
-    gataGordita((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? 5 : -2, 27, p.t, p.fase === "sube" || p.fase === "alto");   // detrás de la chica
-    gataCalico((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? -1 : -8, 30, p.t, p.fase === "sube" || p.fase === "alto");
+  arma: (px, p) => { if (!["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.arma(px, p); },
+  /* Las gatas van detrás de Malala (se dibujan antes que su cuerpo), quietas en el suelo aunque ella se agache. */
+  atras: (px, p) => {
+    if (["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.atras(px, { ...p, fase: "golpe" });
+    if (HD_MALALA34.huyenMascotas) return;   // perdió el versus: las gatas salieron arrancando (las dibuja la escena)
+    const baja = (p.bob || 0) + (p.agacha || 0), inc = p.inclina || 0;
+    gataGordita((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? 5 : -2, 27, p.t, (p.fase === "sube" || p.fase === "alto") && !p.duelo);   // detrás de la chica
+    gataCalico((x, y, c) => px(x - inc, y - baja, c), p.enPodio ? -1 : -8, 30, p.t, (p.fase === "sube" || p.fase === "alto") && !p.duelo);
   },
-  atras: (px, p) => { if (["impulso", "golpe", "choque", "sigue"].includes(p.fase)) HD_MALALA.atras(px, { ...p, fase: "golpe" }); },
 };
 
 /* Malala en el podio: suelta la escoba, sus dos gatas le saltan a los brazos y se queda celebrando abrazada
@@ -1262,7 +1281,7 @@ const laudColgado = (px, hx, hy) => {
   hdContorno(px, pts);
   px(hx, cy, "#2A1608"); px(hx + 1, cy, "#2A1608"); px(hx, cy + 1, "#2A1608"); px(hx + 1, cy + 1, "#2A1608");
 };
-const celebraKenny = (p) => p.fase === "sube" || p.fase === "alto";
+const celebraKenny = (p) => (p.fase === "sube" || p.fase === "alto") && !p.duelo;
 const RASGUEO_KENNY = { guardia: [[3, 6], [-2, 5]], vuelve: [[3, 6], [-2, 5]], impulso: [[2, 4], [-2, 4]], golpe: [[4, 8], [-2, 6]], choque: [[3, 7], [-2, 5]], sigue: [[3, 6], [-2, 5]], sube: [[-1, 4], [-3, 2]], alto: [[-1, 4], [-3, 2]] };
 const HD_KENNY34 = { ...HD_KENNY, brazoGrueso: 2,
   brazoCerca: { hombro: [9, 19], poses: RASGUEO_KENNY, encima: true },   // la mano de cerca rasguea la caja; al celebrar sostiene el laúd colgado   // la mano de cerca pisa las cuerdas en el mango
@@ -1293,10 +1312,10 @@ HEROES_34.push([HD_KENNY, HD_KENNY34], [HD_TIVAN, HD_TIVAN34]);
    el collar con la piedra turquesa corrido hacia el rival. Toma impulso con el bordón por detrás. */
 const HD_PATROCLUS34 = { ...HD_PATROCLUS,
   /* Sin capa: una pañoleta verde de scout amarrada al cuello, con la punta colgando hacia atrás. */
-  capa: [
-    { 15: "....KGGK", 16: "...KGGgK", 17: "...KGgK", 18: "....KgK", 19: ".....K" },
-    { 15: "....KGGK", 16: "..KGGgK", 17: "..KGgK", 18: "...KgK", 19: "....K" },
-    { 15: "....KGGK", 16: "...KGGgK", 17: "....KGgK", 18: ".....KgK", 19: "......K" },
+  capa: [   // la punta de la pañoleta flamea al viento como las capas: sube, se estira y cae
+    { 15: "....KGGK", 16: "..KGGgGK", 17: ".KGgGK", 18: "KGgK", 19: ".KK" },
+    { 15: "....KGGK", 16: "...KGGgK", 17: "..KGgGgK", 18: ".KgGK", 19: "KgK", 20: "KK" },
+    { 15: "....KGGK", 16: "...KGGgK", 17: "...KGgGK", 18: "..KGgK", 19: "..KgGK", 20: "...KK" },
   ], brazoGrueso: 2, brazoCerca: { hombro: [9, 19] }, manoEncima: true,
   cuerpo: HD_PATROCLUS.cuerpo.map((f, i) => ({
     10: ".....KHHHKSSKSSSKSK", 11: ".....KKSKSSSKSSSKSK", 12: "......KSSKsSSSSsSSK", 13: "......KKsKsSSssSSK",
@@ -1316,6 +1335,17 @@ const HD_PATROCLUS34 = { ...HD_PATROCLUS,
   },
 };
 
+/* Patroclus: un águila de cabeza blanca posada en el hombro de cerca; parpadea y de vez en cuando abre un poco las alas. */
+HD_PATROCLUS34.armaDetras = (px, p) => {
+  if (HD_PATROCLUS34.huyenMascotas) return;   // perdió el versus: el águila salió volando (la dibuja la escena)
+  const x0 = 3, y0 = 7, alas = Math.floor((p.t || 0) / 230) % 9 === 0, parpadea = Math.floor(((p.t || 0) + 900) / 140) % 17 === 0;
+  const pal = { K: HDK, W: "#F4F4F0", w: "#CFCFC8", Y: "#F2C230", y: "#B8901C", B: "#6B4423", b: "#4A2E17" };
+  const filas = [
+    "..KKK...", ".KWWWK..", "KWW" + (parpadea ? "W" : "K") + "WYYK", "KwWWWKyK", ".KWWwK..",
+    alas ? "KBKBBKBK" : ".KBbBK..", alas ? "BbBbBbBb" : "KBbBBbK.", "KBBbBBbK", "KbBBbBK.", ".KYKYK..",
+  ];
+  filas.forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) px(x0 + x, y0 + y, pal[k]); }));
+};
 /* Uchis en tres cuartos: cara con la curva suave (pómulo apenas marcado y mandíbula que se cierra de a poco),
    una daga en cada mano; lanza primero la de la derecha y enseguida la de la izquierda. */
 const dagaUchis = (px, x, y) => {
@@ -1882,18 +1912,20 @@ const sapoMalala = (g, x0, y0, t) => {
   [".KK...KK.", "KWWK.KWWK", parpadea ? "KKKKGKKKK" : "KWKGGGKWK", "KGGGGGGGGK", "KGGPPPPGGK", "KgGGGGGGgK", "KgGYYYYGgK", ".KgKKKKgK.", "KgK....KgK"].forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) { g.fillStyle = pal[k]; g.fillRect(x0 + x, y0 + y, 1, 1); } }));
 };
 
-/* Latte al ganar: lanza sus naipes hacia arriba y estallan como fuegos artificiales. */
+/* Latte al ganar (podio): lanza seis naipes hacia arriba, tres con cada mano, y estallan como fuegos artificiales. */
 {
   const armaL = HD_LATTE34.arma, proyL = HD_LATTE34.proyectil;
-  HD_LATTE34.arma = (px, p) => { if (p.fase === "sube" || p.fase === "alto") return; armaL(px, p); };   // los naipes ya van por el aire
+  HD_LATTE34.arma = (px, p) => { if ((p.fase === "sube" || p.fase === "alto") && !p.duelo) return; armaL(px, p); };   // los naipes ya van por el aire
   HD_LATTE34.proyectil = (g, x, y, p) => {
-    if (p.fase !== "sube" && p.fase !== "alto") return proyL(g, x, y, p);
-    const T = p.t % 2600, hx = x + HD_OX + 25, hy = y + HD_OY + 11;
-    const naipes = [[0, 2, "#F472B6"], [9, -1, "#FBBF24"], [17, 1, "#FFFFFF"]];
-    naipes.forEach(([dx, dy, col], i) => {
-      const sale = 450 + i * 90, estalla = sale + 380;
+    if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return proyL(g, x, y, p);
+    const T = p.t % 2600;
+    /* Seis naipes: tres desde la mano derecha (hacia ese lado) y tres desde la izquierda, intercalados. */
+    const derecha = [x + HD_OX + 25, y + HD_OY + 11], izquierda = [x + HD_OX + 5, y + HD_OY + 10];
+    const naipes = [[derecha, 0, 2, "#F472B6"], [izquierda, 0, 1, "#60A5FA"], [derecha, 9, -1, "#FBBF24"], [izquierda, -8, -2, "#4ADE80"], [derecha, 17, 1, "#FFFFFF"], [izquierda, -15, 2, "#F97316"]];
+    naipes.forEach(([[hx, hy], dx, dy, col], i) => {
+      const sale = 450 + i * 70, estalla = sale + 380;
       if (T < sale) return;
-      const ex = hx + dx, ey = y + 3 + dy;
+      const ex = hx + dx, ey = y + 9 + dy;   // a una altura donde el estallido entero cabe en la pantalla
       if (T < estalla) {   // el naipe sube girando
         const k = (T - sale) / (estalla - sale), cx = Math.round(hx + dx * k), cy = Math.round(hy + (ey - hy) * k), gira = Math.floor(T / 70) % 2;
         g.fillStyle = HDK; g.fillRect(cx - 2, cy - 2, gira ? 6 : 4, gira ? 4 : 6);
@@ -1963,7 +1995,7 @@ const florCabeza = (g, x, y) => {
   const COLORES = [["#F472B6", "#FBCFE8"], ["#FDE047", "#FEF9C3"], ["#A78BFA", "#DDD6FE"], ["#FB923C", "#FED7AA"], ["#60A5FA", "#BFDBFE"], ["#F87171", "#FECACA"], ["#FFFFFF", "#E5E7EB"]];
   const SITIOS = [[-3, 7], [3, 5], [9, 3], [27, 4], [33, 6], [39, 8], [45, 5]];   // x respecto del cuerpo, alto del tallo
   HD_AGATTITA34.proyectil = (g, x, y, p) => {
-    if (p.fase !== "sube" && p.fase !== "alto") return proyA(g, x, y, p);
+    if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return proyA(g, x, y, p);
     const T = p.t % 2600, suelo = y + HD_OY + 39;
     (p.enPodio ? [[1, 6], [6, 4], [24, 4], [29, 6]] : SITIOS).forEach(([sx, alto], i) => {
       const k = Math.min(1, Math.max(0, (T - 400 - i * 90) / 320)); if (k <= 0) return;
@@ -1992,9 +2024,9 @@ const florCabeza = (g, x, y) => {
     pts.forEach(([a, b, c]) => { g.fillStyle = c; g.fillRect(x + a, suelo + b, 1, 1); });
     g.fillStyle = "rgba(60,40,20,.5)"; g.fillRect(x - 1, suelo - 1, 3, 1);   // tierra removida
   };
-  HD_UCHIS34.arma = (px, p) => { if ((p.fase === "sube" || p.fase === "alto") && p.t % 2600 >= 450) return; armaU(px, p); };
+  HD_UCHIS34.arma = (px, p) => { if ((p.fase === "sube" || p.fase === "alto") && p.t % 2600 >= 450 && !p.duelo) return; armaU(px, p); };
   HD_UCHIS34.proyectil = (g, x, y, p) => {
-    if (p.fase !== "sube" && p.fase !== "alto") return proyU(g, x, y, p);
+    if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return proyU(g, x, y, p);
     const T = p.t % 2600, suelo = y + HD_OY + 39 + 1;
     [[x + HD_OX + 3, y + HD_OY + 9, x + HD_OX + (p.enPodio ? 1 : -5)], [x + HD_OX + 25, y + HD_OY + 11, x + HD_OX + (p.enPodio ? 29 : 35)]].forEach(([sx, sy, ex], i) => {
       const sale = 450 + i * 60, cae = sale + 750;
@@ -2012,7 +2044,7 @@ const florCabeza = (g, x, y) => {
   const armaA = HD_AGATTITA34.arma;
   HD_AGATTITA34.arma = (px, p) => {
     armaA(px, p);
-    if (p.fase !== "sube" && p.fase !== "alto") return;
+    if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return;
     const cx = p.mano[0] + 4, cy = p.mano[1] - 16, pulso = 0.6 + 0.4 * Math.sin(p.t / 150);
     hdCarga(px, cx, cy, pulso, "#86EFAC", "rgba(74,222,128,.45)", p.t);
     for (let i = 0; i < 6; i++) {   // chispitas que bajan del bastón hacia el suelo, a los dos lados
@@ -2031,7 +2063,7 @@ HD_EDITH34.ajustePose = (p) => {
 {
   const proyE = HD_EDITH34.proyectil;
   HD_EDITH34.proyectil = (g, x, y, p) => {
-    if (p.fase !== "sube" && p.fase !== "alto") return proyE(g, x, y, p);
+    if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return proyE(g, x, y, p);
     const bx = x + HD_OX + 28, by = y + HD_OY + (p.fase === "alto" ? 4 : 13) + (p.bob || 0) + (p.agacha || 0), f = Math.floor(p.t / 90);   // desde donde está el libro
     for (let i = 0; i < 6; i++) {   // rayitos en zigzag hacia todos lados, cambian cada pocos cuadros
       if ((i + f) % 3 === 0) continue;
@@ -2185,6 +2217,522 @@ HD_UZU34.cuerpo = HD_UZU34.cuerpo.map((f, i) => (i === 8 ? ".............K..K..K
   /* La pierna de adelante marcaba una raya negra en la última fila del delantal: esa fila se vuelve a pintar encima, con la falda. */
   HD_MALIA34.falda = { 27: HD_MALIA34.cuerpo[27], ...HD_MALIA34.falda };
 }
+/* Kenny en el podio: un solo de rockstar. Piernas abiertas, cabeza al ritmo, rasgueo rápido, notas disparadas,
+   dos focos de colores y, cada tanto, un salto con chispas. */
+{
+  const BEAT = 260, mod = (a, n) => ((a % n) + n) % n;
+  const salto = (T) => { const k = mod(T, 1800); return k >= 1400 && k < 1700 ? Math.round(Math.sin(Math.PI * (k - 1400) / 300) * 4) : 0; };
+  HD_KENNY34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), golpe = Math.floor(T / BEAT) % 2, rasgueo = Math.floor(T / 110) % 2, cabeza = golpe;
+    const cuerpo = c.cuerpo.map((f, i) => (i < cabeza ? "" : i <= 15 ? c.cuerpo[i - cabeza] : f));   // headbanging: la cabeza baja 1 px al ritmo
+    const mano = rasgueo ? [[3, 6], [-2, 5]] : [[3, 8], [-2, 6]];
+    const atras = (px, q) => {   // focos de colores que bajan cruzados desde arriba, por detrás de él
+      const baja = (q.bob || 0) + (q.agacha || 0);
+      [[-14, "rgba(244,114,182,.22)"], [44, "rgba(125,211,252,.22)"]].forEach(([fx, col], i) => {
+        const mece = Math.sin(T / 700 + i * 2) * 4;
+        for (let yy = -HD_OY - 8; yy < 40; yy++) { const k = (yy + HD_OY + 8) / (48 + HD_OY), cx = fx + (15 + mece - fx) * k, w = 1 + k * 7; for (let xx = Math.round(cx - w); xx <= Math.round(cx + w); xx++) px(xx, yy - baja, col); }
+      });
+    };
+    return { c: { ...c, retoque: undefined, cuerpo, atras, brazoCerca: { ...c.brazoCerca, poses: { guardia: mano } } },
+      p: { ...p, fase: "guardia", mano: c.manos.guardia, pies: [[8, 39], [20, 39]], agacha: salto(T) ? 0 : 1 + golpe, bob: -salto(T), inclina: 0 } };
+  };
+  const proyKenny = HD_KENNY34.proyectil;
+  HD_KENNY34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyKenny(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, f = Math.floor(T / 130);
+    const nota = (nx, ny, col) => { g.fillStyle = HDK; g.fillRect(nx - 1, ny - 5, 5, 8); g.fillStyle = col; g.fillRect(nx, ny, 2, 2); g.fillRect(nx + 1, ny - 4, 1, 5); g.fillRect(nx + 2, ny - 4, 1, 1); };
+    for (let i = 0; i < 3; i++) {   // notas disparadas desde el laúd hacia los costados, lejos de su cara
+      const k = mod(T / 1100 + i / 3, 1), dir = [-1, 1, -1][i], nx = Math.round(ox + (dir < 0 ? 6 : 26) + dir * k * 14), ny = Math.round(oy + 28 - k * 18 + (p.bob || 0) - i * 3);
+      if (k < 0.85) nota(nx, ny, ["#FBBF24", "#F472B6", "#7DD3FC", "#A3E635"][i]);
+    }
+    if (salto(T)) for (let i = 0; i < 8; i++) {   // chispas del salto rockero
+      const a = i * Math.PI / 4 + f * 0.3, r = 10 + (f % 3) * 2, sx = Math.round(ox + 15 + Math.cos(a) * r), sy = Math.round(oy + 22 + Math.sin(a) * r + (p.bob || 0));
+      g.fillStyle = i % 2 ? "#FFFFFF" : "#FDE047"; g.fillRect(sx, sy, 1, 1); g.fillRect(sx - 1, sy, 3, 1); g.fillRect(sx, sy - 1, 1, 3);
+    }
+  };
+}
+/* Tiván en el podio: rompe una poción en el suelo, el humo lo cubre y, al disiparse, aparece de esmoquin
+   (con colas, guantes blancos y humita roja) y celebra con elegancia, la mano abierta y destellos. */
+{
+  /* Esmoquin de verdad: chaqueta corta y entallada con solapas de satín, camisa blanca con botón, humita roja,
+     faja negra, pañuelo blanco en el bolsillo y pantalón con franja de satín; sin el abrigo largo ni sus colas. */
+  const smoking = (() => {
+    const c = HD_TIVAN34, torso = {   // corte slim: espalda angosta y el hombro baja en diagonal desde el cuello
+      14: ".........KJKKKKKJK",
+      15: "........KJLLKWWKLJK",
+      16: ".......KJjJLRrrRLJJK",
+      17: ".......KjJJLlWWWlLJJK",
+      18: ".......KjJJLlWNWlLJWJK",
+      19: ".......KjJJJLWWWLJWWJK",
+      20: ".......KjJJLNNNNNLJJK",
+      21: ".......KjJJJLNNNLJJJK",
+      22: ".......KjJJJJJNJJJJJK",
+      23: ".......KjJJJJJJJJJJJK",
+      24: ".......KjJJJJKJJJJJJK",
+      25: ".......KKJJJKTTKJJJJK",
+      26: "........KKKKTTTTKKKKK",
+      27: ".........KTtTTTTTTK",
+    };
+    const satin = { luz: "#5A5568", base: "#24212B", sombra: "#15131A" };
+    return { ...c, cuerpo: c.cuerpo.map((f, i) => torso[i] || f), falda: undefined, capa: undefined, brazoCerca: { ...c.brazoCerca, hombro: [10, 19], poses: { guardia: [[0, 7], [-1, 3]] } }, faldaVuelo: false, arma: undefined,
+      pal: { ...c.pal, J: "#2B2833", j: "#1B1920", L: "#5A5568", l: "#3E3A4A", W: "#F4F4F6", N: "#141218", R: "#E0304A", r: "#9B1428", T: "#24212B", t: "#15131A" },
+      brazo: { ...c.brazo, luz: "#4A4558", base: "#2B2833", sombra: "#1B1920", mano: "#F4F4F6", manoLuz: "#FFFFFF" },
+      pierna: { ...c.pierna, ...satin, bota: "#0E0C12", botaSombra: "#050406" } };
+  })();
+  const momento = (T) => (T < 400 ? "guardia" : T < 640 ? "carga" : T < 760 ? "lanza" : T < 1300 ? "humo" : T < 2500 ? "aparece" : "elegante");
+  HD_TIVAN34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), m = momento(T);
+    if (m === "guardia") return null;
+    if (m === "carga") return { c: { ...c, retoque: undefined }, p: { ...p, fase: "alto", mano: [18, 9], bob: -1, agacha: 0, inclina: -1 } };   // toma impulso: la poción bien arriba, echado atrás
+    if (m === "lanza") return { c: { ...c, retoque: undefined, arma: undefined }, p: { ...p, fase: "golpe", mano: [27, 27], bob: 0, agacha: 3, inclina: 2 } };   // la azota contra el suelo
+    if (m === "humo") return { c: { ...c, retoque: undefined, arma: undefined }, p: { ...p, fase: "guardia", mano: [26, 27], bob: 0, agacha: 2, inclina: 1 } };
+    const brillo = Math.floor(T / 500) % 2;   // la mano abierta sube y baja apenas, con elegancia
+    return { c: { ...smoking, retoque: undefined },
+      p: { ...p, fase: "guardia", mano: [27, 16 + brillo], bob: 0, agacha: 0, inclina: 0 } };
+  };
+  const humo = (g, cx, cy, r, t, alfa) => {
+    if (r <= 0 || alfa <= 0) return;
+    [[0, 0, 1], [-0.6, -0.3, 0.7], [0.6, -0.4, 0.72], [-0.5, 0.5, 0.65], [0.5, 0.55, 0.68], [0, -0.75, 0.6], [0, 0.8, 0.55]].forEach(([ox, oy, rr], i) => {
+      const bx = cx + ox * r + Math.sin(t / 260 + i) * 1.5, by = cy + oy * r + Math.cos(t / 300 + i) * 1.5, R = rr * r * 0.62;
+      g.fillStyle = ["#3F7A4A", "#5FBF7A", "#8FA39A", "#6B7F74"][i % 4]; g.globalAlpha = alfa * 0.95;
+      for (let yy = -R; yy <= R; yy++) { const w = Math.sqrt(Math.max(0, R * R - yy * yy)); g.fillRect(Math.round(bx - w), Math.round(by + yy), Math.round(2 * w) + 1, 1); }
+    });
+    g.globalAlpha = 1;
+  };
+  const estrellita4 = (g, cx, cy, r, col) => { g.fillStyle = col; g.fillRect(cx - r, cy, 2 * r + 1, 1); g.fillRect(cx, cy - r, 1, 2 * r + 1); g.fillStyle = "#FFFFFF"; g.fillRect(cx, cy, 1, 1); };
+  const proyTivan = HD_TIVAN34.proyectil;
+  HD_TIVAN34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyTivan(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY;
+    if (T >= 640 && T < 760) {   // la poción baja disparada a sus pies, con estela
+      const k = (T - 640) / 120, cx = Math.round(ox + 28 + k * 2), cy = Math.round(oy + 28 + k * 9);
+      g.fillStyle = "rgba(134,239,172,.55)"; g.fillRect(cx - 1, cy - 9, 3, 7);
+      g.fillStyle = HDK; g.fillRect(cx - 3, cy - 3, 7, 8); g.fillStyle = "#4ADE80"; g.fillRect(cx - 2, cy, 5, 4); g.fillStyle = "#D9E8E0"; g.fillRect(cx, cy - 2, 1, 2); g.fillStyle = "#8A5A2A"; g.fillRect(cx, cy - 3, 1, 1);
+    }
+    if (T >= 760 && T < 1050) {   // ¡crash! vidrios y gotas verdes que saltan
+      const k = (T - 760) / 290;
+      for (let i = 0; i < 8; i++) { const a = Math.PI + (i / 7) * Math.PI, r = 2 + k * 10, sx = Math.round(ox + 30 + Math.cos(a) * r), sy = Math.round(oy + 38 + Math.sin(a) * r * 0.8 + k * k * 6); g.fillStyle = i % 2 ? "#E6F7EE" : "#4ADE80"; g.fillRect(sx, sy, 1, 1); }
+    }
+    if (T >= 760 && T < 2500) {   // se rompe: el humo crece y lo cubre, y después se va
+      const crece = Math.min(1, (T - 760) / 220), alfa = T < 1900 ? 1 : 1 - (T - 1900) / 600;
+      humo(g, ox + 30 - crece * 14, oy + 36 - crece * 20, 4 + crece * 19, T, alfa);   // nace donde se rompió la poción y sube a cubrirlo
+    }
+    if (T >= 2100) {   // destellos de elegancia sobre el esmoquin y alrededor
+      const f = Math.floor(T / 140);
+      [[14, 15], [6, 8], [27, 9], [21, 25], [3, 22]].forEach(([a, b], i) => { if ((f + i) % 3 === 0) estrellita4(g, ox + a, oy + b, i ? 1 : 2, i % 2 ? "#FFFFFF" : "#FDE68A"); });
+    }
+  };
+}
+/* El águila de Patroclus volando, mirando a la derecha (izq: a la izquierda); (cx, cy) es donde van las garras. */
+const AGUILA_ARRIBA = ["...KK....KK....", "..KBBK..KBBK...", "...KBbK.KBbK...", "....KBbKbBK.KKK", "KK..KBBBBBKKWWK", "KbKKBBBBBBWWWYK", ".KbbBBBBBBKWKK.", "..KKKYKKYKKK..."];
+const AGUILA_ABAJO = ["...............", "...............", "...............", "...........KKK.", "KK..KKKKKKKKWWK", "KbKKBBBBBBWWWYK", ".KbbBBBBBBKWKK.", "..KKBbKKBbKK...", "...KBBK.KBBK...", "....KK...KK...."];
+const aguilaVuela = (g, cx, cy, t, izq = false) => {
+  const pal = { K: HDK, B: "#6B4423", b: "#4A2E17", W: "#F4F4F0", Y: "#F2C230" }, filas = Math.floor(t / 110) % 2 ? AGUILA_ARRIBA : AGUILA_ABAJO;
+  filas.forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) { g.fillStyle = pal[k]; g.fillRect(Math.round(cx) + (izq ? 7 - x : x - 7), Math.round(cy) - 7 + y, 1, 1); } }));
+};
+
+/* Patroclus en el podio: clava su bordón con el tótem a su lado y celebra saltando, mientras su águila
+   da vueltas a su alrededor, pasando por delante y por detrás. */
+{
+  const ALZA = 0;
+  const vuelta = (t) => t / 650;   // ángulo del águila
+  HD_PATROCLUS34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), v = hdPose(c, "victoria", T), alto = v.fase === "alto" || v.fase === "sube";
+    const salto = alto ? (Math.floor(T / 260) % 2 ? -5 : 0) : 0;   // saltos más altos que lo normal, de pura alegría
+    const atras = (px, q) => {   // el bordón clavado en el escalón, a su lado: no se mueve aunque él salte
+      const baja = (q.bob || 0) + (q.agacha || 0);
+      HD_PATROCLUS.arma((x, y, col) => px(x, y - baja, col), { mano: [26, 31], fase: "guardia", t: T });
+    };
+    return { c: { ...c, retoque: undefined, armaDetras: undefined, atras, arma: (px) => [[7, 12, "#E5E7EB"], [7, 13, "#9AA3B0"]].forEach(([x, y, col]) => px(x, y, col)) },
+      p: { ...v, enPodio: true, mano: alto ? c.manos.alto : v.mano, bob: alto ? salto : v.bob, agacha: alto && !salto ? 2 : v.agacha || 0 } };
+  };
+  /* El águila: por delante se dibuja después del cuerpo; por detrás, en una pasada previa desde la escena (proyectilAtras). */
+  const posAguila = (x, y, t) => { const a = vuelta(t); return { cx: x + HD_OX + 16 + Math.cos(a) * 20, cy: y + HD_OY + 20 - ALZA + Math.sin(a) * 6, delante: Math.sin(a) > 0, izq: Math.sin(a) > 0 }; };
+  const proyP = HD_PATROCLUS34.proyectil;
+  HD_PATROCLUS34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyP && proyP(g, x, y, p);
+    const a = posAguila(x, y, p.t || 0); if (a.delante) aguilaVuela(g, a.cx, a.cy, p.t || 0, a.izq);
+  };
+  HD_PATROCLUS34.proyectilAtras = (g, x, y, p) => { if (!p.enPodio) return; const a = posAguila(x, y, p.t || 0); if (!a.delante) aguilaVuela(g, a.cx, a.cy, p.t || 0, a.izq); };
+}
+/* Uchis en el podio: malabares con 3 dagas; luego las lanza alto y caen girando, una por una, y se clavan de punta
+   a su izquierda, al frente y a su derecha. Después celebra saltando entre ellas. */
+{
+  const FIN_MALABAR = 2400, CLAVA = [[1, 0], [15, 250], [30, 500]];   // x donde se clava cada daga y su retraso
+  const cerca = HD_UCHIS34.brazoCerca.hombro;
+  /* Daga de 7 px; giro 0 = punta abajo, 1 = punta a la derecha, 2 = punta arriba, 3 = punta a la izquierda (cuartos de vuelta). */
+  const daga = (g, cx, cy, giro, hundida = 0) => {
+    const partes = [[-3, "#6E4424"], [-2, "#6E4424"], [-1, "#C9A24B"], [0, "#D9DEE6"], [1, "#D9DEE6"], [2, "#E8ECF2"], [3, "#FFFFFF"]];   // del mango a la punta
+    const dir = [[0, 1], [1, 0], [0, -1], [-1, 0]][((giro % 4) + 4) % 4];
+    const pts = partes.slice(0, partes.length - hundida).map(([k, col]) => [Math.round(cx + dir[0] * k), Math.round(cy + dir[1] * k), col]);
+    const guarda = [[Math.round(cx - dir[1] * 1 - dir[0]), Math.round(cy - dir[0] * 1 - dir[1])], [Math.round(cx + dir[1] * 1 - dir[0]), Math.round(cy + dir[0] * 1 - dir[1])]];
+    g.fillStyle = HDK; [...pts, ...guarda].forEach(([x, y]) => g.fillRect(x - 1, y - 1, 3, 3));
+    pts.forEach(([x, y, col]) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); });
+    g.fillStyle = "#C9A24B"; guarda.forEach(([x, y]) => g.fillRect(x, y, 1, 1));
+  };
+  const manos = (T) => {   // las dos manos suben y bajan alternadas, al ritmo del malabar
+    const fase = Math.floor(T / 300) % 2;
+    return { der: [28, 17 + (fase ? 1 : -1)], izq: [3, 17 + (fase ? -1 : 1)] };   // brazos bien abiertos: las dagas pasan por fuera de su cara
+  };
+  HD_UCHIS34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0);
+    if (T < FIN_MALABAR + 300) {
+      const { der, izq } = manos(T), lanzando = T >= FIN_MALABAR;
+      const mi = lanzando ? [izq[0] - cerca[0], 6 - cerca[1]] : [izq[0] - cerca[0], izq[1] - cerca[1]];
+      return { c: { ...c, retoque: undefined, arma: undefined, brazoCerca: { ...c.brazoCerca, poses: { guardia: [mi, [-1, 2]] } } },
+        p: { ...p, fase: "guardia", mano: lanzando ? [24, 8] : der, bob: 0, agacha: 0 } };
+    }
+    return { c: { ...c, retoque: undefined, arma: undefined }, p: { ...hdPose(c, "victoria", T - FIN_MALABAR), enPodio: true } };   // celebra entre sus dagas
+  };
+  const proyU = HD_UCHIS34.proyectil;
+  HD_UCHIS34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyU(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, giro = Math.floor(T / 90);
+    if (T < FIN_MALABAR) {   // cascada: cada daga va de una mano a la otra por arriba, girando
+      const { der, izq } = manos(T);
+      for (let i = 0; i < 3; i++) {
+        const u = ((T / 1200 + i / 3) % 1), ida = u < 0.5, k = ida ? u * 2 : (u - 0.5) * 2;
+        const [a, b] = ida ? [izq, der] : [der, izq], alto = ida ? 21 : 18;
+        daga(g, ox + a[0] + (b[0] - a[0]) * k, oy + a[1] - 3 - Math.sin(Math.PI * k) * alto, giro + i);
+      }
+      return;
+    }
+    const suelo = y + HD_OY + 39;
+    CLAVA.forEach(([cx, retraso]) => {   // suben juntas y caen ordenadas, girando, hasta clavarse de punta
+      const k = (T - FIN_MALABAR - retraso) / 700;
+      if (k < 0) { daga(g, ox + 24, oy + 2 - Math.min(1, (T - FIN_MALABAR) / 300) * 10, giro); return; }
+      if (k < 1) { daga(g, ox + 24 + (cx - 24) * k, oy - 8 + (suelo - 1 - (oy - 8)) * k * k, k > 0.85 ? 0 : giro); return; }
+      daga(g, ox + cx, suelo - 1, 0, 2);   // clavada en la franja clara del escalón, a la altura de sus pies
+      if (k < 1.3) { g.fillStyle = "#FFFFFF"; g.fillRect(ox + cx - 3, suelo + 1, 2, 1); g.fillRect(ox + cx + 2, suelo + 1, 2, 1); }   // chispitas al clavarse
+    });
+  };
+}
+/* Janet en el podio: se pone una manzana en la cabeza, dispara hacia el lado y la flecha, desafiando toda la física,
+   da una vuelta, vuelve, le saca la manzana de la cabeza y la deja ensartada, clavada en el borde de la pantalla. */
+{
+  const SUELTA = 1060, CLAVA = 2300;   // cuándo suelta la flecha y cuándo se clava en el borde
+  const cerca = HD_JANET34.brazoCerca.hombro;
+  const manzana = (g, cx, cy) => {
+    const pts = [[-1, -1], [0, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1], [-1, 2], [0, 2], [1, 2]];
+    g.fillStyle = HDK; pts.forEach(([a, b]) => g.fillRect(cx + a - 1, cy + b - 1, 3, 3));
+    pts.forEach(([a, b]) => { g.fillStyle = a < 0 && b < 1 ? "#F05A5A" : "#D7263D"; g.fillRect(cx + a, cy + b, 1, 1); });
+    g.fillStyle = "#FFFFFF"; g.fillRect(cx - 1, cy - 1, 1, 1);
+    g.fillStyle = "#6E4424"; g.fillRect(cx, cy - 2, 1, 1); g.fillStyle = "#4ADE80"; g.fillRect(cx + 1, cy - 3, 2, 1);   // palito y hojita
+  };
+  /* Flecha en cualquier dirección: la punta en (x, y) y el cuerpo hacia atrás según (dx, dy). */
+  const flecha = (g, x, y, dx, dy) => {
+    const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, pts = [];
+    for (let i = 0; i <= 11; i++) pts.push([Math.round(x - ux * i), Math.round(y - uy * i), i < 2 ? "#D9DEE6" : i > 8 ? "#4ADE80" : "#B07A44"]);
+    g.fillStyle = HDK; pts.forEach(([a, b]) => g.fillRect(a - 1, b - 1, 3, 3));
+    pts.forEach(([a, b, col]) => { g.fillStyle = col; g.fillRect(a, b, 1, 1); });
+  };
+  /* El vuelo: sale derecho hacia el lado, da una vuelta hacia arriba y vuelve a la altura de la manzana, hacia la izquierda. */
+  const vuelo = (k, sx, sy, ay) => {
+    const R = (sy - ay) / 2, cx = sx + 22, cy = sy - R;
+    if (k < 0.3) { const f = k / 0.3; return [sx + f * 22, sy, 1, 0]; }
+    if (k < 0.7) { const a = Math.PI / 2 - ((k - 0.3) / 0.4) * Math.PI; return [cx + Math.cos(a) * R, cy + Math.sin(a) * R, Math.sin(a), -Math.cos(a)]; }   // la vuelta
+    const f = (k - 0.7) / 0.3; return [cx - f * (cx - 1), ay, -1, 0];   // de vuelta, derecho hacia el borde izquierdo
+  };
+  HD_JANET34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0);
+    if (T < 300) return null;
+    if (T < 800) {   // se pone la manzana en la cabeza con la mano de cerca
+      const arriba = [[3, -18], [-3, -9]];
+      return { c: { ...c, retoque: undefined, brazoCerca: { ...c.brazoCerca, poses: { guardia: arriba } } }, p: { ...p, fase: "guardia", mano: c.manos.guardia } };
+    }
+    if (T < 2400) { const tt = T < 1300 ? 500 + (T - 800) : 1300; return { c: { ...c, retoque: undefined }, p: { ...hdPose(c, "ataque", tt), enPodio: true } }; }   // apunta y dispara hacia el lado
+    return { c: { ...c, retoque: undefined }, p: { ...hdPose(c, "victoria", T - 2400), enPodio: true } };
+  };
+  const proyJ = HD_JANET34.proyectil;
+  HD_JANET34.proyectil = (g, x, y, p) => {
+    if (p.sinFlecha) return;   // la escena dibuja su propia flecha (la que rebota en el overtake)
+    if (!p.enPodio) return proyJ(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY;
+    const r = HD_JANET34.retoque(p, HD_JANET34), q = r ? r.p : p;   // la pose que de verdad se dibujó (para que la manzana quede sobre la cabeza)
+    const enCabeza = [ox + 13 + (q.inclina || 0), oy - 3 + (q.bob || 0) + (q.agacha || 0)], sx = ox + 28, sy = oy + 19;
+    if (T >= 300 && T < 650) manzana(g, ox + cerca[0] + 3, oy + cerca[1] - 20);   // en la mano, subiendo
+    const k = (T - SUELTA) / (CLAVA - SUELTA);
+    if (k < 0) { if (T >= 650) manzana(g, enCabeza[0], enCabeza[1]); return; }
+    if (k < 1) {
+      const [fx, fy, dx, dy] = vuelo(k, sx, sy, enCabeza[1]);
+      const llevaManzana = k >= 0.7 && fx <= enCabeza[0] + 2;
+      if (!llevaManzana) manzana(g, enCabeza[0], enCabeza[1]);
+      flecha(g, Math.round(fx), Math.round(fy), dx, dy);
+      if (llevaManzana) manzana(g, Math.round(fx) + 4, Math.round(fy));
+      return;
+    }
+    /* Clavada en el borde izquierdo, con la manzana ensartada. */
+    const bx = 1, by = oy - 3;
+    flecha(g, bx, by, -1, 0); manzana(g, bx + 4, by);
+    if (k < 1.15) { g.fillStyle = "#FFFFFF"; g.fillRect(bx + 1, by - 3, 1, 2); g.fillRect(bx + 1, by + 2, 1, 2); }
+    g.fillStyle = "#3E2A1A"; g.fillRect(0, by - 4, 1, 9);
+  };
+}
+/* July en el podio: gira varias veces con el martillo extendido (se voltea de un lado a otro muy rápido, con rayas
+   de velocidad), se detiene mareado con estrellitas sobre la cabeza y termina riéndose a carcajadas. */
+{
+  const GIRA = 1900, MAREO = 3100;
+  const risa = (() => {   // ojos cerrados de risa, boca bien abierta
+    const filas = HD_JULY34.cuerpo.map((f) => [...f]), pon = (y, x, k) => { filas[y][x] = k; };
+    pon(7, 11, "S"); pon(7, 15, "S"); pon(8, 10, "K"); pon(8, 14, "K");
+    pon(11, 11, "K"); pon(11, 12, "9"); pon(11, 13, "9"); pon(11, 14, "K"); pon(12, 12, "K"); pon(12, 13, "K");
+    return filas.map((f) => f.join(""));
+  })();
+  HD_JULY34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), base = { ...c, retoque: undefined, manoDinamica: undefined, codoDinamico: undefined, brazoAtras: undefined };
+    if (T < GIRA) {   // girando: brazos afuera y el martillo estirado
+      const vuelta = Math.floor(T / (T < 1300 ? 90 : 140)) % 2;   // al final gira más lento
+      return { c: { ...base, arma: (px, q) => martilloJuly(px, q.mano[0], q.mano[1], 1, -0.15), brazoCerca: { ...c.brazoCerca, poses: { guardia: [[-6, 1], [-3, 0]] } } },
+        p: { ...p, fase: "guardia", mano: [28, 19], voltea: vuelta === 1, bob: 0, agacha: 1, inclina: 0 } };
+    }
+    if (T < MAREO) {   // mareado: se tambalea con el martillo apoyado
+      const tambalea = Math.round(Math.sin(T / 260) * 1.6);
+      return { c: base, p: { ...p, fase: "guardia", mano: c.manos.guardia, voltea: false, bob: 0, agacha: 1, inclina: tambalea } };
+    }
+    const sacude = Math.floor(T / 90) % 2;   // carcajadas: se sacude entero, con las manos en la panza
+    return { c: { ...base, cuerpo: risa, pal: { ...c.pal, 9: "#9B1428" }, brazoCerca: { ...c.brazoCerca, poses: { guardia: [[5, 7], [0, 5]] } } },
+      p: { ...p, fase: "guardia", mano: [21, 26], voltea: false, bob: -sacude, agacha: 0, inclina: 0 } };
+  };
+  const proyJuly = HD_JULY34.proyectil;
+  HD_JULY34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyJuly(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, f = Math.floor(T / 80);
+    if (T < GIRA) {   // rayas de velocidad que giran a su alrededor y polvo a los pies
+      for (let i = 0; i < 6; i++) { const a = (T / 120 + i * 1.05), rx = Math.round(ox + 15 + Math.cos(a) * 17), ry = Math.round(oy + 18 + Math.sin(a) * 4); g.fillStyle = Math.sin(a) > 0 ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.4)"; g.fillRect(rx - 2, ry, 4, 1); }
+      g.fillStyle = "rgba(214,207,192,.7)"; [[-4, 0], [4, 1], [0, -1]].forEach(([dx, dy], i) => g.fillRect(ox + 15 + dx + ((f + i) % 3) - 1, oy + 38 + dy, 3, 1));
+      return;
+    }
+    if (T < MAREO) { const tamb = Math.round(Math.sin(T / 260) * 1.6); pajaritos(g, ox + 15 + tamb, oy - 1, T); return; }
+    [[-3, 9], [19, 9]].forEach(([a, b], i) => { if ((f + i) % 2) { g.fillStyle = "#7DD3FC"; g.fillRect(ox + a + 1, oy + b - (p.bob || 0) + ((f >> 1) % 2), 1, 2); } });   // lagrimitas de risa
+    [[-6, 4], [-7, 8], [24, 4], [25, 8]].forEach(([a, b], i) => { if ((f + i) % 2) { g.fillStyle = "#FFFFFF"; g.fillRect(ox + a, oy + b, 2, 1); } });   // rayitas de carcajada
+  };
+}
+/* Edith en el podio: llama a una nube blanca, se acomoda en ella (las piernas hundidas en la nube) y de la nube
+   sale un arcoíris que se dibuja hasta una nubecita al otro lado. Reemplaza la levitación con rayos. */
+{
+  const SUBE = 7;
+  const flota = (T) => (T < 500 ? 0 : T < 1300 ? Math.round(SUBE * (T - 500) / 800) : SUBE + Math.round(Math.sin(T / 500)));
+  HD_EDITH34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0);
+    const fase = T >= 500 && T < 1800 ? (Math.floor(T / 220) % 2 ? "alto" : "sube") : "guardia";   // mientras la nube la eleva, sube las manos emocionada
+    const cuerpo = T >= 500 ? c.cuerpo.map((f, i) => (i === 12 || i === 13 ? [...f].map((k, x) => (i === 12 ? { 14: "K", 15: "8", 16: "8", 17: "K" }[x] : { 15: "K", 16: "K" }[x]) || k).join("") : f)) : c.cuerpo;   // sonríe feliz desde que la nube la eleva
+    return { c: { ...c, retoque: undefined, ajustePose: undefined, cuerpo, pal: { ...c.pal, 8: "#FFFFFF" } }, p: { ...p, fase, mano: c.manos[fase], bob: -flota(T), agacha: 0, inclina: 0 } };
+  };
+  const nube = (g, cx, cy, escala, chica) => {
+    const bolas = chica ? [[0, 0, 3], [-3, 1, 2], [3, 1, 2]] : [[0, -1, 6], [-8, 1, 5], [8, 1, 5], [-13, 3, 3], [13, 3, 3], [-4, 2, 5], [4, 2, 5]];
+    [["#1A1020", 1], ["#C7D2FE", 0], ["#FFFFFF", -1]].forEach(([col, crece], capa) => {
+      g.fillStyle = col;
+      bolas.forEach(([ox, oy, r]) => { const R = Math.max(0, (r + crece) * escala); for (let yy = -R; yy <= R; yy++) { if (capa === 2 && yy > R * 0.3) continue; const w = Math.sqrt(Math.max(0, R * R - yy * yy)); g.fillRect(Math.round(cx + ox * escala - w), Math.round(cy + oy * escala + yy), Math.round(2 * w) + 1, 1); } });
+    });
+  };
+  const COLORES = ["#EF4444", "#F97316", "#FACC15", "#4ADE80", "#60A5FA", "#A78BFA"];
+  const proyE = HD_EDITH34.proyectil;
+  HD_EDITH34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyE(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, alto = flota(T);
+    if (T < 500) return;
+    const k = Math.min(1, (T - 1300) / 1000);
+    if (k > 0) {   // el arcoíris sale de su nube y se dibuja en arco hasta la nubecita del otro lado
+      const cx = ox + 30, cy = oy + 36 - alto;
+      COLORES.forEach((col, i) => {
+        const r = 11 - i; g.fillStyle = col;
+        for (let a = 0; a <= Math.PI * k; a += 0.04) g.fillRect(Math.round(cx - Math.cos(a) * r), Math.round(cy - Math.sin(a) * r), 1, 1);
+      });
+      if (k >= 1) nube(g, cx + 8, cy + 1, 1, true);
+      const f = Math.floor(T / 150);
+      [[-6, -14], [4, -13], [10, -6]].forEach(([dx, dy], i) => { if ((f + i) % 3 === 0 && k >= 1) { g.fillStyle = "#FFFFFF"; g.fillRect(cx + dx, cy + dy, 1, 1); g.fillRect(cx + dx - 1, cy + dy, 3, 1); g.fillRect(cx + dx, cy + dy - 1, 1, 3); } });
+    }
+    nube(g, ox + 15, oy + 35 - alto, Math.min(1, (T - 500) / 600), false);   // la nube donde se acomoda (le tapa las piernas)
+  };
+}
+/* Uzu en el podio: le llueven monedas de oro, se vuelve loco, se saca el casco para juntarlas como en un tazón
+   y se lo vuelve a poner: le queda chueco y medio levantado, con monedas asomándose. */
+{
+  const LLUVIA = 400, SACA = 1500, JUNTA = 1800, PONE = 2900, LISTO = 3200;
+  const CASCO = [8, 9, 10, 11, 12, 13], X0 = 8, X1 = 23;
+  const cuerpo = HD_UZU34.cuerpo;
+  const sinCasco = cuerpo.map((f, i) => {
+    if (!CASCO.includes(i)) return f;
+    const fila = [...f]; for (let x = X0; x <= X1; x++) if (fila[x] !== undefined) fila[x] = ".";
+    const pon = (x0, txt) => [...txt].forEach((k, j) => { while (fila.length <= x0 + j) fila.push("."); fila[x0 + j] = k; });
+    if (i === 10) { pon(14, "K"); pon(16, "K"); }   // pelitos en la coronilla
+    if (i === 11) pon(11, "KKKKKKKKKK");
+    if (i === 12) pon(9, "KGGgGGGGGGGGGK");
+    if (i === 13) pon(8, "KGGGGGGGGGGGGGGK");
+    return fila.join("");
+  });
+  /* El casco inclinado unos grados (apoyado en el lado de atrás y levantado hacia adelante), girado píxel a píxel
+     para que conserve su forma y sus bordes nítidos; en el hueco que queda se asoma el oro. */
+  const INCLINA = 0.25, PIVOTE = [9, 13.5];
+  const cascoChueco = (c) => (px) => {
+    const color = (k) => (k === "K" ? HDK : c.pal[k]), fondo = {};
+    for (let y = 2; y <= 16; y++) for (let x = 4; x <= 30; x++) {
+      const dx = x - PIVOTE[0], dy = y - PIVOTE[1];
+      const sx = Math.round(PIVOTE[0] + dx * Math.cos(INCLINA) - dy * Math.sin(INCLINA)), sy = Math.round(PIVOTE[1] + dx * Math.sin(INCLINA) + dy * Math.cos(INCLINA));
+      if (!CASCO.includes(sy) || sx < X0 || sx > X1) continue;
+      const k = (cuerpo[sy] || "")[sx]; if (!k || k === "." || !color(k)) continue;
+      px(x, y, color(k)); fondo[x] = Math.max(fondo[x] ?? -1, y);
+    }
+    Object.entries(fondo).forEach(([x, y]) => { x = +x; if (x >= 13 && x <= 22 && y < 13) for (let yy = y + 1; yy <= 12; yy++) px(x, yy, (x + yy) % 3 ? "#F2C230" : "#FFF3B0"); });   // el oro que no le deja entrar el casco
+  };
+  HD_UZU34.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), base = { ...c, retoque: undefined, arma: undefined, armaDetras: undefined, manoDinamica: undefined, codoDinamico: undefined, brazoAtras: undefined };
+    if (T < LLUVIA) return null;
+    if (T < SACA) {   // se vuelve loco: salta y tiembla con los brazos arriba
+      const salta = Math.floor(T / 160) % 2;
+      return { c: base, p: { ...p, fase: salta ? "alto" : "sube", mano: c.manos[salta ? "alto" : "sube"], bob: -salta * 3, agacha: 0, inclina: Math.floor(T / 60) % 2 ? 1 : -1 } };
+    }
+    if (T < PONE) {   // sin casco, con el casco dado vuelta en las manos como tazón
+      const k = T < JUNTA ? (T - SACA) / (JUNTA - SACA) : 1;
+      return { c: { ...base, cuerpo: sinCasco, codos: { guardia: [22, 25] }, brazoCerca: { ...c.brazoCerca, poses: { guardia: [[6, 5], [2, 4]] } } },
+        p: { ...p, fase: "guardia", mano: [21 + Math.round((1 - k) * 2), 26 - Math.round((1 - k) * 12)], bob: 0, agacha: T >= JUNTA ? Math.floor(T / 200) % 2 : 0, inclina: 0 } };
+    }
+    if (T < LISTO) return { c: { ...base, cuerpo: sinCasco }, p: { ...p, fase: "alto", mano: [18, 10], bob: 0, agacha: 0, inclina: 0 } };   // se lo pone de vuelta
+    const v = hdPose(c, "victoria", T - LISTO);
+    return { c: { ...base, cuerpo: sinCasco, arma: cascoChueco(c) }, p: { ...v, enPodio: true } };   // feliz, con el casco chueco
+  };
+  const moneda = (g, cx, cy, t, i) => {
+    const canto = Math.floor(t / 90 + i) % 3 === 1;
+    g.fillStyle = HDK; g.fillRect(cx - (canto ? 1 : 2), cy - 2, canto ? 3 : 5, 5);
+    g.fillStyle = "#F2C230"; g.fillRect(cx - (canto ? 0 : 1), cy - 1, canto ? 1 : 3, 3);
+    if (!canto) { g.fillStyle = "#FFF3B0"; g.fillRect(cx - 1, cy - 1, 1, 1); }
+  };
+  /* El casco dado vuelta (de tazón): la cúpula abajo; lleno = con monedas asomándose. */
+  const tazon = (g, cx, cy, lleno) => {
+    g.fillStyle = HDK; g.fillRect(cx - 7, cy - 1, 15, 2); g.fillRect(cx - 6, cy + 1, 13, 2); g.fillRect(cx - 4, cy + 3, 9, 2);
+    g.fillStyle = "#5E636E"; g.fillRect(cx - 6, cy, 13, 1); g.fillRect(cx - 5, cy + 1, 11, 2); g.fillRect(cx - 3, cy + 3, 7, 1);
+    g.fillStyle = "#8A909C"; g.fillRect(cx - 5, cy + 1, 3, 1);
+    for (let i = 0; i < lleno; i++) { g.fillStyle = i % 2 ? "#F2C230" : "#FFF3B0"; g.fillRect(cx - 5 + ((i * 3) % 11), cy - 1 - Math.floor(i / 4), 2, 1); }
+  };
+  const proyU = HD_UZU34.proyectil;
+  HD_UZU34.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyU && proyU(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, suelo = oy + 38;
+    if (T < LLUVIA) return;
+    for (let i = 0; i < 18; i++) {   // la lluvia de oro: al principio por todos lados, después sobre él
+      const sale = LLUVIA + i * 130, k = (T - sale) / 700; if (k < 0) continue;
+      const alCasco = sale >= JUNTA - 200 && sale < PONE - 600;
+      if (!alCasco && i % 3 === 1) continue;   // menos monedas al escalón: solo un montoncito
+      const cx = alCasco ? ox + 16 + ((i * 5) % 7) - 3 : ox - 1 + ((i * 37) % 26), destino = alCasco ? oy + 23 : suelo;
+      if (k < 1) moneda(g, cx, Math.round(oy - 12 + (destino - oy + 12) * k * k), T, i);
+      else if (!alCasco) {   // quedan acostadas en el escalón, a alturas un poco distintas, brillando de a ratos
+        const yy = suelo + (i % 2); g.fillStyle = HDK; g.fillRect(cx - 2, yy - 1, 5, 3); g.fillStyle = "#F2C230"; g.fillRect(cx - 1, yy, 3, 1);
+        if (Math.floor(T / 200 + i) % 6 === 0) { g.fillStyle = "#FFFFFF"; g.fillRect(cx, yy - 2, 1, 1); }
+      }
+    }
+    if (T >= SACA && T < PONE) {   // el casco de tazón entre sus manos, cada vez más lleno
+      const k = T < JUNTA ? (T - SACA) / (JUNTA - SACA) : 1, lleno = Math.max(0, Math.min(12, Math.floor((T - JUNTA) / 80)));
+      tazon(g, ox + 16, Math.round(oy + 24 - (1 - k) * 12 + (p.agacha || 0)), lleno);
+    }
+    if (T >= PONE && T < LISTO) { const k = (T - PONE) / (LISTO - PONE); tazon(g, ox + 15, Math.round(oy + 24 - k * 14), 12); }   // lo sube a la cabeza
+    if (T >= LISTO && Math.floor(T / 900) % 3 === 0) { const k = (T % 900) / 900; moneda(g, ox + 22 + Math.round(k * 4), Math.round(oy + 12 + k * k * 26), T, 0); }   // se le cae una moneda de vez en cuando
+  };
+}
+/* Uzu: el borde de abajo de la túnica cierra parejo de lado a lado (antes quedaban flecos sueltos a la izquierda)
+   y un collar de huesos con un colmillo al centro, sobre el pecho. */
+const COLLAR_UZU = { 21: [11, "WtVWtWVtW"], 22: [15, "WV"], 23: [15, "V"] };
+const conCollarUzu = (cuerpo) => cuerpo.map((f, i) => (COLLAR_UZU[i] ? [...f].map((k, x) => { const [x0, txt] = COLLAR_UZU[i]; return x >= x0 && x < x0 + txt.length ? txt[x - x0] : k; }).join("") : f));
+HD_UZU34.cuerpo = conCollarUzu(HD_UZU34.cuerpo.map((f, i) => (i === 26 ? "..........KtTTTTTTtTK" : i === 27 ? "..........KKKKKKKKKKK" : f)));
+/* Xitin en el podio: se transforma (con destellos y corazones) en un osito kawaii de cabeza grande, orejitas rosadas,
+   ojos con brillo y un mechón platinado, y celebra dando saltitos y saludando con las patitas. */
+{
+  const OSITO = { ...HD_XITIN_NUEVA2, cuerpo: [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "......KKK.............KKK",
+    ".....KUUUK.....KK....KUUUK",
+    "....KUUUUUK...KHHK..KUUUUUK",
+    "...KUUPPPUUKKKHHHHKKUUPPPUUK",
+    "...KUUPPPUUKUUUUUUUKUUPPPUUK",
+    "...KUUPPPUUUUUUUUUUUUUPPPUUK",
+    "....KuuUUUUUUUUUUUUUUUUUUUK",
+    ".....KuUUUUUUUUUUUUUUUUUUK",
+    ".....KuUUUUUUUUUUUUUUUUUUK",
+    ".....KuUUUUUUUUUUUUUUUUUUK",
+    "....KuuUUUZKUUUUUUUZKUUUUUK",
+    "....KuuUUUKKUUUUUUUKKUUUUUK",
+    "....KuuUUUKKUUUUUUUKKUUUUUK",
+    "....KuuUUUUUUUUUUUUUUUUUUUK",
+    "....KuuPPUUUUMMKKMUUUUPPUUK",
+    ".....KuUUUUUMMMKKMMUUUUUUK",
+    ".....KuUUUUUMMKMMKMUUUUUUK",
+    "......KUUUUUUMMKKMUUUUUUK",
+    ".......KUUUUUUUUUUUUUUUK",
+    "........KUUUUUUUUUUUUUK",
+    ".......KUUUUUUUUUUUUUUUK",
+    "......KUUUUUUUUMUUUUUUUUK",
+    "......KUUUUUMMMMMMMUUUUUK",
+    "......KUUUUMMMMMMMMMUUUUK",
+    "......KUUUUMMMMMMMMMUUUUK",
+    "......KUUUUMMMMMMMMMUUUUK",
+    ".......KUUUMMMMMMMMMUUUK",
+    "........KUUUMMMMMMMUUUK",
+    ".......KUUUUUUUMUUUUUUUK",
+    "......KUUUUUUUUUUUUUUUUUK",
+    "......KUMMMMUKKKKKUMMMMUK",
+    ".......KUUUUK.....KUUUUK",
+  ],
+    pal: { ...HD_XITIN_NUEVA2.pal, U: "#9A6A3E", u: "#6E4626", P: "#F4A6B8", M: "#EBD2AE", Z: "#FFFFFF", H: "#F2E8C4" },
+    sinPiernas: true, capa: undefined, pelo: undefined, falda: undefined, forma: undefined, arma: undefined, armaDetras: undefined, proyectil: undefined, retoque: undefined, top: 0, bajar: 0,
+    brazo: { luz: "#B8865A", base: "#9A6A3E", sombra: "#6E4626", mano: "#EBD2AE", manoLuz: "#F6E4C8" }, brazoGrueso: 3,
+    hombro: [22, 30], brazoCerca: { hombro: [8, 30] }, manos: { guardia: [25, 34], sube: [26, 27], alto: [27, 24] }, codos: undefined, codoDinamico: undefined, manoDinamica: undefined };
+  const CAMBIA = 700;
+  HD_XITIN_NUEVA2.retoque = (p, c) => {
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0);
+    if (T < CAMBIA) return null;
+    const saluda = Math.floor(T / 260) % 2, fase = saluda ? "alto" : "sube";
+    return { c: { ...OSITO, brazoCerca: { hombro: [8, 30], poses: { sube: [[-4, -3], [-3, 0]], alto: [[-5, -6], [-4, -2]] } } }, p: { ...p, fase, mano: OSITO.manos[fase], bob: saluda ? -2 : 0, agacha: 0, inclina: 0 } };
+  };
+  const corazon = (g, x, y, col) => [[0, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [1, 3]].forEach(([a, b]) => { g.fillStyle = col; g.fillRect(x + a, y + b, 1, 1); });
+  const proyX = HD_XITIN_NUEVA2.proyectil;
+  HD_XITIN_NUEVA2.proyectil = (g, x, y, p) => {
+    if (!p.enPodio) return proyX && proyX(g, x, y, p);
+    const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY;
+    if (T < 450) return proyX && proyX(g, x, y, p);
+    if (T < 1050) {   // la transformación: una nube de destellos y corazones rosados
+      const k = (T - 450) / 600, r = 4 + Math.sin(Math.PI * k) * 14;
+      g.globalAlpha = Math.sin(Math.PI * k) * 0.85; g.fillStyle = "#FBCFE8";
+      for (let yy = -r; yy <= r; yy++) { const w = Math.sqrt(Math.max(0, r * r - yy * yy)); g.fillRect(Math.round(ox + 15 - w), Math.round(oy + 22 + yy), Math.round(2 * w) + 1, 1); }
+      g.globalAlpha = 1;
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + k * 2, rr = r + 2; if (i % 2) corazon(g, Math.round(ox + 15 + Math.cos(a) * rr), Math.round(oy + 22 + Math.sin(a) * rr), "#F472B6"); else { g.fillStyle = "#FFFFFF"; g.fillRect(Math.round(ox + 15 + Math.cos(a) * rr), Math.round(oy + 22 + Math.sin(a) * rr), 2, 2); } }
+      return;
+    }
+    for (let i = 0; i < 3; i++) {   // corazoncitos que suben del osito
+      const k = ((T / 1400 + i / 3) % 1), hx = Math.round(ox + 6 + i * 9 + Math.sin(T / 300 + i) * 2), hy = Math.round(oy + 8 - k * 14);
+      if (k < 0.8) corazon(g, hx, hy, i % 2 ? "#F9A8D4" : "#F472B6");
+    }
+  };
+}
+/* Patroclus: pañoleta de scout roja (la verde se perdía con el fondo de selva). Va al final, después de los ajustes de paleta. */
+HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[1].pal, G: "#C8372B", g: "#8E2418", V: "#E8604E" }; });
+/* Uchis: como en su diseño original, una banda azul verde con borde dorado y rombos amarillos que cae por el frente
+   desde el pecho, pasa bajo el cinturón y termina en punta bajo la túnica; la túnica queda crema pareja. */
+{
+  const BANDA = [12, 16], ROMBOS = { 17: "TYT", 18: "YYY", 19: "TYT", 23: "TYT", 24: "YYY", 25: "TYT" };
+  const pinta = (f, i) => [...f].map((k, x) => {
+    if (i === 21) return k;   // el cinturón va por encima de la banda
+    if (x === BANDA[0] || x === BANDA[1]) return k === "K" ? k : "Y";
+    if (x > BANDA[0] && x < BANDA[1]) return k === "K" ? k : ROMBOS[i] ? ROMBOS[i][x - BANDA[0] - 1] : "T";
+    return k === "T" || k === "Y" ? "C" : k;   // fuera de la banda, túnica lisa
+  }).join("");
+  HD_UCHIS34.cuerpo = HD_UCHIS34.cuerpo.map((f, i) => (i >= 16 && i <= 27 ? pinta(f, i) : f));
+  HD_UCHIS34.falda = { 27: HD_UCHIS34.cuerpo[27], ...HD_UCHIS34.falda, 28: pinta(HD_UCHIS34.falda[28], 28), 29: ".........KKKKYTYKKK", 30: "............KKYKK", 31: ".............KK" };   // la fila 27 se repinta encima: la pierna de adelante no deja una raya
+}
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
-export { HDK, HD_OX, HD_OY, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, hombreraOso, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
+export { HDK, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, hombreraOso, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }

@@ -11,12 +11,16 @@
      · nada de violencia: ganar es DESARMAR (el arma vuela y queda en el suelo;
        el rival queda de pie con las manos arriba). Algunos ganan a su manera:
        Malala lo convierte en sapo, Janet le clava el arma en el borde con una
-       flecha, el oso de Xitin lo hace huir, Jelic lo deja viendo estrellas, Latte lo encandila, Cupe lo
-       desarma y lo nombra caballero, Malía le da mermelada y le da sueño, y Agattita lo atrapa con enredaderas y le brota una flor.
+       flecha que rebota en el suelo, el oso de Xitin lo hace huir, Jelic lo desarma y lo deja viendo estrellas, Latte lo encandila, Cupe lo
+       desarma y lo nombra caballero, Malía le da mermelada y le da sueño, Kenny lo enamora con
+       su serenata, la poción de Tiván lo deja tiznado entre el humo, el águila de
+       Patroclus se lo lleva volando, Uchis se esfuma y lo asusta por la espalda, el martillazo de
+       July lo hace saltar con una onda por el suelo, la nube de Edith
+       lo hace correr entre rayos, Uzu se pone berserk y vuelve con su arma de trofeo, y Agattita lo atrapa con enredaderas y le brota una flor.
      · en el podio, quien gana celebra y el resto aplaude.
    ========================================================================== */
 import { HEROES as CLASICOS } from './heroesClasicos.js'
-import { HD_POR_ID, HD_BASE_POR_ID, hdDibujar, hdPose, HD_OX, HD_OY, HDK, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, hombreraOso } from './heroesHD.js'
+import { HD_POR_ID, HD_BASE_POR_ID, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, hombreraOso } from './heroesHD.js'
 
 const K = HDK
 
@@ -100,7 +104,7 @@ const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-
 
 /* Dibuja un personaje (y sus efectos) en su lugar. espejo: mira a la izquierda (el rival). */
 function figura(g, c, p, x, dy, espejo) {
-  x = Math.round(x);   // en píxeles enteros: a mitad de píxel se ve borroso
+  x = Math.round(x); dy = Math.round(dy);   // en píxeles enteros: a mitad de píxel se ve borroso
   g.save();
   if (espejo) { g.translate(W, 0); g.scale(-1, 1); }
   hdDibujar(g, x, YB + dy, c, p);
@@ -134,12 +138,23 @@ function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) 
   g.restore();
 }
 
-/* El rival sin arma, con las manos arriba. */
+/* La cola de caballo de Xitin sin la piel de oso que cae por la espalda (cuando le quitan la hombrera). */
+const capaSinPiel = (capa) => capa.map((fr) => {
+  const out = {}, corta = (f) => f.slice(0, f.indexOf("K", f.search(/[Hh]/)) + 1);
+  Object.entries(fr).forEach(([k, f]) => { if (+k <= 16) out[k] = f; });
+  out[17] = corta(fr[17]); out[18] = corta(fr[18]); out[19] = ".".repeat(out[18].indexOf("K") + 1) + "K";
+  return out;
+});
+/* El rival sin arma, con las manos arriba. Xitin conserva su hombrera de oso salvo que se la quiten (conHombrera === false):
+   entonces también se le va la piel que le cae por la espalda. */
 function rendido(c, conHombrera) {
   const [sx, sy] = c.hombro;
   const r = { ...c, arma: undefined, armaDetras: undefined, proyectil: undefined, forma: undefined, manos: { ...c.manos, guardia: [sx + 3, sy - 8] }, codos: undefined, codoDinamico: undefined, manoDinamica: undefined };
   if (c.brazoCerca) r.brazoCerca = { ...c.brazoCerca, poses: {}, todas: [[-3, -8], [-4, -3]], encima: false };
-  if (conHombrera) r.arma = (px) => hombreraOso(px, 5, 15);
+  if (c.id === "xitin") {
+    if (conHombrera === false) r.capa = c.capa && capaSinPiel(c.capa);
+    else r.arma = (px) => hombreraOso(px, 5, 15);
+  }
   return r;
 }
 /* El rival hincado, con la mano en el pecho, listo para que Cupe lo nombre caballero. */
@@ -147,6 +162,13 @@ function arrodillado(c) {
   const [sx, sy] = c.hombro;
   const r = { ...rendido(c), manos: { ...c.manos, guardia: [sx + 1, sy + 4] } };
   if (c.brazoCerca) r.brazoCerca = { ...r.brazoCerca, todas: [[1, 7], [-2, 4]] };
+  return r;
+}
+/* El rival enamorado: sin arma y con las manos juntas en el pecho. */
+function enamorado(c) {
+  const [sx, sy] = c.hombro;
+  const r = { ...rendido(c), manos: { ...c.manos, guardia: [sx + 1, sy + 3] } };
+  if (c.brazoCerca) { const [nx, ny] = c.brazoCerca.hombro; r.brazoCerca = { ...r.brazoCerca, todas: [[sx - 1 - nx, sy + 3 - ny], [0, 4]] }; }
   return r;
 }
 /* El rival satisfecho: sin arma y con las dos manos sobre la barriga. */
@@ -262,6 +284,185 @@ function caraMermelada(c, id, { lame = false, dormido = false, t = 0 } = {}) {
   }
   return { ...c, pal: { ...c.pal, 1: "#F0407A", 2: "#FFD0DE", 3: "#FF9FC0", 4: "#C81E5A", 5: "#5A0A28" }, cuerpo: filas.map((f) => f.join("")) };
 }
+/* Ojos de corazón sobre los ojos del rival (que mira a la izquierda) y mejillas rosadas. */
+const corazon3 = (g, x, y, col) => {
+  const pts = [[-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 2]];
+  g.fillStyle = K; pts.forEach(([a, b]) => g.fillRect(x + a - 1, y + b, 3, 1)); pts.forEach(([a, b]) => g.fillRect(x + a, y + b - 1, 1, 3));
+  g.fillStyle = col; pts.forEach(([a, b]) => g.fillRect(x + a, y + b, 1, 1));
+  g.fillStyle = "#FFE4EC"; g.fillRect(x - 1, y, 1, 1);
+};
+const ojosCorazon = (g, id, c, xb, dy, late) => {
+  const cara = CARAS[id]; if (!cara) return;
+  const baja = (c.bajar || 0), aPantalla = (x, y) => [W - (Math.round(xb) + HD_OX + x) - 1, YB + dy + HD_OY + y + baja];
+  let centros = cara.ojos.map(([x, y, w, h]) => [x + (w - 1) / 2, y + (h - 1) / 2]);
+  if (!centros.length && cara.parpados) centros = [[cara.parpados[0][0] + 0.5, cara.parpados[0][1] - 1], [cara.parpados[2][0] + 0.5, cara.parpados[2][1] - 1]];
+  /* Corazones grandes que laten (aunque queden desproporcionados, se entiende al tiro que está enamorado). */
+  const forma = late ? ["XX.XX", "XXXXX", "XXXXX", ".XXX.", "..X.."] : [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."];
+  const pts = []; forma.forEach((f, j) => [...f].forEach((k, i) => { if (k === "X") pts.push([i - (f.length >> 1), j - 2]); }));
+  const pant = centros.map(([x, y]) => aPantalla(Math.round(x), Math.round(y))), medio = pant.reduce((a, [x]) => a + x, 0) / pant.length;
+  pant.forEach(([sx, sy]) => {
+    const cx = sx + (sx < medio ? -1 : sx > medio ? 1 : 0), set = new Set(pts.map(([a, b]) => a + "," + b));
+    g.fillStyle = K; pts.forEach(([a, b]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, v]) => { if (!set.has((a + u) + "," + (b + v))) g.fillRect(cx + a + u, sy + b + v, 1, 1); }));
+    pts.forEach(([a, b]) => { g.fillStyle = "#F43F5E"; g.fillRect(cx + a, sy + b, 1, 1); });
+    g.fillStyle = "#FFE4EC"; g.fillRect(cx - (late ? 2 : 2), sy - 2, 1, 1); if (!late) g.fillRect(cx - 2, sy - 1, 1, 1);
+  });
+};
+/* Nube de humo alquímico (verde y gris) de radio r centrada en (cx, cy); alfa para que se disipe. */
+const humoTivan = (g, cx, cy, r, t, alfa = 1) => {
+  if (r <= 0 || alfa <= 0) return;
+  const bolas = [[0, 0, 1], [-0.6, -0.3, 0.7], [0.6, -0.4, 0.72], [-0.5, 0.5, 0.65], [0.5, 0.55, 0.68], [0, -0.75, 0.6], [0, 0.8, 0.55], [-0.85, 0.1, 0.5], [0.85, 0.1, 0.52]];
+  const cols = ["#3F7A4A", "#5FBF7A", "#8FA39A", "#6B7F74"];
+  bolas.forEach(([ox, oy, rr], i) => {
+    const bx = cx + ox * r + Math.sin(t / 260 + i) * 1.5, by = cy + oy * r + Math.cos(t / 300 + i) * 1.5, R = rr * r * 0.62;
+    g.fillStyle = cols[i % 4]; g.globalAlpha = alfa * 0.92;
+    for (let yy = -R; yy <= R; yy++) { const w = Math.sqrt(Math.max(0, R * R - yy * yy)); g.fillRect(Math.round(bx - w), Math.round(by + yy), Math.round(2 * w) + 1, 1); }
+  });
+  g.fillStyle = "#C8E6D0"; g.globalAlpha = alfa * 0.8;   // brillitos claros arriba de las bolas
+  bolas.slice(0, 5).forEach(([ox, oy, rr], i) => g.fillRect(Math.round(cx + ox * r - rr * r * 0.25), Math.round(cy + oy * r - rr * r * 0.4), 2, 1));
+  g.globalAlpha = 1;
+};
+/* Centros de los ojos y de la boca del rival en la pantalla (el rival mira a la izquierda). */
+const caraEnPantalla = (id, c, xb, dy, agacha = 0) => {
+  const cara = CARAS[id]; if (!cara) return null;
+  const aP = (x, y) => [W - (Math.round(xb) + HD_OX + x) - 1, YB + dy + HD_OY + y + (c.bajar || 0) + agacha];
+  const ojos = cara.ojos.length ? cara.ojos.map(([x, y, w, h]) => aP(Math.round(x + (w - 1) / 2), Math.round(y + (h - 1) / 2))) : [aP(cara.parpados[0][0], cara.parpados[0][1] - 1), aP(cara.parpados[2][0], cara.parpados[2][1] - 1)];
+  const xs = cara.boca.map(([x]) => x), ys = cara.boca.map(([, y]) => y);
+  return { ojos, boca: aP(Math.round((Math.min(...xs) + Math.max(...xs)) / 2), Math.round((Math.min(...ys) + Math.max(...ys)) / 2)) };
+};
+/* Las dos dagas de Uchis envainadas en el cinto, una a cada lado de la cadera, con la empuñadura dorada asomando. */
+const dagasCinto = (px) => [10, 19].forEach((x) => {
+  const pts = [[x, 19, "#E0B040"], [x, 20, "#6E4424"], [x - 1, 21, "#E0B040"], [x, 21, "#E0B040"], [x + 1, 21, "#E0B040"], [x, 22, "#4A2E17"], [x, 23, "#5A3A22"], [x, 24, "#4A2E17"], [x, 25, "#5A3A22"], [x, 26, "#C9A24B"]];
+  const set = new Set(pts.map(([a, b]) => a + "," + b));
+  pts.forEach(([a, b]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([u, v]) => { if (!set.has((a + u) + "," + (b + v))) px(a + u, b + v, K); }));
+  pts.forEach(([a, b, c]) => px(a, b, c));
+});
+/* Nube de humo ninja: bolitas grises y blancas que se abren y se desvanecen (k de 0 a 1), con rayitas de velocidad. */
+const pufNinja = (g, cx, cy, k, sombra = false) => {   // sombra: humo oscuro, de donde emerge
+  if (k < 0 || k >= 1) return;
+  const r = 4 + k * 9, a = 1 - k;
+  [[0, 0, 1], [-0.7, -0.2, 0.7], [0.7, -0.3, 0.7], [-0.4, 0.6, 0.6], [0.45, 0.6, 0.6], [0, -0.8, 0.55]].forEach(([ox, oy, rr], i) => {
+    const R = rr * r * 0.6, bx = cx + ox * r, by = cy + oy * r;
+    g.globalAlpha = a; g.fillStyle = sombra ? (i % 2 ? "#3B3052" : "#1F1A2E") : i % 2 ? "#E5E7EB" : "#9CA3AF";
+    for (let yy = -R; yy <= R; yy++) { const w = Math.sqrt(Math.max(0, R * R - yy * yy)); g.fillRect(Math.round(bx - w), Math.round(by + yy), Math.round(2 * w) + 1, 1); }
+  });
+  g.globalAlpha = a; g.fillStyle = sombra ? "#7C6BA8" : "#FFFFFF";
+  for (let i = 0; i < 6; i++) { const an = i * 1.05, r0 = r + 2; g.fillRect(Math.round(cx + Math.cos(an) * r0), Math.round(cy + Math.sin(an) * r0), 2, 1); }
+  g.globalAlpha = 1;
+};
+/* Onda expansiva de July: un bulto de tierra y pasto que corre por el suelo hasta x, con piedritas que saltan,
+   y deja grietas detrás desde x0. */
+const ondaSuelo = (g, x0, x, suelo, t, alfa = 1) => {
+  g.globalAlpha = alfa;
+  for (let gx = Math.round(x0); gx < x - 3; gx += 1) {   // grieta en zigzag
+    const yy = suelo + 1 + ((gx * 7) % 3 === 0 ? 1 : 0);
+    g.fillStyle = "#2A1A10"; g.fillRect(gx, yy, 1, 1);
+    if (gx % 5 === 0) g.fillRect(gx, yy + 1, 1, 1);
+  }
+  const alto = 9;
+  for (let i = 0; i < 4; i++) {   // estela de polvo detrás del bulto
+    const px = x - 10 - i * 5, r = 3 - i * 0.5; g.globalAlpha = alfa * (0.6 - i * 0.12); g.fillStyle = "#D6CFC0";
+    for (let yy = -r; yy <= r; yy++) { const w = Math.sqrt(Math.max(0, r * r - yy * yy)); g.fillRect(Math.round(px - w), Math.round(suelo - 3 + yy - Math.sin(t / 150 + i)), Math.round(2 * w) + 1, 1); }
+  }
+  g.globalAlpha = alfa;
+  for (let dx = -9; dx <= 4; dx++) {   // el bulto de tierra que avanza, con el pasto encima
+    const h = Math.round(alto * Math.max(0, 1 - Math.abs(dx + 2) / 7)); if (h <= 0) continue;
+    g.fillStyle = "#1A1020"; g.fillRect(Math.round(x + dx), suelo - h, 1, 1);
+    g.fillStyle = dx % 3 ? "#7A5232" : "#5A3A22"; g.fillRect(Math.round(x + dx), suelo - h + 1, 1, h);
+    g.fillStyle = "#5FA046"; g.fillRect(Math.round(x + dx), suelo - h + 1, 1, 1);
+  }
+  for (let i = 0; i < 6; i++) {   // rocas que saltan del bulto
+    const k = ((t / 350 + i / 6) % 1), px = Math.round(x - 6 + i * 2 - k * 6 * (i % 2 ? 1 : -0.4)), py = Math.round(suelo - 8 - Math.sin(Math.PI * k) * 10);
+    g.fillStyle = "#1A1020"; g.fillRect(px - 1, py - 1, 4, 4);
+    g.fillStyle = i % 2 ? "#8A6446" : "#A8A29E"; g.fillRect(px, py, 2, 2);
+  }
+  g.globalAlpha = 1;
+};
+/* Nube de tormenta de Edith (centro cx, base cy) y su rayo morado en zigzag hasta el suelo en x. */
+const nubeTormenta = (g, cx, cy, escala, t) => {
+  const bolas = [[0, -3, 5], [-6, -1, 4], [6, -1, 4], [-10, 1, 3], [10, 1, 3], [-3, 1, 4], [3, 1, 4]];
+  [["#1A1020", 1], ["#4B4458", 0], ["#6E6880", -1]].forEach(([col, crece], capa) => {
+    g.fillStyle = col;
+    bolas.forEach(([ox, oy, r]) => { const R = (r + crece) * escala; for (let yy = -R; yy <= R; yy++) { if (capa === 2 && yy > -R * 0.2) continue; const w = Math.sqrt(Math.max(0, R * R - yy * yy)); g.fillRect(Math.round(cx + ox * escala - w), Math.round(cy + oy * escala + yy), Math.round(2 * w) + 1, 1); } });
+  });
+  if (Math.floor(t / 160) % 5 === 0) { g.fillStyle = "#C4B5FD"; g.fillRect(Math.round(cx - 4 * escala), Math.round(cy), 3, 1); }   // relampaguea por dentro
+};
+const rayoEdith = (g, x0, y0, x1, y1, k) => {
+  const pasos = 6, pts = [[x0, y0]];
+  for (let i = 1; i < pasos; i++) pts.push([x0 + (x1 - x0) * i / pasos + (i % 2 ? 3 : -3), y0 + (y1 - y0) * i / pasos]);
+  pts.push([x1, y1]);
+  [[3, "rgba(124,58,237,.8)"], [1, "#F5F3FF"]].forEach(([gr, col]) => { g.fillStyle = col; for (let i = 1; i < pts.length; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i]; const n = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay))); for (let j = 0; j <= n; j++) g.fillRect(Math.round(ax + (bx - ax) * j / n) - (gr >> 1), Math.round(ay + (by - ay) * j / n) - (gr >> 1), gr, gr); } });
+  for (let i = 0; i < 6; i++) { const a = Math.PI + i * Math.PI / 5, r = 2 + k * 6; g.fillStyle = i % 2 ? "#FFFFFF" : "#C4B5FD"; g.fillRect(Math.round(x1 + Math.cos(a) * r), Math.round(y1 + Math.sin(a) * r * 0.6), 1, 1); }   // chispas en el suelo
+};
+/* Dónde está el rival que corre entre los rayos (centro en pantalla) y hacia dónde corre (-1 izquierda, 1 derecha). */
+const TRAMO_EDITH = 650, INICIO_EDITH = 1400;   // el primer rayo cae con calma, cuando la nube ya creció
+const corridaEdith = (Tm, cR) => {
+  if (Tm < INICIO_EDITH) return { x: cR, dir: 0, n: -1, u: 0 };
+  const n = Math.floor((Tm - INICIO_EDITH) / TRAMO_EDITH), u = ((Tm - INICIO_EDITH) % TRAMO_EDITH) / TRAMO_EDITH, izq = n % 2 === 0;
+  const a = izq ? cR : cR - 16, b = izq ? cR - 16 : cR, k = Math.max(0, Math.min(1, (u - 0.15) / 0.7));
+  return { x: a + (b - a) * k, dir: k > 0 && k < 1 ? (izq ? -1 : 1) : 0, n, u, rayoX: rayoEdithX(n, cR) };
+};
+/* Dónde cae cada rayo: siempre a varios píxeles del rival, nunca encima de él. */
+const rayoEdithX = (n, cR) => (n % 2 === 0 ? cR + 16 : cR - 35);
+/* La nube se apura hasta quedar justo encima de donde caerá el próximo rayo. */
+const nubeEdithX = (Tm, cR) => {
+  if (Tm < INICIO_EDITH) return rayoEdithX(0, cR);   // aparece ya detrás del rival, donde caerá el primer rayo
+  const n = Math.floor((Tm - INICIO_EDITH) / TRAMO_EDITH), u = ((Tm - INICIO_EDITH) % TRAMO_EDITH) / TRAMO_EDITH;
+  return u < 0.3 ? rayoEdithX(n, cR) : lerp(rayoEdithX(n, cR), rayoEdithX(n + 1, cR), (u - 0.3) / 0.7);
+};
+const LENTO_UZU = 1.45;
+/* La hombrera de Xitin entera: la cabeza de oso con su piel colgando (una sola pieza). (x, y) es la cabeza;
+   acostada: un cuarto de vuelta, con la piel hacia el lado. */
+const PIEL_OSO = ["..KUK", ".KUuUK", ".KuUK", ".KuUUK", "KUuUUK", "KuUuUK", ".KUuK", ".KuUK", "..KK"];
+const hombreraEntera = (g, x, y, acostada = false) => {
+  const pts = [], col = { K: HDK, U: "#7A4E2C", u: "#553418" };
+  hombreraOso((a, b, c) => pts.push([a, b, c]), 0, 0);
+  PIEL_OSO.forEach((f, j) => [...f].forEach((k, i) => { if (col[k]) pts.push([i, 6 + j, col[k]]); }));
+  pts.forEach(([a, b, c]) => { const [u, v] = acostada ? [b, -a] : [a, b]; g.fillStyle = c; g.fillRect(Math.round(x - 3 + u), Math.round(y - 3 + v), 1, 1); });
+};
+/* Cuando el ganador desarma a Xitin, en vez de un arma se le cae la hombrera de oso entera: sale volando del hombro,
+   gira y queda acostada en el suelo, detrás de ella. desde: cuándo empieza a caer. */
+const hombreraCae = (g, xb, dy, Tm, desde) => {
+  const q = Math.min(1, (Tm - desde) / 550); if (q < 0) return;
+  const x0 = W - (xb + HD_OX + 8), y0 = YB + dy + HD_OY + 15, suelo = SUELO + dy + 2;
+  hombreraEntera(g, lerp(x0, W - 10, q), lerp(y0, suelo, q) - Math.sin(Math.PI * q) * 16, q >= 1 || Math.floor(q * 6) % 2 === 1);
+};
+/* Xitin sin su hombrera ni la piel de la espalda (para las poses de derrota que parten del rival rendido). */
+const sinHombrera = (r, rival) => (rival.id === "xitin" ? { ...r, arma: undefined, capa: rival.hd.capa && capaSinPiel(rival.hd.capa) } : r);
+/* Lo que Uzu se lleva de trofeo: el arma del rival, o la hombrera de oso entera si es Xitin (centrado en x, y). */
+const botinUzu = (g, rival, x, y, cuartos) => {
+  if (rival.id !== "xitin") return armaSuelta(g, rival.id, x, y, cuartos);
+  hombreraEntera(g, x, y - (cuartos ? 0 : 4), cuartos % 2 === 1);
+};
+/* Ciclo de carrera de Uzu: zancadas alternadas, el cuerpo inclinado y los brazos que se balancean poco, con el codo en su lugar. */
+const correUzu = (c, t) => {
+  const paso = Math.floor(t / 130) % 2, [sx, sy] = c.hombro, [pa, pd] = c.pies;
+  const mano = paso ? [sx + 4, sy + 2] : [sx + 1, sy + 5], codo = [Math.round((sx + mano[0]) / 2) - 1, Math.round((sy + mano[1]) / 2) + 2];
+  const cerca = paso ? [[-2, 5], [-2, 3]] : [[2, 4], [0, 3]];
+  return [{ ...c, codos: { guardia: codo }, brazoCerca: c.brazoCerca && { ...c.brazoCerca, poses: { guardia: cerca } } },
+    { ...hdPose(c, "guardia", t), mano, pies: paso ? [[pa[0] - 3, pa[1]], [pd[0] + 3, pd[1]]] : [[pa[0] + 1, pa[1]], [pd[0] - 1, pd[1]]], agacha: paso ? 2 : 1, bob: 0, inclina: 1 }];
+};
+/* ¿Uzu ya pasó (de vuelta, caminando a la izquierda) por donde quedó el arma? */
+const uzuRecogio = (Tu, xArma, xu) => { const k = Math.min(1, (Tu - 2600) / 700), centro = (W + 25) - k * (W + 25 - (xu + HD_OX + 15)); return Tu >= 2600 && centro <= xArma; };
+/* Uzu sin polera (se la arrancó): pecho verde al aire, o rojo si está en modo berserk. */
+const uzuSinPolera = (c, berserk) => {
+  const torso = { 21: "..........KGGgGGgGGGK", 22: "..........KGgGGGGgGGK", 23: "..........KGGGgGGGGGK" };
+  const pal = berserk ? { ...c.pal, G: "#D9443A", g: "#9E2A22", Z: "#F07060", R: "#FDE047" } : c.pal;
+  const rojo = berserk ? { luz: "#F07060", base: "#D9443A", sombra: "#9E2A22", mano: "#9E2A22", manoLuz: "#D9443A" } : {};
+  return { ...c, cuerpo: conCollarUzu(c.cuerpo.map((f, i) => torso[i] || f)), pal,   // el collar de huesos se queda puesto brazo: { ...c.brazo, ...rojo }, pierna: berserk ? { ...c.pierna, bota: "#9E2A22", botaSombra: "#6A1A14" } : c.pierna,
+    arma: undefined, armaDetras: undefined, proyectil: undefined, manoDinamica: undefined, codoDinamico: undefined, brazoAtras: undefined };
+};
+/* Flecha en cualquier dirección: punta en (x, y), cuerpo hacia atrás según (ux, uy). Se dibuja por tramos (de i0 a i1,
+   contados desde la punta) para poder poner un arma entre la cola y la punta: así se ve ensartada. */
+const LARGO_FLECHA = 13;
+/* Janet apuntando hacia abajo: dónde queda la mano del arco y desde dónde sale la flecha. */
+const ARCO_ABAJO = [27, 27];
+const arcoJanet = (xj, dy) => [xj + HD_OX + 1 + ARCO_ABAJO[0] + 4, YB + dy + HD_OY + 2 + ARCO_ABAJO[1] + 3];
+const flechaTramo = (g, x, y, ux, uy, i0, i1) => {
+  const L = Math.hypot(ux, uy) || 1, dx = ux / L, dy = uy / L, pts = [];
+  for (let i = i0; i <= i1; i++) pts.push([Math.round(x - dx * i), Math.round(y - dy * i), i < 2 ? "#D9DEE6" : i > LARGO_FLECHA - 3 ? "#4ADE80" : "#B07A44"]);
+  g.fillStyle = K; pts.forEach(([a, b]) => g.fillRect(a - 1, b - 1, 3, 3));
+  pts.forEach(([a, b, c]) => { g.fillStyle = c; g.fillRect(a, b, 1, 1); });
+};
 const zzz = (g, x, y, t) => {   // Z que suben y se desvanecen
   for (let i = 0; i < 3; i++) {
     const k = ((t / 1400 + i / 3) % 1), zx = Math.round(x + k * 8), zy = Math.round(y - k * 12), r = k < 0.4 ? 1 : 2;
@@ -288,9 +489,27 @@ const destello = (g, cx, cy, t) => {
   g.fillStyle = "#FDE68A"; g.fillRect(cx - r - 1, cy, 2 * r + 3, 1); g.fillRect(cx, cy - r - 1, 1, 2 * r + 3);
   g.fillStyle = "#FFFFFF"; g.fillRect(cx - 1, cy, 3, 1); g.fillRect(cx, cy - 1, 1, 3);
 };
+/* Celebración de duelo: brazos arriba, sin la celebración especial de cada uno (esa es solo para el podio). */
+const celebraDuelo = (c, t) => ({ ...hdPose({ ...c, ajustePose: undefined }, "victoria", t), duelo: true });
+/* Cuando Malala o Patroclus pierden, sus mascotas salen arrancando de la pantalla, alejándose del ganador:
+   las gatas corren a saltitos y el águila sale volando desde el hombro. */
+function mascotasHuyen(g, rival, xb, dy, Tm, t) {
+  const k = (Tm - 900) / 1200; if (k < 0 || k >= 1) return;
+  const aP = (x, y) => [W - (xb + HD_OX + x) - 1, YB + dy + HD_OY + y];
+  if (rival.id === "malala") {
+    [[gataGordita, -2, 27, 9, 0], [gataCalico, -8, 30, 7, 0.08]].forEach(([gata, x0, y0, ancho, atraso]) => {
+      const q = Math.max(0, (k - atraso) / (1 - atraso)), [sx, sy] = aP(x0 + ancho - 1, y0), salto = Math.round(Math.abs(Math.sin(q * Math.PI * 6)) * 3);
+      gata((a, b, c) => { g.fillStyle = c; g.fillRect(Math.round(sx + q * 70) + a, sy - salto + b, 1, 1); }, 0, 0, t, false);
+    });
+  } else {
+    const [sx, sy] = aP(7, 15);
+    aguilaVuela(g, sx + k * 50, sy - k * 45, t, false);
+  }
+}
 /* Ganar: un solo ataque y después el ganador celebra. Cada uno vence a su manera. */
 function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
-  const Tm = reduce ? 3000 : t < 6000 ? t : 3400 + (t % 2600);   // tras la primera vez, solo se repite la celebración
+  const largo = yo.id === "uzu" ? 2200 : 0;   // escenas más largas: la repetición empieza más tarde
+  const Tm = reduce ? 3000 + largo : t < 6000 + largo ? t : 3400 + largo + (t % 2600);   // tras la primera vez, solo se repite la celebración
   const tA = Math.min(Tm, 1699), golpeado = Tm >= 900;
   const shake = !reduce && Tm >= 900 && Tm < 1050;
   g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g);
@@ -299,6 +518,9 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   const quien = yo.id;
 
   /* --- el rival --- */
+  const huyen = golpeado && (rival.id === "malala" || rival.id === "patroclus");   // sus mascotas salen arrancando
+  if (huyen) rival.hd.huyenMascotas = true;
+  try {
   if (!golpeado) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
   else if (quien === "malala") {   // ¡sapo!
     if (Tm < 1150) { figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); pufVerde(g, cR, cabezaY + 18, (Tm - 900) / 250); }
@@ -319,35 +541,37 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       g.fillStyle = "rgba(214,207,192,.85)";
       [[-4, 0, 3], [-10, 1, 2]].forEach(([ox, oy, r]) => { for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) if (a * a + b * b <= r * r) g.fillRect(Math.round(xr + HD_OX + 8 + ox + a), SUELO + dy - 2 + oy + b, 1, 1); });
     }
-  } else if (quien === "jelic") {   // queda viendo estrellas
-    const vaiven = Math.round(Math.sin(t / 260) * 2);
-    sombra(g, cR + vaiven, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb - vaiven, dy, true);
+  } else if (quien === "jelic") {   // el escudazo lo desarma y lo deja viendo estrellas
+    const xitinR = rival.id === "xitin", vaiven = Math.round(Math.sin(t / 260) * 2), r = rendido(rival.hd, xitinR ? false : undefined);
+    sombra(g, cR + vaiven, dy); figura(g, r, hdPose(r, "guardia", 0), xb - vaiven, dy, true);
     pajaritos(g, cR + vaiven, cabezaY - 2, t);
+    if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
+    else hombreraCae(g, xb, dy, Tm, 900);   // a Xitin el escudazo le bota la hombrera de oso entera
   } else if (quien === "latte") {   // los naipes le estallan en la cara y queda encandilado
     const caraX = cR - 3, ojosY = cabezaY + 11;
     if (Tm < 1300) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true); }
     else {
       const vaiven = Math.round(Math.sin(t / 300) * 1.5);
-      const tapado = encandilado(rival.hd);
+      const tapado = sinHombrera(encandilado(rival.hd), rival);
       sombra(g, cR + vaiven, dy); figura(g, tapado, hdPose(tapado, "guardia", t), xb - vaiven, dy, true);
       encandilamiento(g, caraX + vaiven, ojosY, t);
       if (rival.id !== "xitin") {   // suelta el arma, que cae detrás de él
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 400);
         const ax = lerp(W - (xb + HD_OX + hx), W - 8, q), ay = lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 8;
         armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 4) : 1);
-      }
+      } else hombreraCae(g, xb, dy, Tm, 1300);
     }
     fuegosLatte(g, caraX, ojosY - 2, Tm);
   } else if (quien === "cupe") {   // lo desarma y después lo nombra caballero
     sombra(g, cR, dy);
     const k = Math.max(0, Math.min(1, (Tm - 1700) / 400));
-    if (k <= 0) { const r = rendido(rival.hd, rival.id === "xitin"); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
+    if (k <= 0) { const r = rendido(rival.hd, rival.id === "xitin" ? false : undefined); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
     else {
-      const r = arrodillado(rival.hd), [pa, pd] = rival.hd.pies;
+      const r = sinHombrera(arrodillado(rival.hd), rival), [pa, pd] = rival.hd.pies;
       figura(g, r, { ...hdPose(r, "guardia", 0), agacha: Math.round(k * 7), pies: [[pa[0] - Math.round(k * 7), pa[1]], [pd[0] + Math.round(k * 2), pd[1]]] }, xb, dy, true);
       if (Tm >= 3800) [[-4, 16], [3, 13], [7, 19]].forEach(([ox, oy], i) => { if ((Math.floor(t / 200) + i) % 3) destello(g, cR + ox, cabezaY + oy, t + i * 90); });   // ya es caballero: brilla
     }
-    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm);
+    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else hombreraCae(g, xb, dy, Tm, 900);
   } else if (quien === "malia") {   // le da a probar la mermelada: queda con la panza llena y le da sueño
     if (Tm < 1500) {   // se la come: la boca llena de mermelada y se saborea
       const rc = Tm >= 1000 ? caraMermelada(rival.hd, rival.id, { lame: true, t }) : rival.hd;
@@ -356,15 +580,141 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
         [[-10, 4], [-3, 1]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 160) + i) % 2) { g.fillStyle = "#F472B6"; [[0, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [1, 3]].forEach(([a, b]) => g.fillRect(cR + ox + a, cabezaY + oy + b - Math.round((Tm - 1050) / 90), 1, 1)); } });
       }
     } else {
-      const k = Math.min(1, (Tm - 1500) / 1000), vaiven = Math.round(Math.sin(t / 700) * 1.2 * k), r = pochito(rival.hd);
+      const k = Math.min(1, (Tm - 1500) / 1000), vaiven = Math.round(Math.sin(t / 700) * 1.2 * k), r = sinHombrera(pochito(rival.hd), rival);
       const dormido = Tm > 2300, rc = caraMermelada(r, rival.id, { lame: !dormido, dormido, t }), pr = { ...hdPose(rc, "guardia", 0), agacha: Math.round(k * 3) };
       sombra(g, cR + vaiven, dy); figura(g, rc, pr, xb - vaiven, dy, true);
       if (Tm > 2300) zzz(g, cR + 6 + vaiven, cabezaY + 2 + Math.round(k * 3), t);
       if (rival.id !== "xitin") {   // deja el arma en el suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1500) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 8, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 5, q < 1 ? Math.floor(q * 2) : 1);
-      }
+      } else hombreraCae(g, xb, dy, Tm, 1500);
     }
+  } else if (quien === "kenny") {   // la serenata lo enamora: bota el arma, junta las manos y queda con ojos de corazón
+    if (Tm < 1300) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true); }
+    else {
+      const vaiven = Math.round(Math.sin(t / 450) * 2), r = sinHombrera(enamorado(rival.hd), rival), xr = xb - vaiven;
+      sombra(g, cR + vaiven, dy); figura(g, r, hdPose(r, "guardia", 0), xr, dy, true);
+      ojosCorazon(g, rival.id, rival.hd, xr, dy, Math.floor(t / 250) % 2);
+      for (let i = 0; i < 3; i++) {   // corazones que suben desde su cabeza
+        const k = ((t / 1500 + i / 3) % 1), hx = Math.round(cR + vaiven - 4 + i * 4 + Math.sin(t / 300 + i) * 2), hy = Math.round(cabezaY - 2 - k * 14);
+        if (k < 0.85) corazon3(g, hx, hy, i % 2 ? "#F472B6" : "#FB7185");
+      }
+      if (rival.id !== "xitin") {   // bota el arma: se le cae de la mano y queda en el suelo
+        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 350);
+        armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 9, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
+      } else hombreraCae(g, xb, dy, Tm, 1300);
+    }
+    if (Tm >= 950 && Tm < 1400) [[-6, 6], [2, 2], [-2, 12]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 120) + i) % 2) corazon3(g, cR + ox, cabezaY + oy, "#F472B6"); });   // las notas llegan y brotan corazones
+  } else if (quien === "tivan") {   // la poción estalla en humo, el arma sale volando y el rival queda tiznado y tosiendo
+    const r = rendido(rival.hd, rival.id === "xitin" ? false : undefined), cy = cabezaY + 20;
+    sombra(g, cR, dy);
+    if (Tm < 900) figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true);
+    else {
+      figura(g, r, hdPose(r, "guardia", t), xb, dy, true);
+      if (Tm >= 2200) {   // ya se ve: la cara tiznada y tose bocanadas de humo
+        const cara = caraEnPantalla(rival.id, rival.hd, xb, dy);
+        if (cara) {
+          g.fillStyle = "rgba(55,60,66,.75)";
+          cara.ojos.forEach(([ex, ey]) => { g.fillRect(ex - 1, ey + 2, 2, 1); g.fillRect(ex, ey + 3, 1, 1); });
+          const [bx, by] = cara.boca, k = ((t % 900) / 900);
+          if (k < 0.6) humoTivan(g, bx - 3 - k * 8, by - k * 6, 2 + k * 3, t, 1 - k / 0.6);
+        }
+        humoTivan(g, cR - 8, SUELO + dy - 2, 4, t, 0.55); humoTivan(g, cR + 9, SUELO + dy - 3, 3.5, t + 400, 0.5);   // restos de humo a sus pies
+      }
+      const crece = Math.min(1, (Tm - 900) / 300), sevA = Tm < 1900 ? 1 : Math.max(0, 1 - (Tm - 1900) / 700);
+      humoTivan(g, cR, cy - crece * 4, 4 + crece * 14 + (sevA < 1 ? (1 - sevA) * 6 : 0), t, sevA);
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else hombreraCae(g, xb, dy, Tm, 900);   // el arma (o la hombrera) sale volando del humo
+    }
+  } else if (quien === "patroclus") {   // su águila agarra al rival de los hombros y se lo lleva volando fuera de la pantalla
+    const hombroY = YB + dy + HD_OY + (rival.hd.bajar || 0) + 3;   // las garras lo toman desde arriba de la cabeza
+    if (Tm < 1350) {
+      sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true);
+      if (Tm >= 1100) sudor(g, cR - 6, cabezaY + 2, true);
+    } else if (Tm < 2700) {
+      const k = Math.min(1, (Tm - 1350) / 1250), sube = k * k * 75, corre = k * 30, r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      const cuelga = Math.round(Math.sin(t / 120) * 1);   // las piernas se balancean colgando
+      sombra(g, cR + corre, dy);
+      figura(g, r, { ...hdPose(r, "guardia", t), pies: [[r.pies[0][0] - 1 + cuelga, r.pies[0][1] - 2], [r.pies[1][0] + 1 - cuelga, r.pies[1][1] - 2]] }, xb - corre, dy - sube, true);
+      sudor(g, cR - 6 + corre, cabezaY + 2 - sube, false);
+      aguilaVuela(g, cR + corre, hombroY - sube, t);
+      if (rival.id !== "xitin") {   // suelta el arma, que cae al suelo
+        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1350) / 400);
+        armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), cR + 6, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
+      } else hombreraCae(g, xb, dy, Tm, 1350);
+    } else if (rival.id !== "xitin") armaSuelta(g, rival.id, cR + 6, SUELO + dy - 3, 1);
+    else hombreraCae(g, xb, dy, Tm, 1350);
+  } else if (quien === "uchis") {   // ataca al aire (Uchis se esfumó), ella aparece detrás y lo asusta: salta y suelta el arma
+    if (Tm < 1900) {
+      const tt = Tm - 200, xr = xb + (tt >= 0 && tt < 1700 ? paso(rival.hd, tt) : 0);
+      sombra(g, W - (xr + HD_OX + 15), dy); figura(g, rival.hd, tt >= 0 && tt < 1700 ? hdPose(rival.hd, "ataque", tt) : hdPose(rival.hd, "guardia", t), xr, dy, true);
+    } else {
+      const k = Math.min(1, (Tm - 1900) / 350), brinco = Math.round(Math.sin(Math.PI * k) * 8), adelante = Math.round(k * 12), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      sombra(g, cR - adelante, dy); figura(g, r, hdPose(r, "guardia", t), xb + adelante, dy - brinco, true);
+      sudor(g, cR - 6 - adelante, cabezaY + 2 - brinco, true);
+      if (Tm < 2300) [[-9, -2], [-11, 4], [-9, 10]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 90) + i) % 2) { g.fillStyle = "#FFFFFF"; g.fillRect(cR + 10 + ox * -1, cabezaY + oy - brinco, 3, 1); } });   // rayitas del susto
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - 1000); else hombreraCae(g, xb, dy, Tm, 1900);
+    }
+  } else if (quien === "july") {   // la onda del martillazo llega por el suelo, lo hace saltar y lo deja tambaleando sin arma
+    const xIni = 2 + dx + HD_OX + 32, llega = 1350, xOnda = lerp(xIni, cR - 6, (Tm - 950) / (llega - 950));
+    if (Tm >= 950 && Tm < 2000) ondaSuelo(g, xIni, Tm < llega ? xOnda : cR - 6, SUELO + dy, t, Tm < 1600 ? 1 : 1 - (Tm - 1600) / 400);
+    if (Tm < llega) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
+    else {
+      const k = Math.min(1, (Tm - llega) / 450), vuelo = Math.round(Math.sin(Math.PI * k) * 9), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      const tambalea = k >= 1 ? (Math.floor(t / 220) % 2 ? 1 : -1) : 0;   // cae desequilibrado
+      sombra(g, cR, dy);
+      figura(g, r, { ...hdPose(r, "guardia", t), inclina: tambalea, pies: [[r.pies[0][0] - 2, r.pies[0][1]], [r.pies[1][0] + 2, r.pies[1][1]]] }, xb, dy - vuelo, true);
+      sudor(g, cR - 6, cabezaY + 2 - vuelo, Tm < 2200);
+      if (k >= 1 && Tm < 2300) [[-7, 0], [6, 1]].forEach(([ox, oy], i) => { const q = Math.min(1, (Tm - llega - 450) / 500); g.globalAlpha = 1 - q; g.fillStyle = "#D6CFC0"; g.fillRect(cR + ox - 2 - Math.round(q * 3 * (i ? -1 : 1)), SUELO + dy - 2 + oy, 4, 2); g.globalAlpha = 1; });   // polvo al caer
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (llega - 900)); else hombreraCae(g, xb, dy, Tm, llega);
+    }
+  } else if (quien === "edith") {   // la nube de tormenta le tira rayos a los lados y lo hace correr de un lado a otro
+    const c = corridaEdith(Tm, cR), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+    const antes = Tm < INICIO_EDITH;
+    if (c.dir === 0) { sombra(g, c.x, dy); figura(g, antes ? rival.hd : r, hdPose(antes ? rival.hd : r, "guardia", t), W - c.x - HD_OX - 15, dy, true); }
+    else {   // corre: piernas que se alternan, mirando hacia donde va
+      const pc = hdPose(r, "ataque", Math.floor(t / 110) % 2 ? 820 : 600);
+      sombra(g, c.x, dy);
+      if (c.dir < 0) figura(g, r, pc, W - c.x - HD_OX - 15, dy, true); else figura(g, r, pc, c.x - HD_OX - 15, dy, false);
+    }
+    if (!antes) sudor(g, c.x - 6 * (c.dir || -1), cabezaY + 2, c.dir === 0);
+    if (!antes) { if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (INICIO_EDITH - 900)); else hombreraCae(g, xb, dy, Tm, INICIO_EDITH); }
+    if (Tm >= 600) {   // la nube aparece y sigue al rival con un poco de atraso, apurándose
+      const escala = Math.min(1, (Tm - 600) / 700), nubeY = YB + dy + HD_OY - 10, nx = nubeEdithX(Tm, cR);
+      nubeTormenta(g, nx, nubeY, escala, t);
+      if (c.n >= 0 && c.u < 0.3) rayoEdith(g, nx, nubeY + 4, c.rayoX, SUELO + dy, c.u / 0.3);   // cae derecho, a un lado del rival, y le corta el paso
+    }
+  } else if (quien === "uzu") {   // Uzu se pone berserk: el rival huye corriendo fuera de la pantalla y suelta el arma
+    const Tu = Tm / LENTO_UZU;   // toda la escena de Uzu va más lenta, para que se aprecie
+    if (Tu < 1150) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); if (Tu > 850) sudor(g, cR - 6, cabezaY + 2, true); }
+    else if (Tu < 2000) {
+      const k = (Tu - 1150) / 850, xr = cR - 15 + k * k * 60, r = rendido(rival.hd, false);   // da media vuelta y corre hacia la derecha (a Xitin se le cae la hombrera)
+      figura(g, r, hdPose(r, "ataque", Math.floor(t / 110) % 2 ? 820 : 600), xr - HD_OX, dy, false);
+      sudor(g, xr + 22, cabezaY + 2, false);
+    }
+    if (Tu >= 1150 && !(Tu >= 2600 && uzuRecogio(Tu, W - (xb + HD_OX + 15) + 4, 2 + dx))) {   // el arma (o la hombrera de Xitin) en el suelo, hasta que Uzu la recoge
+      const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tu - 1150) / 350);
+      const [x0, y0] = rival.id === "xitin" ? [cR - 9, YB + dy + HD_OY + 18] : [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy];   // la hombrera cae del hombro de Xitin, que ya dio media vuelta
+      botinUzu(g, rival, lerp(x0, W - (xb + HD_OX + 15) + 4, q), lerp(y0, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
+    }
+  } else if (quien === "janet") {   // la flecha rebota en el suelo, sube, atraviesa el arma y la deja clavada arriba en el borde
+    const xitinR = rival.id === "xitin", xj = 2 + dx;
+    const arco = arcoJanet(xj, dy), [hx, hy] = rival.hd.manos.guardia, mano = [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy - 6];
+    const suelo = [Math.round((arco[0] + mano[0]) / 2) - 4, SUELO + dy - 1], clavo = [W - 4, cabezaY - 4];
+    const enMano = Tm < 1050;
+    if (enMano) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
+    else { const r = rendido(rival.hd, xitinR ? false : undefined); sombra(g, cR, dy); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, Tm < 1700); }
+    const tramo = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, b[0] - a[0], b[1] - a[1]];
+    if (Tm >= 900 && Tm < 1050) {   // rebota: polvito en el suelo y sube hacia el arma
+      const [x, y, ux, uy] = tramo(suelo, mano, (Tm - 900) / 150); flechaTramo(g, x, y, ux, uy, 0, LARGO_FLECHA);
+      const k = (Tm - 900) / 150; g.fillStyle = `rgba(214,207,192,${1 - k})`; g.fillRect(suelo[0] - 3 - Math.round(k * 3), suelo[1] - 1, 3, 1); g.fillRect(suelo[0] + 2 + Math.round(k * 3), suelo[1] - 1, 3, 1);
+    }
+    if (Tm >= 1050) {   // con el arma ensartada al medio: la cola detrás, el arma, la punta delante
+      const k = Math.min(1, (Tm - 1050) / 350), [x, y, ux, uy] = tramo(mano, clavo, k), L = Math.hypot(ux, uy) || 1, mx = x - ux / L * 6, my = y - uy / L * 6;
+      flechaTramo(g, x, y, ux, uy, 7, LARGO_FLECHA);
+      if (xitinR) hombreraEntera(g, mx, my); else armaSuelta(g, rival.id, mx, my);
+      flechaTramo(g, x, y, ux, uy, 0, 6);
+      if (k >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, clavo[1] - 6, 1, 12); }
+    } else if (!enMano) {}
   } else if (quien === "agattita") {   // atrapado por enredaderas y con flor
     sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true);
     enredaRival(g, cR, cabezaY + 14, SUELO + dy - 1, Math.min(1, (Tm - 900) / 600));
@@ -372,25 +722,125 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   } else {   // desarmado: el arma vuela (o la flecha de Janet se la lleva al borde)
     sombra(g, cR, dy);
     const janet = quien === "janet", xitinR = rival.id === "xitin";
-    figura(g, rendido(rival.hd, xitinR && !janet), hdPose(rival.hd, "guardia", t), xb, dy, true);
+    figura(g, rendido(rival.hd, xitinR ? false : undefined), hdPose(rival.hd, "guardia", t), xb, dy, true);
     sudor(g, cR - 6, cabezaY + 2, Tm < 1700);
     const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), manoY = YB + dy + HD_OY + hy;
     const q = Math.min(1, (Tm - 900) / 500);
     if (janet) {   // la flecha atraviesa el arma (o la hombrera de oso) y la clava en el borde derecho, arriba del rival
       const ax = lerp(manoX, W - 9, q), ay = lerp(manoY - 6, cabezaY - 6, q);
-      if (xitinR) hombreraOso((a, b, col) => { g.fillStyle = col; g.fillRect(Math.round(ax - 3 + a), Math.round(ay - 3 + b), 1, 1); }, 0, 0);
+      if (xitinR) hombreraEntera(g, ax, ay);   // se la lleva entera, con la piel colgando
       else armaSuelta(g, rival.id, ax, ay);
       flechaJanet(g, Math.round(ax - 10), Math.round(ay), 18);
       if (q >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, ay - 8, 1, 16); }
     } else if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
+    else hombreraCae(g, xb, dy, Tm, 900);
   }
 
+  } finally { if (huyen) rival.hd.huyenMascotas = false; }
+  if (huyen) mascotasHuyen(g, rival, xb, dy, Tm, t);
+
   /* --- el ganador: ataca una vez y después celebra --- */
-  if (quien === "xitin" && Tm >= 1400 && Tm < 2300) {   // sigue de oso mientras ruge
-    sombra(g, centroX(xa, false), dy);
-    figura(g, yo.hd, hdPose(yo.hd, "ataque", 1000), xa, dy, false);
-    g.fillStyle = "#FFFFFF";
-    [4, 7, 10].forEach((r) => { for (let a = -0.7; a <= 0.7; a += 0.12) g.fillRect(Math.round(xa + HD_OX + 30 + Math.cos(a) * r), Math.round(YB + dy + HD_OY + 6 + Math.sin(a) * r), 1, 1); });
+  if (quien === "xitin" && Tm >= 1400 && Tm < 2600) {   // ruge de oso en su lugar; se transforma de vuelta y regresa caminando
+    const lejos = 2 + dx + avance(yo.hd);
+    if (Tm >= 2050 && Tm < 2300) {   // la transformación de vuelta: parpadea entre oso y Xitin dentro de destellos verdes
+      const oso = Math.floor(Tm / 60) % 2 === 0 && Tm < 2230, k = (Tm - 2050) / 250, cx = centroX(lejos, false), cy = YB + dy + HD_OY + 20;
+      sombra(g, cx, dy);
+      if (oso) figura(g, { ...yo.hd, proyectil: undefined }, hdPose(yo.hd, "ataque", 1000), lejos, dy, false);
+      else figura(g, yo.hd, hdPose(yo.hd, "guardia", t), lejos, dy, false);
+      const r = 6 + Math.sin(Math.PI * k) * 12; g.globalAlpha = Math.sin(Math.PI * k) * 0.55; g.fillStyle = "#86EFAC";
+      for (let yy = -r; yy <= r; yy++) { const w = Math.sqrt(Math.max(0, r * r - yy * yy)); g.fillRect(Math.round(cx - w), Math.round(cy + yy), Math.round(2 * w) + 1, 1); }
+      g.globalAlpha = 1;
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + k * 3, rr = r + 2; g.fillStyle = i % 2 ? "#FFFFFF" : "#4ADE80"; g.fillRect(Math.round(cx + Math.cos(a) * rr), Math.round(cy + Math.sin(a) * rr), 2, 2); }
+    } else if (Tm < 2050) {
+      sombra(g, centroX(lejos, false), dy);
+      figura(g, { ...yo.hd, proyectil: undefined }, hdPose(yo.hd, "ataque", 1000), lejos, dy, false);   // el oso quieto, sin el efecto del zarpazo
+      if (Tm < 1950) {   // las ondas del rugido, que se van apagando antes de transformarse
+        g.globalAlpha = Math.min(1, (1950 - Tm) / 250); g.fillStyle = "#FFFFFF";
+        [4, 7, 10].forEach((r, i) => { if ((Math.floor(Tm / 120) + i) % 3 === 2) return; for (let a = -0.7; a <= 0.7; a += 0.12) g.fillRect(Math.round(lejos + HD_OX + 30 + Math.cos(a) * r), Math.round(YB + dy + HD_OY + 6 + Math.sin(a) * r), 1, 1); });
+        g.globalAlpha = 1;
+      }
+    } else {
+      const xs = lerp(lejos, 2 + dx, (Tm - 2300) / 300), paso2 = Math.floor(t / 150) % 2, [pa, pd] = yo.hd.pies;
+      sombra(g, centroX(xs, false), dy);
+      figura(g, yo.hd, { ...hdPose(yo.hd, "guardia", t), pies: paso2 ? [[pa[0] - 2, pa[1]], [pd[0] + 2, pd[1]]] : yo.hd.pies }, xs, dy, false);
+    }
+  } else if (quien === "kenny" && Tm >= 1700) {   // sigue con la serenata: rasguea el laúd y las notas vuelan hacia el rival
+    sombra(g, centroX(xa, false), dy); figura(g, yo.hd, hdPose(yo.hd, "guardia", t), xa, dy, false);
+    const nota = (nx, ny, col) => { g.fillStyle = K; g.fillRect(nx - 1, ny - 5, 5, 8); g.fillStyle = col; g.fillRect(nx, ny, 2, 2); g.fillRect(nx + 1, ny - 4, 1, 5); g.fillRect(nx + 2, ny - 4, 1, 1); };
+    for (let i = 0; i < 3; i++) {
+      const k = ((t / 1600 + i / 3) % 1), nx = Math.round(xa + HD_OX + 26 + k * 40), ny = Math.round(YB + dy + HD_OY + 20 - Math.sin(k * Math.PI) * 8 - i * 2);
+      if (k < 0.9) nota(nx, ny, ["#FBBF24", "#F472B6", "#7DD3FC"][i]);
+    }
+  } else if (quien === "patroclus") {   // manda a su águila: ella vuela, agarra al rival y después vuelve a su hombro
+    const xp = 2 + dx, sinAguila = Tm >= 500 && Tm < 3300, c = sinAguila ? { ...yo.hd, armaDetras: undefined } : yo.hd;
+    const p = Tm < 500 ? hdPose(c, "guardia", t) : Tm < 1700 ? { ...hdPose(c, "guardia", t), mano: [c.manos.guardia[0] + 2, c.manos.guardia[1] - 3] } : celebraDuelo(c, Tm - 1700 + 400);
+    sombra(g, centroX(xp, false), dy); figura(g, c, p, xp, dy, false);
+    const hombro = [xp + HD_OX + 7, YB + dy + HD_OY + 15], arriba = [cR, YB + dy + HD_OY - 14], agarre = [cR, YB + dy + HD_OY + (rival.hd.bajar || 0) + 3];
+    if (Tm >= 500 && Tm < 1100) { const k = (Tm - 500) / 600; aguilaVuela(g, lerp(hombro[0], arriba[0], k), lerp(hombro[1], arriba[1], k) - Math.sin(Math.PI * k) * 12, t); }
+    else if (Tm >= 1100 && Tm < 1350) { const k = (Tm - 1100) / 250; aguilaVuela(g, arriba[0], lerp(arriba[1], agarre[1], k * k), t); }   // en picada
+    else if (Tm >= 2700 && Tm < 3300) { const k = (Tm - 2700) / 600; aguilaVuela(g, lerp(W + 10, hombro[0], k), lerp(-10, hombro[1], k) - Math.sin(Math.PI * k) * 6, t); }   // vuelve a su hombro
+  } else if (quien === "uchis") {   // se esfuma como ninja y reaparece detrás del rival
+    const detras = W - (xb + HD_OX + 30) + 14;   // Uchis mirando a la izquierda, a la espalda del rival
+    const xDetras = W - (detras + HD_OX + 30);
+    if (Tm < 950) { sombra(g, centroX(xa, false), dy); figura(g, yo.hd, hdPose(yo.hd, "guardia", t), xa, dy, false); }
+    pufNinja(g, centroX(xa, false), YB + dy + HD_OY + 22, (Tm - 950) / 450);
+    if (Tm >= 1500) {   // emerge de las sombras con las manos libres: las dagas van envainadas en el cinto
+      const cu = { ...yo.hd, arma: undefined, proyectil: undefined, armaDetras: dagasCinto, brazoCerca: yo.hd.brazoCerca && { ...yo.hd.brazoCerca, poses: {} } };
+      const pose = Tm < 1900 ? { ...hdPose(cu, "guardia", t), agacha: 4 } : Tm < 2400 ? celebraDuelo(cu, 500) : celebraDuelo(cu, Tm - 2400 + 400);
+      g.globalAlpha = Math.min(1, (Tm - 1500) / 300);
+      sombra(g, W - (xDetras + HD_OX + 15), dy); figura(g, cu, pose, xDetras, dy, true);
+      g.globalAlpha = 1;
+    }
+    pufNinja(g, W - (xDetras + HD_OX + 15), YB + dy + HD_OY + 22, (Tm - 1450) / 450, true);
+  } else if (quien === "july") {   // martillazo al suelo sin avanzar: la fuerza viaja por el terreno
+    const xj = 2 + dx, pj = Tm >= 1700 ? celebraDuelo(yo.hd, Tm - 1700 + 400) : hdPose(yo.hd, "ataque", tA);
+    sombra(g, centroX(xj, false), dy); figura(g, yo.hd, pj, xj, dy, false);
+  } else if (quien === "edith") {   // sostiene el grimorio en alto, controlando la nube
+    const pe = Tm < 600 ? hdPose(yo.hd, "guardia", t) : celebraDuelo(yo.hd, 1200 + (t % 2600 > 1300 ? 0 : 260));
+    sombra(g, centroX(2 + dx, false), dy); figura(g, yo.hd, pe, 2 + dx, dy, false);
+  } else if (quien === "uzu") {   // la furia: tiembla, se pone rojo, se arranca la polera, persigue al rival y vuelve con el arma de trofeo
+    const Tu = Tm / LENTO_UZU, xu = 2 + dx, base = centroX(xu, false);
+    const berserk = (rojo) => uzuSinPolera(yo.hd, rojo);
+    if (Tu < 1000) {
+      const parpadea = Tu >= 600 && Math.floor(Tu / 90) % 2, tiembla = Tu >= 300 ? (Math.floor(Tm / 50) % 2 ? 1 : -1) : 0;
+      const c = parpadea ? { ...yo.hd, pal: { ...yo.hd.pal, G: "#D9443A", g: "#9E2A22", Z: "#F07060" } } : yo.hd;
+      sombra(g, base, dy); figura(g, c, { ...hdPose(c, "guardia", t), inclina: tiembla, agacha: 2 }, xu, dy, false);
+    } else if (Tu < 1350) {   // se arranca la polera: los pedazos salen volando
+      const c = berserk(true), k = (Tu - 1000) / 350;
+      sombra(g, base, dy); figura(g, c, { ...hdPose(c, "victoria", 900), duelo: true }, xu, dy, false);
+      [[-1, -1], [1, -1.3], [-1.4, -0.4], [1.3, -0.5]].forEach(([vx, vy], i) => { const px = base + vx * k * 22, py = YB + dy + HD_OY + 22 + vy * k * 20 + k * k * 18; g.fillStyle = "#1A1020"; g.fillRect(Math.round(px) - 1, Math.round(py) - 1, 5, 4); g.fillStyle = i % 2 ? "#7A5232" : "#5A3A22"; g.fillRect(Math.round(px), Math.round(py), 3, 2); });
+    } else if (Tu < 2300) {   // berserk: lo persigue corriendo, con vapor saliéndole de la cabeza
+      const c = berserk(true), k = (Tu - 1350) / 950, xc = xu + k * k * (W + 10 - xu);
+      sombra(g, centroX(xc, false), dy); figura(g, ...correUzu(c, t), xc, dy, false);
+      for (let i = 0; i < 2; i++) { const v = ((t / 400 + i / 2) % 1); g.fillStyle = `rgba(255,255,255,${0.8 * (1 - v)})`; g.fillRect(Math.round(xc + HD_OX + 10 + i * 10 - v * 2), Math.round(YB + dy + HD_OY + 6 - v * 8), 3, 2); }
+    } else if (Tu >= 2600) {   // vuelve: verde otra vez (sin polera); recoge el arma y la trae con el brazo estirado
+      const c = berserk(false), k = Math.min(1, (Tu - 2600) / 700), centro = (W + 25) - k * (W + 25 - base), llego = k >= 1;
+      const tieneArma = uzuRecogio(Tu, W - (xb + HD_OX + 15) + 4, xu);
+      if (!llego) {   // camina hacia la izquierda con el brazo adelante
+        const paso = Math.floor(t / 180) % 2, mano = [27, 20], pies = paso ? [[c.pies[0][0] - 2, 39], [c.pies[1][0] + 2, 39]] : c.pies;
+        const xm = W - centro - HD_OX - 15;
+        sombra(g, centro, dy); figura(g, { ...c, codos: { guardia: [24, 21] } }, { ...hdPose(c, "guardia", t), mano, pies, bob: 0, agacha: paso }, xm, dy, true);   // brazo casi recto
+        if (tieneArma) botinUzu(g, rival, centro + 15 - mano[0] - 1, YB + dy + HD_OY + mano[1] + paso - 6, 0);   // va en su mano, se mueve con ella
+      } else {   // el trofeo en alto con el brazo estirado, jadeando
+        const jadea = Math.floor(t / 260) % 2, mano = [28, 14];
+        sombra(g, base, dy); figura(g, { ...c, codos: { alto: [25, 18] } }, { ...celebraDuelo(c, 900), mano, bob: -jadea, agacha: 0 }, xu, dy, false);   // brazo estirado, sin quebrarse
+        if (tieneArma) botinUzu(g, rival, xu + HD_OX + mano[0] + 1, YB + dy + HD_OY + mano[1] - 6 - jadea, 0);
+      }
+    }
+  } else if (quien === "janet" && Tm < 1700) {   // apunta hacia abajo y dispara al suelo; la flecha la dibuja la escena
+    const xj = 2 + dx, apunta = Tm >= 450 && Tm < 1150, tensa = Tm < 760;
+    const p = apunta ? { ...hdPose(yo.hd, "guardia", t), fase: "golpe", mano: ARCO_ABAJO, agacha: 2, inclina: 1, sinFlecha: true } : { ...hdPose(yo.hd, "guardia", t), sinFlecha: true };
+    const c = apunta ? { ...yo.hd, brazoCerca: { ...yo.hd.brazoCerca, poses: { golpe: tensa ? [[9, 3], [3, 5]] : [[6, 4], [2, 5]] } } } : yo.hd;
+    sombra(g, centroX(xj, false), dy); figura(g, c, p, xj, dy, false);
+    if (apunta && tensa) {   // la flecha tensada, apuntando en diagonal hacia el suelo
+      const ox = xj + HD_OX + 1, oy = YB + dy + HD_OY + 2, cuerda = [ox + 18, oy + 22], punta = [ox + ARCO_ABAJO[0] + 4, oy + ARCO_ABAJO[1] + 3];
+      flechaTramo(g, punta[0], punta[1], punta[0] - cuerda[0], punta[1] - cuerda[1], 0, Math.round(Math.hypot(punta[0] - cuerda[0], punta[1] - cuerda[1])));
+    }
+    if (Tm >= 760 && Tm < 900) {   // la flecha baja hacia el suelo, frente al rival (después rebota)
+      const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), arco = arcoJanet(xj, dy);
+      const suelo = [Math.round((arco[0] + manoX) / 2) - 4, SUELO + dy - 1], k = (Tm - 760) / 140;
+      flechaTramo(g, arco[0] + (suelo[0] - arco[0]) * k, arco[1] + (suelo[1] - arco[1]) * k, suelo[0] - arco[0], suelo[1] - arco[1], 0, LARGO_FLECHA);
+    }
   } else if (quien === "malia" && Tm < 1700) {   // en vez de lanzar la mermelada, le acerca el cucharón a la boca
     const p = hdPose(yo.hd, "ataque", tA), alza = ["golpe", "choque", "sigue"].includes(p.fase) ? 5 : 0;
     sombra(g, centroX(xa, false), dy); figura(g, yo.hd, { ...p, alimenta: true, mano: [p.mano[0], p.mano[1] - alza] }, xa, dy, false);
@@ -399,13 +849,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     const hombroX = W - (xb + HD_OX + rsx), hombroY = rsy + 7 + (rival.hd.bajar || 0);   // hombro del rival ya hincado
     const junto = hombroX - HD_OX - 47 + (fase === 3 ? 3 : 0);   // la punta del florete justo en el hombro (el segundo, un poco más allá)
     const xc = lerp(2 + dx + avance(yo.hd), junto, (Tm - 1400) / 600);   // camina hasta el rival
-    const p = Tm >= 3800 ? hdPose(yo.hd, "victoria", Tm - 3800 + 400)
+    const p = Tm >= 3800 ? celebraDuelo(yo.hd, Tm - 3800 + 400)
       : fase === 1 || fase === 3 ? { ...hdPose(yo.hd, "guardia", t), fase: "golpe", mano: [28, hombroY - bj - 1], k: 1 }
       : fase >= 0 ? { ...hdPose(yo.hd, "guardia", t), fase: "alto", mano: yo.hd.manos.alto } : hdPose(yo.hd, "guardia", t);
     sombra(g, centroX(xc, false), dy); figura(g, yo.hd, p, xc, dy, false);
     if ((fase === 1 || fase === 3) && (Tm - 2200) % 400 < 220) destello(g, Math.round(xc + HD_OX + 46), YB + dy + HD_OY + hombroY - 1, t);
   } else {
-    const pYo = Tm >= 1700 ? hdPose(yo.hd, "victoria", Tm - 1700 + 400) : hdPose(yo.hd, "ataque", tA);
+    const pYo = Tm >= 1700 ? celebraDuelo(yo.hd, Tm - 1700 + 400) : hdPose(yo.hd, "ataque", tA);
     sombra(g, centroX(xa, false), dy); figura(g, yo.hd, pYo, xa, dy, false);
   }
   g.restore();
@@ -446,6 +896,7 @@ function escenaPodio(g, t, c, puesto) {
   const x = Math.round(W / 2 - HD_OX - 15), y = by - (HD_OY + 39);
   g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(W / 2 - 7, by - 1, 14, 1);
   const p = { ...hdPose(c.hd, "victoria", Tm), enPodio: true };
+  if (c.hd.proyectilAtras) c.hd.proyectilAtras(g, x, y, p);   // lo que pasa por detrás del personaje (el águila de Patroclus)
   hdDibujar(g, x, y, c.hd, p);
   if (c.hd.proyectil) c.hd.proyectil(g, x, y, p);
   if (Tm > 400) confeti(g, t);
