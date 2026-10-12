@@ -77,7 +77,10 @@ function EnGuardia({ hero }) {
   return <Lienzo dibujar={dibujar} ancho={LADO} alto={LADO} label={hero.nombre} className="w-24 shrink-0" />
 }
 
-/* En el lobby: diez caras para tocar y la ficha del elegido. */
+/* En el selector van por orden alfabético (HEROES conserva su orden original). */
+const EN_ORDEN = [...HEROES].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+
+/* En el lobby: las caras para tocar y la ficha del elegido. */
 export function HeroPicker({ value, onPick }) {
   const t = useT()
   const elegido = HEROES.find((h) => h.id === value)
@@ -85,7 +88,7 @@ export function HeroPicker({ value, onPick }) {
     <div className="mt-6 w-full flex flex-col gap-3">
       <h3 className="text-center font-black text-lg text-slate-900">{t('eligePersonaje')}</h3>
       <div className="grid grid-cols-5 gap-2">
-        {HEROES.map((h) => (
+        {EN_ORDEN.map((h) => (
           <button key={h.id} type="button" onClick={() => onPick(h.id)} aria-pressed={h.id === value} aria-label={h.nombre}
             className={`aspect-square rounded-xl border-2 p-0.5 bg-indigo-950 transition active:scale-95 ${h.id === value ? 'border-amber-400 ring-2 ring-amber-400' : 'border-indigo-800'}`}>
             <Cara hero={h} />
