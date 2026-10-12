@@ -20,7 +20,7 @@
      · en el podio, quien gana celebra y el resto aplaude.
    ========================================================================== */
 import { HEROES as CLASICOS } from './heroesClasicos.js'
-import { HD_POR_ID, HD_BASE_POR_ID, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, hombreraOso } from './heroesHD.js'
+import { HD_POR_ID, HD_BASE_POR_ID, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
 
 const K = HDK
 
@@ -138,23 +138,12 @@ function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) 
   g.restore();
 }
 
-/* La cola de caballo de Xitin sin la piel de oso que cae por la espalda (cuando le quitan la hombrera). */
-const capaSinPiel = (capa) => capa.map((fr) => {
-  const out = {}, corta = (f) => f.slice(0, f.indexOf("K", f.search(/[Hh]/)) + 1);
-  Object.entries(fr).forEach(([k, f]) => { if (+k <= 16) out[k] = f; });
-  out[17] = corta(fr[17]); out[18] = corta(fr[18]); out[19] = ".".repeat(out[18].indexOf("K") + 1) + "K";
-  return out;
-});
-/* El rival sin arma, con las manos arriba. Xitin conserva su hombrera de oso salvo que se la quiten (conHombrera === false):
-   entonces también se le va la piel que le cae por la espalda. */
-function rendido(c, conHombrera) {
+/* El rival sin arma, con las manos arriba. Xitin conserva su collar de oso salvo que se lo quiten (conCollar === false). */
+function rendido(c, conCollar) {
   const [sx, sy] = c.hombro;
   const r = { ...c, arma: undefined, armaDetras: undefined, proyectil: undefined, forma: undefined, manos: { ...c.manos, guardia: [sx + 3, sy - 8] }, codos: undefined, codoDinamico: undefined, manoDinamica: undefined };
   if (c.brazoCerca) r.brazoCerca = { ...c.brazoCerca, poses: {}, todas: [[-3, -8], [-4, -3]], encima: false };
-  if (c.id === "xitin") {
-    if (conHombrera === false) r.capa = c.capa && capaSinPiel(c.capa);
-    else r.arma = (px) => hombreraOso(px, 5, 15);
-  }
+  if (c.id === "xitin" && conCollar !== false) r.arma = (px) => collarOso(px, 9, 16);
   return r;
 }
 /* El rival hincado, con la mano en el pecho, listo para que Cupe lo nombre caballero. */
@@ -410,28 +399,27 @@ const nubeEdithX = (Tm, cR) => {
   return u < 0.3 ? rayoEdithX(n, cR) : lerp(rayoEdithX(n, cR), rayoEdithX(n + 1, cR), (u - 0.3) / 0.7);
 };
 const LENTO_UZU = 1.45;
-/* La hombrera de Xitin entera: la cabeza de oso con su piel colgando (una sola pieza). (x, y) es la cabeza;
-   acostada: un cuarto de vuelta, con la piel hacia el lado. */
-const PIEL_OSO = ["..KUK", ".KUuUK", ".KuUK", ".KuUUK", "KUuUUK", "KuUuUK", ".KUuK", ".KuUK", "..KK"];
-const hombreraEntera = (g, x, y, acostada = false) => {
-  const pts = [], col = { K: HDK, U: "#7A4E2C", u: "#553418" };
-  hombreraOso((a, b, c) => pts.push([a, b, c]), 0, 0);
-  PIEL_OSO.forEach((f, j) => [...f].forEach((k, i) => { if (col[k]) pts.push([i, 6 + j, col[k]]); }));
-  pts.forEach(([a, b, c]) => { const [u, v] = acostada ? [b, -a] : [a, b]; g.fillStyle = c; g.fillRect(Math.round(x - 3 + u), Math.round(y - 3 + v), 1, 1); });
+/* El collar de oso de Xitin suelto: el cordón cerrado con la cara de oso abajo. (x, y) es el centro;
+   acostado: un cuarto de vuelta. */
+const COLLAR_SUELTO = ["..ccc..", ".c...c.", ...COLLAR_OSO];
+const collarEntero = (g, x, y, acostado = false) => {
+  const pts = [];
+  collarOso((a, b, c) => pts.push([a, b, c]), 0, 0, COLLAR_SUELTO);
+  pts.forEach(([a, b, c]) => { const [u, v] = acostado ? [b, -a] : [a, b]; g.fillStyle = c; g.fillRect(Math.round(x - 3 + u), Math.round(y - 3 + v), 1, 1); });
 };
-/* Cuando el ganador desarma a Xitin, en vez de un arma se le cae la hombrera de oso entera: sale volando del hombro,
-   gira y queda acostada en el suelo, detrás de ella. desde: cuándo empieza a caer. */
-const hombreraCae = (g, xb, dy, Tm, desde) => {
+/* Cuando el ganador desarma a Xitin, en vez de un arma se le cae el collar de oso: sale volando del cuello,
+   gira y queda acostado en el suelo, detrás de ella. desde: cuándo empieza a caer. */
+const collarCae = (g, xb, dy, Tm, desde) => {
   const q = Math.min(1, (Tm - desde) / 550); if (q < 0) return;
-  const x0 = W - (xb + HD_OX + 8), y0 = YB + dy + HD_OY + 15, suelo = SUELO + dy + 2;
-  hombreraEntera(g, lerp(x0, W - 10, q), lerp(y0, suelo, q) - Math.sin(Math.PI * q) * 16, q >= 1 || Math.floor(q * 6) % 2 === 1);
+  const x0 = W - (xb + HD_OX + 12), y0 = YB + dy + HD_OY + 18, suelo = SUELO + dy + 2;
+  collarEntero(g, lerp(x0, W - 10, q), lerp(y0, suelo, q) - Math.sin(Math.PI * q) * 16, q >= 1 || Math.floor(q * 6) % 2 === 1);
 };
-/* Xitin sin su hombrera ni la piel de la espalda (para las poses de derrota que parten del rival rendido). */
-const sinHombrera = (r, rival) => (rival.id === "xitin" ? { ...r, arma: undefined, capa: rival.hd.capa && capaSinPiel(rival.hd.capa) } : r);
-/* Lo que Uzu se lleva de trofeo: el arma del rival, o la hombrera de oso entera si es Xitin (centrado en x, y). */
+/* Xitin sin su collar (para las poses de derrota que parten del rival rendido). */
+const sinCollar = (r, rival) => (rival.id === "xitin" ? { ...r, arma: undefined } : r);
+/* Lo que Uzu se lleva de trofeo: el arma del rival, o el collar de oso si es Xitin (centrado en x, y). */
 const botinUzu = (g, rival, x, y, cuartos) => {
   if (rival.id !== "xitin") return armaSuelta(g, rival.id, x, y, cuartos);
-  hombreraEntera(g, x, y - (cuartos ? 0 : 4), cuartos % 2 === 1);
+  collarEntero(g, x, y - (cuartos ? 0 : 4), cuartos % 2 === 1);
 };
 /* Ciclo de carrera de Uzu: zancadas alternadas, el cuerpo inclinado y los brazos que se balancean poco, con el codo en su lugar. */
 const correUzu = (c, t) => {
@@ -546,20 +534,20 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     sombra(g, cR + vaiven, dy); figura(g, r, hdPose(r, "guardia", 0), xb - vaiven, dy, true);
     pajaritos(g, cR + vaiven, cabezaY - 2, t);
     if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
-    else hombreraCae(g, xb, dy, Tm, 900);   // a Xitin el escudazo le bota la hombrera de oso entera
+    else collarCae(g, xb, dy, Tm, 900);   // a Xitin el escudazo le bota el collar de oso
   } else if (quien === "latte") {   // los naipes le estallan en la cara y queda encandilado
     const caraX = cR - 3, ojosY = cabezaY + 11;
     if (Tm < 1300) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true); }
     else {
       const vaiven = Math.round(Math.sin(t / 300) * 1.5);
-      const tapado = sinHombrera(encandilado(rival.hd), rival);
+      const tapado = sinCollar(encandilado(rival.hd), rival);
       sombra(g, cR + vaiven, dy); figura(g, tapado, hdPose(tapado, "guardia", t), xb - vaiven, dy, true);
       encandilamiento(g, caraX + vaiven, ojosY, t);
       if (rival.id !== "xitin") {   // suelta el arma, que cae detrás de él
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 400);
         const ax = lerp(W - (xb + HD_OX + hx), W - 8, q), ay = lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 8;
         armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 4) : 1);
-      } else hombreraCae(g, xb, dy, Tm, 1300);
+      } else collarCae(g, xb, dy, Tm, 1300);
     }
     fuegosLatte(g, caraX, ojosY - 2, Tm);
   } else if (quien === "cupe") {   // lo desarma y después lo nombra caballero
@@ -567,11 +555,11 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     const k = Math.max(0, Math.min(1, (Tm - 1700) / 400));
     if (k <= 0) { const r = rendido(rival.hd, rival.id === "xitin" ? false : undefined); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
     else {
-      const r = sinHombrera(arrodillado(rival.hd), rival), [pa, pd] = rival.hd.pies;
+      const r = sinCollar(arrodillado(rival.hd), rival), [pa, pd] = rival.hd.pies;
       figura(g, r, { ...hdPose(r, "guardia", 0), agacha: Math.round(k * 7), pies: [[pa[0] - Math.round(k * 7), pa[1]], [pd[0] + Math.round(k * 2), pd[1]]] }, xb, dy, true);
       if (Tm >= 3800) [[-4, 16], [3, 13], [7, 19]].forEach(([ox, oy], i) => { if ((Math.floor(t / 200) + i) % 3) destello(g, cR + ox, cabezaY + oy, t + i * 90); });   // ya es caballero: brilla
     }
-    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else hombreraCae(g, xb, dy, Tm, 900);
+    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);
   } else if (quien === "malia") {   // le da a probar la mermelada: queda con la panza llena y le da sueño
     if (Tm < 1500) {   // se la come: la boca llena de mermelada y se saborea
       const rc = Tm >= 1000 ? caraMermelada(rival.hd, rival.id, { lame: true, t }) : rival.hd;
@@ -580,19 +568,19 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
         [[-10, 4], [-3, 1]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 160) + i) % 2) { g.fillStyle = "#F472B6"; [[0, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [1, 3]].forEach(([a, b]) => g.fillRect(cR + ox + a, cabezaY + oy + b - Math.round((Tm - 1050) / 90), 1, 1)); } });
       }
     } else {
-      const k = Math.min(1, (Tm - 1500) / 1000), vaiven = Math.round(Math.sin(t / 700) * 1.2 * k), r = sinHombrera(pochito(rival.hd), rival);
+      const k = Math.min(1, (Tm - 1500) / 1000), vaiven = Math.round(Math.sin(t / 700) * 1.2 * k), r = sinCollar(pochito(rival.hd), rival);
       const dormido = Tm > 2300, rc = caraMermelada(r, rival.id, { lame: !dormido, dormido, t }), pr = { ...hdPose(rc, "guardia", 0), agacha: Math.round(k * 3) };
       sombra(g, cR + vaiven, dy); figura(g, rc, pr, xb - vaiven, dy, true);
       if (Tm > 2300) zzz(g, cR + 6 + vaiven, cabezaY + 2 + Math.round(k * 3), t);
       if (rival.id !== "xitin") {   // deja el arma en el suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1500) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 8, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 5, q < 1 ? Math.floor(q * 2) : 1);
-      } else hombreraCae(g, xb, dy, Tm, 1500);
+      } else collarCae(g, xb, dy, Tm, 1500);
     }
   } else if (quien === "kenny") {   // la serenata lo enamora: bota el arma, junta las manos y queda con ojos de corazón
     if (Tm < 1300) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true); }
     else {
-      const vaiven = Math.round(Math.sin(t / 450) * 2), r = sinHombrera(enamorado(rival.hd), rival), xr = xb - vaiven;
+      const vaiven = Math.round(Math.sin(t / 450) * 2), r = sinCollar(enamorado(rival.hd), rival), xr = xb - vaiven;
       sombra(g, cR + vaiven, dy); figura(g, r, hdPose(r, "guardia", 0), xr, dy, true);
       ojosCorazon(g, rival.id, rival.hd, xr, dy, Math.floor(t / 250) % 2);
       for (let i = 0; i < 3; i++) {   // corazones que suben desde su cabeza
@@ -602,7 +590,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       if (rival.id !== "xitin") {   // bota el arma: se le cae de la mano y queda en el suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 350);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 9, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
-      } else hombreraCae(g, xb, dy, Tm, 1300);
+      } else collarCae(g, xb, dy, Tm, 1300);
     }
     if (Tm >= 950 && Tm < 1400) [[-6, 6], [2, 2], [-2, 12]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 120) + i) % 2) corazon3(g, cR + ox, cabezaY + oy, "#F472B6"); });   // las notas llegan y brotan corazones
   } else if (quien === "tivan") {   // la poción estalla en humo, el arma sale volando y el rival queda tiznado y tosiendo
@@ -623,7 +611,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       }
       const crece = Math.min(1, (Tm - 900) / 300), sevA = Tm < 1900 ? 1 : Math.max(0, 1 - (Tm - 1900) / 700);
       humoTivan(g, cR, cy - crece * 4, 4 + crece * 14 + (sevA < 1 ? (1 - sevA) * 6 : 0), t, sevA);
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else hombreraCae(g, xb, dy, Tm, 900);   // el arma (o la hombrera) sale volando del humo
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);   // el arma (o el collar) sale volando del humo
     }
   } else if (quien === "patroclus") {   // su águila agarra al rival de los hombros y se lo lleva volando fuera de la pantalla
     const hombroY = YB + dy + HD_OY + (rival.hd.bajar || 0) + 3;   // las garras lo toman desde arriba de la cabeza
@@ -640,9 +628,9 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       if (rival.id !== "xitin") {   // suelta el arma, que cae al suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1350) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), cR + 6, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
-      } else hombreraCae(g, xb, dy, Tm, 1350);
+      } else collarCae(g, xb, dy, Tm, 1350);
     } else if (rival.id !== "xitin") armaSuelta(g, rival.id, cR + 6, SUELO + dy - 3, 1);
-    else hombreraCae(g, xb, dy, Tm, 1350);
+    else collarCae(g, xb, dy, Tm, 1350);
   } else if (quien === "uchis") {   // ataca al aire (Uchis se esfumó), ella aparece detrás y lo asusta: salta y suelta el arma
     if (Tm < 1900) {
       const tt = Tm - 200, xr = xb + (tt >= 0 && tt < 1700 ? paso(rival.hd, tt) : 0);
@@ -652,7 +640,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       sombra(g, cR - adelante, dy); figura(g, r, hdPose(r, "guardia", t), xb + adelante, dy - brinco, true);
       sudor(g, cR - 6 - adelante, cabezaY + 2 - brinco, true);
       if (Tm < 2300) [[-9, -2], [-11, 4], [-9, 10]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 90) + i) % 2) { g.fillStyle = "#FFFFFF"; g.fillRect(cR + 10 + ox * -1, cabezaY + oy - brinco, 3, 1); } });   // rayitas del susto
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - 1000); else hombreraCae(g, xb, dy, Tm, 1900);
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - 1000); else collarCae(g, xb, dy, Tm, 1900);
     }
   } else if (quien === "july") {   // la onda del martillazo llega por el suelo, lo hace saltar y lo deja tambaleando sin arma
     const xIni = 2 + dx + HD_OX + 32, llega = 1350, xOnda = lerp(xIni, cR - 6, (Tm - 950) / (llega - 950));
@@ -665,7 +653,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       figura(g, r, { ...hdPose(r, "guardia", t), inclina: tambalea, pies: [[r.pies[0][0] - 2, r.pies[0][1]], [r.pies[1][0] + 2, r.pies[1][1]]] }, xb, dy - vuelo, true);
       sudor(g, cR - 6, cabezaY + 2 - vuelo, Tm < 2200);
       if (k >= 1 && Tm < 2300) [[-7, 0], [6, 1]].forEach(([ox, oy], i) => { const q = Math.min(1, (Tm - llega - 450) / 500); g.globalAlpha = 1 - q; g.fillStyle = "#D6CFC0"; g.fillRect(cR + ox - 2 - Math.round(q * 3 * (i ? -1 : 1)), SUELO + dy - 2 + oy, 4, 2); g.globalAlpha = 1; });   // polvo al caer
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (llega - 900)); else hombreraCae(g, xb, dy, Tm, llega);
+      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (llega - 900)); else collarCae(g, xb, dy, Tm, llega);
     }
   } else if (quien === "edith") {   // la nube de tormenta le tira rayos a los lados y lo hace correr de un lado a otro
     const c = corridaEdith(Tm, cR), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
@@ -677,7 +665,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       if (c.dir < 0) figura(g, r, pc, W - c.x - HD_OX - 15, dy, true); else figura(g, r, pc, c.x - HD_OX - 15, dy, false);
     }
     if (!antes) sudor(g, c.x - 6 * (c.dir || -1), cabezaY + 2, c.dir === 0);
-    if (!antes) { if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (INICIO_EDITH - 900)); else hombreraCae(g, xb, dy, Tm, INICIO_EDITH); }
+    if (!antes) { if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (INICIO_EDITH - 900)); else collarCae(g, xb, dy, Tm, INICIO_EDITH); }
     if (Tm >= 600) {   // la nube aparece y sigue al rival con un poco de atraso, apurándose
       const escala = Math.min(1, (Tm - 600) / 700), nubeY = YB + dy + HD_OY - 10, nx = nubeEdithX(Tm, cR);
       nubeTormenta(g, nx, nubeY, escala, t);
@@ -687,13 +675,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     const Tu = Tm / LENTO_UZU;   // toda la escena de Uzu va más lenta, para que se aprecie
     if (Tu < 1150) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); if (Tu > 850) sudor(g, cR - 6, cabezaY + 2, true); }
     else if (Tu < 2000) {
-      const k = (Tu - 1150) / 850, xr = cR - 15 + k * k * 60, r = rendido(rival.hd, false);   // da media vuelta y corre hacia la derecha (a Xitin se le cae la hombrera)
+      const k = (Tu - 1150) / 850, xr = cR - 15 + k * k * 60, r = rendido(rival.hd, false);   // da media vuelta y corre hacia la derecha (a Xitin se le cae el collar)
       figura(g, r, hdPose(r, "ataque", Math.floor(t / 110) % 2 ? 820 : 600), xr - HD_OX, dy, false);
       sudor(g, xr + 22, cabezaY + 2, false);
     }
-    if (Tu >= 1150 && !(Tu >= 2600 && uzuRecogio(Tu, W - (xb + HD_OX + 15) + 4, 2 + dx))) {   // el arma (o la hombrera de Xitin) en el suelo, hasta que Uzu la recoge
+    if (Tu >= 1150 && !(Tu >= 2600 && uzuRecogio(Tu, W - (xb + HD_OX + 15) + 4, 2 + dx))) {   // el arma (o el collar de Xitin) en el suelo, hasta que Uzu lo recoge
       const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tu - 1150) / 350);
-      const [x0, y0] = rival.id === "xitin" ? [cR - 9, YB + dy + HD_OY + 18] : [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy];   // la hombrera cae del hombro de Xitin, que ya dio media vuelta
+      const [x0, y0] = rival.id === "xitin" ? [cR - 9, YB + dy + HD_OY + 18] : [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy];   // el collar cae del cuello de Xitin, que ya dio media vuelta
       botinUzu(g, rival, lerp(x0, W - (xb + HD_OX + 15) + 4, q), lerp(y0, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
     }
   } else if (quien === "janet") {   // la flecha rebota en el suelo, sube, atraviesa el arma y la deja clavada arriba en el borde
@@ -711,7 +699,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     if (Tm >= 1050) {   // con el arma ensartada al medio: la cola detrás, el arma, la punta delante
       const k = Math.min(1, (Tm - 1050) / 350), [x, y, ux, uy] = tramo(mano, clavo, k), L = Math.hypot(ux, uy) || 1, mx = x - ux / L * 6, my = y - uy / L * 6;
       flechaTramo(g, x, y, ux, uy, 7, LARGO_FLECHA);
-      if (xitinR) hombreraEntera(g, mx, my); else armaSuelta(g, rival.id, mx, my);
+      if (xitinR) collarEntero(g, mx, my); else armaSuelta(g, rival.id, mx, my);
       flechaTramo(g, x, y, ux, uy, 0, 6);
       if (k >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, clavo[1] - 6, 1, 12); }
     } else if (!enMano) {}
@@ -726,14 +714,14 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     sudor(g, cR - 6, cabezaY + 2, Tm < 1700);
     const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), manoY = YB + dy + HD_OY + hy;
     const q = Math.min(1, (Tm - 900) / 500);
-    if (janet) {   // la flecha atraviesa el arma (o la hombrera de oso) y la clava en el borde derecho, arriba del rival
+    if (janet) {   // la flecha atraviesa el arma (o el collar de oso) y lo clava en el borde derecho, arriba del rival
       const ax = lerp(manoX, W - 9, q), ay = lerp(manoY - 6, cabezaY - 6, q);
-      if (xitinR) hombreraEntera(g, ax, ay);   // se la lleva entera, con la piel colgando
+      if (xitinR) collarEntero(g, ax, ay);   // se lleva el collar colgando de la flecha
       else armaSuelta(g, rival.id, ax, ay);
       flechaJanet(g, Math.round(ax - 10), Math.round(ay), 18);
       if (q >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, ay - 8, 1, 16); }
     } else if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
-    else hombreraCae(g, xb, dy, Tm, 900);
+    else collarCae(g, xb, dy, Tm, 900);
   }
 
   } finally { if (huyen) rival.hd.huyenMascotas = false; }

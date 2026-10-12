@@ -115,7 +115,7 @@ function hdDibujar(g, x, y, c, p) {
 function hdPose(c, anim, t) {
   t = t || 0;   // el rival parte con el reloj en negativo: los cuadros se cuentan igual sin salirse de la lista
   const ciclo = (ms, n) => ((Math.floor(t / ms) % n) + n) % n;
-  const capa = ciclo(180, 3), pelo = ciclo(260, 2), bob = ciclo(520, 2);
+  const capa = c.capaLenta ? ciclo(c.capaLenta, c.capa.length) : ciclo(180, 3), pelo = ciclo(260, 2), bob = ciclo(520, 2);
   const m = c.manos, pies = c.pies;
   if (anim === "guardia") return { mano: m.guardia, capa, pelo, agacha: bob, pies, fase: "guardia", t };
   if (anim === "victoria") {
@@ -1680,22 +1680,30 @@ HEROES_PALETA.push(["Xitin · capucha de oso", HD_XITIN34, HD_XITIN_NUEVA, "Capu
 
 /* Xitin rediseñada, segunda propuesta (inspirada en la foto de la profe): cola de caballo alta platinada bien visible,
    top negro corto con borde de piel, cinturón café, calzas negras, botas de armadura plateadas, garras plateadas en las manos
-   y una hombrera con cabeza de oso en el hombro de cerca, con la piel cayendo por la espalda. */
-const hombreraOso = (px, x0, y0) => {
-  const pal = { K: HDK, U: "#7A4E2C", u: "#553418", M: "#A57A4E" };
-  [".KK.KK.", "KUUKUUK", "KUKUKUK", "KUUMMMK", ".KUUMKK", "..KKKK."].forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) px(x0 + x, y0 + y, pal[k]); }));
+   y un collar con un medallón de cara de oso. */
+const COLLAR_OSO = ["c.....c", ".cU.Uc.", ".UUUUU.", ".UKUKU.", ".uMMMu.", "..uNu.."];
+const collarOso = (px, x0, y0, filas = COLLAR_OSO) => {
+  const pal = { c: "#6B3F22", U: "#9A6B40", u: "#6B4426", K: "#1A1420", M: "#E2C79C", N: "#24212B" };
+  filas.forEach((f, y) => [...f].forEach((k, x) => { if (pal[k]) px(x0 + x, y0 + y, pal[k]); }));
 };
+/* La cola de caballo: arriba fija y la punta se mece de un lado a otro (al medio, atrás, al medio, adelante). */
+const colaXitin = [0, -1, 0, 1].map((d) => {
+  const corre = (f) => (d < 0 ? f.slice(1) : ".".repeat(d) + f);
+  return { 2: "....KK", 3: "...KHHK", 4: "..KHZHK", 5: "..KHhHK", 6: ".KHhHK", 7: ".KHhHK", 8: "KHhHK", 9: "KHhHK", 10: "KHhK", 11: "KHhK", 12: "KhHK", 13: "KHhK", 14: "KhHK", 15: "KHhK",
+    16: corre(".KhHK"), 17: corre(".KHhK"), 18: corre(".KhK"), 19: corre("..K") };
+});
 const HD_XITIN_NUEVA2 = { ...HD_XITIN34,
   pal: { ...HD_XITIN34.pal, N: "#24212B", n: "#3A3646", F: "#E6E1D6", B: "#6B4426", G: "#C9A24B", P: "#24212B", q: "#3A3646", U: "#7A4E2C", u: "#553418" },
   cuerpo: HD_XITIN34.cuerpo.map((f, i) => ({ 15: ".........KKSSSKK", 16: ".......KSSSSSSSSSK", 17: ".......KSNNNNNNNSK", 18: ".......KNNNNNNNNNK", 19: ".......KNnNNNNNNNK", 20: ".......KFFFFFFFFFK", 21: ".......KSSSSsSSSSK", 22: ".......KSSSSSSsSSK", 23: ".......KBBBBGBBBBK", 24: ".......KPPPPPPPPPK", 25: ".......KPPPPPPPPPK", 26: ".......KPPPPKPPPPK", 27: ".......KPqPPKPPqPK" })[i] || f),
   pelo: null,
-  capa: [ { 2: "....KK", 3: "...KHHK", 4: "..KHZHK", 5: "..KHhHK", 6: ".KHhHK", 7: ".KHhHK", 8: "KHhHK", 9: "KHhHK", 10: "KHhK", 11: "KHhK", 12: "KhHK", 13: "KHhK", 14: "KhHK", 15: "KHhK", 16: ".KhHK", 17: ".KHhKUK", 18: ".KhKUuUK", 19: "..KHKuUK", 20: "..KKuUUK", 21: "..KUuUUK", 22: "..KuUuUK", 23: "...KUuK", 24: "...KuUK", 25: "....KK" }, { 2: "....KK", 3: "...KHHK", 4: "..KHZHK", 5: "..KHhHK", 6: ".KHhHK", 7: ".KHhHK", 8: "KHhHK", 9: "KHhHK", 10: "KHhK", 11: "KHhK", 12: "KhHK", 13: "KHhK", 14: "KhHK", 15: "KHhK", 16: "..KhHK", 17: "..KHhKK", 18: "..KhKuUK", 19: "..KKHKK", 20: "..KKKUUK", 21: ".KUuUUK", 22: ".KuUuUK", 23: "..KUuK", 24: "..KuUK", 25: "...KK" }, { 2: "....KK", 3: "...KHHK", 4: "..KHZHK", 5: "..KHhHK", 6: ".KHhHK", 7: ".KHhHK", 8: "KHhHK", 9: "KHhHK", 10: "KHhK", 11: "KHhK", 12: "KhHK", 13: "KHhK", 14: "KhHK", 15: "KHhK", 16: "..KhHK", 17: "..KHhKK", 18: "..KhKuUK", 19: "...KHKUK", 20: "..KKKUUK", 21: "..KUuUUK", 22: "..KuUuUK", 23: "...KUuK", 24: "...KuUK", 25: "....KK" } ],   // cola de caballo larga por delante del manto de piel
+  capa: colaXitin,   // cola de caballo larga, que se mece despacio
+  capaLenta: 350,
   brazo: { luz: "#FFF0E4", base: "#F2D6C4", sombra: "#CFA88F", mano: "#B8C0CC", manoLuz: "#E5E7EB" },
   pierna: { ...HD_XITIN34.pierna, luz: "#3A3646", base: "#24212B", sombra: "#14121A", bota: "#A9B2BF", botaSombra: "#7C8594" },
-  arma: (px, p) => { HD_XITIN34.arma(px, p); if (!p.sinHombrera) hombreraOso(px, 5, 15); },   // la pierde solo cuando la flecha de Janet se la lleva (p.sinHombrera)
+  arma: (px, p) => { HD_XITIN34.arma(px, p); collarOso(px, 9, 16); },
 };
 HEROES_PALETA.length = 0;
-HEROES_PALETA.push(["Xitin · segunda propuesta", HD_XITIN34, HD_XITIN_NUEVA2, "Cola de caballo alta, top negro corto, calzas negras, botas de armadura, garras plateadas y hombrera con cabeza de oso."]);
+HEROES_PALETA.push(["Xitin · segunda propuesta", HD_XITIN34, HD_XITIN_NUEVA2, "Cola de caballo alta, top negro corto, calzas negras, botas de armadura, garras plateadas y collar con cara de oso."]);
 
 /* Xitin aprobada (2026-10-11): la segunda propuesta, con piernas más delgadas, reemplaza a la anterior. */
 HD_XITIN_NUEVA2.pierna = { ...HD_XITIN_NUEVA2.pierna, ancho: 3 };
@@ -2735,4 +2743,4 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
 }
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
-export { HDK, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, hombreraOso, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
+export { HDK, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
