@@ -399,27 +399,28 @@ const nubeEdithX = (Tm, cR) => {
   return u < 0.3 ? rayoEdithX(n, cR) : lerp(rayoEdithX(n, cR), rayoEdithX(n + 1, cR), (u - 0.3) / 0.7);
 };
 const LENTO_UZU = 1.45;
-/* El collar de oso de Xitin suelto: el cordón cerrado con la cara de oso abajo. (x, y) es el centro;
-   acostado: un cuarto de vuelta. */
-const COLLAR_SUELTO = ["..ccc..", ".c...c.", ...COLLAR_OSO];
+/* El collar de oso de Xitin suelto: el cordón cerrado y una cara de oso de frente, más grande que la que lleva
+   puesta y con contorno, para que se reconozca en el suelo. (x, y) es el centro; acostado: un cuarto de vuelta
+   (solo mientras vuela girando). */
+const COLLAR_SUELTO = ["..ccc..", ".c...c.", "c.....c", ".c...c.", "KK...KK", "KUKKKUK", "KUUUUUK", "KUNUNUK", "KuMMMuK", ".KMNMK.", "..KKK.."];
 const collarEntero = (g, x, y, acostado = false) => {
   const pts = [];
   collarOso((a, b, c) => pts.push([a, b, c]), 0, 0, COLLAR_SUELTO);
-  pts.forEach(([a, b, c]) => { const [u, v] = acostado ? [b, -a] : [a, b]; g.fillStyle = c; g.fillRect(Math.round(x - 3 + u), Math.round(y - 3 + v), 1, 1); });
+  pts.forEach(([a, b, c]) => { const [u, v] = acostado ? [b - 5, 3 - a] : [a - 3, b - 5]; g.fillStyle = c; g.fillRect(Math.round(x + u), Math.round(y + v), 1, 1); });
 };
 /* Cuando el ganador desarma a Xitin, en vez de un arma se le cae el collar de oso: sale volando del cuello,
-   gira y queda acostado en el suelo, detrás de ella. desde: cuándo empieza a caer. */
+   gira en el aire y queda en el suelo, detrás de ella. desde: cuándo empieza a caer. */
 const collarCae = (g, xb, dy, Tm, desde) => {
   const q = Math.min(1, (Tm - desde) / 550); if (q < 0) return;
   const x0 = W - (xb + HD_OX + 12), y0 = YB + dy + HD_OY + 18, suelo = SUELO + dy + 2;
-  collarEntero(g, lerp(x0, W - 10, q), lerp(y0, suelo, q) - Math.sin(Math.PI * q) * 16, q >= 1 || Math.floor(q * 6) % 2 === 1);
+  collarEntero(g, lerp(x0, W - 10, q), lerp(y0, suelo - 3, q) - Math.sin(Math.PI * q) * 16, q < 1 && Math.floor(q * 6) % 2 === 1);
 };
 /* Xitin sin su collar (para las poses de derrota que parten del rival rendido). */
 const sinCollar = (r, rival) => (rival.id === "xitin" ? { ...r, arma: undefined } : r);
 /* Lo que Uzu se lleva de trofeo: el arma del rival, o el collar de oso si es Xitin (centrado en x, y). */
 const botinUzu = (g, rival, x, y, cuartos) => {
   if (rival.id !== "xitin") return armaSuelta(g, rival.id, x, y, cuartos);
-  collarEntero(g, x, y - (cuartos ? 0 : 4), cuartos % 2 === 1);
+  collarEntero(g, x, y - 4);   // derecho, para que se vea la cara de oso
 };
 /* Ciclo de carrera de Uzu: zancadas alternadas, el cuerpo inclinado y los brazos que se balancean poco, con el codo en su lugar. */
 const correUzu = (c, t) => {
