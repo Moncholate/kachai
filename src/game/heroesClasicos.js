@@ -16,7 +16,7 @@
    y el arma se dibujan aparte, según la pose. */
 const K = "#1A1020";
 const T = [
-{ id: "latte", nombre: "Latte", clase: "Trickster", desc: "Pelo cobrizo, chistera de mago con un naipe en la cinta, chaqueta color café con leche y una baraja que nunca se le acaba. Lanza los naipes de dos en dos.", frase: "Catch me if you can!",
+{ id: "latte", nombre: "Latte", clase: "Trickster", desc: "Pelo cobrizo, chistera de mago con un naipe en la cinta, chaqueta color café con leche y una baraja que nunca se le acaba. Lanza los naipes de dos en dos.", frase: "La vida no consiste en tener buenas cartas, sino en saber jugar las que se tienen.",
   arma: "naipes", brazo: "J", mano: "R",
   guardia: { mano: [15, 21], dir: [0, -1] },
   pal: { T: "#24212C", t: "#3E3A4C", Y: "#C0263A", H: "#B5512A", h: "#7E3418", C: "#2F4A3A", c: "#1C2E24", V: "#5C8A68", Q: "#24392D", q: "#15231B", S: "#D9A27A", s: "#A8714C", X: "#45393F", W: "#F4F1E8",
@@ -53,7 +53,7 @@ const T = [
   "....KbbbbbK.KbbbbK......",
   ".....KKKKK...KKKKK......"] },
 
-{ id: "agattita", nombre: "Agattita", clase: "Druida", desc: "Gata atigrada de ojos enormes. Levanta su bastón en espiral y del suelo brotan enredaderas con espinas.", frase: "Purr-fect answer!",
+{ id: "agattita", nombre: "Agattita", clase: "Druida", desc: "Gata atigrada de ojos enormes. Levanta su bastón en espiral y del suelo brotan enredaderas con espinas.", frase: "No tengo talentos especiales. Solo soy apasionadamente curiosa.",
   hombro: [14, 17],
   arma: "baculo", espiral: true, raices: true, poses: { ataque: { mano: [16, 14], dir: [0, -1] } }, brazo: "A", mano: "W", orbe: "#4ADE80",
   pal: { F: "#8C7B6A", f: "#4F4236", Z: "#B5A592", W: "#F6F0E6", w: "#D9CDBB", I: "#E7A9A0", N: "#E39A86",
@@ -90,7 +90,7 @@ const T = [
   "....KWWWWK.KWWWWK.......",
   ".....KKKK...KKKK........"] },
 
-{ id: "malala", nombre: "Malala", clase: "Bruja", desc: "Pelo oscuro, sombrero gigante con borlas y vestido cuadrillé verde y blanco, como el delantal de las tías del jardín. Nadie le ha visto los ojos.", frase: "Hands up, everybody!",
+{ id: "malala", nombre: "Malala", clase: "Bruja", desc: "Pelo oscuro, sombrero gigante con borlas y vestido cuadrillé verde y blanco, como el delantal de las tías del jardín. Nadie le ha visto los ojos.", frase: "Las palabras son nuestra más inagotable fuente de magia.",
   arma: "baculo", escoba: true, brazo: "V", mano: "S", orbe: "#A7F3D0",
   pal: { H: "#1F4D3A", h: "#12301F", Y: "#D9A13B", L: "#3A2A30", l: "#5E4A56", S: "#F4D3BE", s: "#D4A58C", D: "#1F4D3A",
          C: "#E9E2CF", c: "#C4B999", E: "#14B8A6", V: "#5FB383", b: "#1A1020",
@@ -127,7 +127,7 @@ const T = [
   ".KKKKKbbKKKKKbbKKK......",
   ".....KKK.....KKK........"] },
 
-{ id: "malia", nombre: "Malía", clase: "Chef", desc: "Elfa de moño blanco y delantal impecable. Pelea con un cucharón gigante de madera y nunca se le quema nada.", frase: "Dinner is served!",
+{ id: "malia", nombre: "Malía", clase: "Chef", desc: "Elfa de moño blanco y delantal impecable. Pelea con un cucharón gigante de madera y nunca se le quema nada.", frase: "El único obstáculo real es el miedo a fracasar.",
   arma: "cucharon", brazo: "B", mano: "S",
   pal: { H: "#E8EAF0", h: "#AEB5C6", W: "#F2F0EA", w: "#CFCBC0", B: "#CDB898", b: "#A8946F", S: "#EBB2A6", s: "#C7867A",
          N: "#24212B", n: "#3A3644", D: "#8A5A2A", Y: "#C9A24B", E: "#2F6B45" },
@@ -163,7 +163,7 @@ const T = [
   ".KNYNNNNYNNNNYNNNNK.....",
   "..KKKKKKKKKKKKKKKK......"] },
 
-{ id: "kenny", nombre: "Kenny", clase: "Bardo", desc: "Pelo largo amarrado en una cola, barba, lentes de sol y bufanda turquesa. Toca el laúd tan fuerte que sus notas musicales desarman a cualquiera.", frase: "Sing it with me!",
+{ id: "kenny", nombre: "Kenny", clase: "Bardo", desc: "Pelo largo amarrado en una cola, barba, lentes de sol y bufanda turquesa. Toca el laúd tan fuerte que sus notas musicales desarman a cualquiera.", frase: "La música es el lenguaje universal de la humanidad.",
   arma: "laud", brazo: "J", mano: "S",
   hombro: [13, 18],
   poses: { guardia: { mano: [12, 22], dir: [0, -1] }, ataque: { mano: [12, 21], dir: [0, -1] }, alzada: { mano: [19, 15], dir: [0, -1] } },
@@ -201,7 +201,7 @@ const T = [
   ".......KbbbbbK.KbbbbK...",
   "........KKKKK...KKKKK..."] },
 
-{ id: "tivan", nombre: "Tiván", clase: "Alquimista", desc: "Pelo canoso alborotado, antiparras de bronce sobre el pelo, cuello alto, abrigo largo y una bandolera llena de frascos. Lanza pociones que estallan en humo verde.", frase: "Don't drink that!",
+{ id: "tivan", nombre: "Tiván", clase: "Alquimista", desc: "Pelo canoso alborotado, antiparras de bronce sobre el pelo, cuello alto, abrigo largo y una bandolera llena de frascos. Lanza pociones que estallan en humo verde.", frase: "No he fracasado. He encontrado 10.000 maneras que no funcionan.",
   arma: "pocion", brazo: "W", mano: "U",
   pal: { H: "#C4C8D2", h: "#868C9C", E: "#5A3A22", Q: "#9BD8F0", S: "#C99470", s: "#9E6B4B", O: "#6E6A3A", o: "#4C4826", W: "#EEF0F2", B: "#5A3A22",
          V: "#4ADE80", Z: "#E6F6FF", F: "#15121A", D: "#4A2E22", G: "#C9A24B", U: "#7A5232", P: "#5A3A28", b: "#221A20" },
@@ -237,7 +237,7 @@ const T = [
   "....KbbGbbK.KbbGbbK.....",
   ".....KKKKK...KKKKK......"] },
 
-{ id: "patroclus", nombre: "Patroclus", clase: "Scout", desc: "Moreno, pelo corto negro y un collar con piedra turquesa. La capucha verde con borde de piel le cae sobre los hombros. Camina con un bordón de madera con una cabeza de lobo tallada y el banderín de su patrulla.", frase: "Always be prepared!",
+{ id: "patroclus", nombre: "Patroclus", clase: "Scout", desc: "Moreno, pelo corto negro y un collar con piedra turquesa. La capucha verde con borde de piel le cae sobre los hombros. Camina con un bordón de madera con una cabeza de lobo tallada y el banderín de su patrulla.", frase: "Cuanto más aprendas, a más lugares irás.",
   arma: "totem", brazo: "W", mano: "S",
   pal: { G: "#3F6B3A", g: "#2A4A27", H: "#1A1518", h: "#3A3036", S: "#9A6440", s: "#74472B", N: "#F4E9C8", Z: "#2DD4BF", F: "#E9E4DA", f: "#BDB5A6", L: "#6E5134", l: "#4E3824",
          W: "#E7E2D6", B: "#3A2418", Y: "#C9A24B", T: "#4F4A33", b: "#3A2A1E" },
@@ -273,7 +273,7 @@ const T = [
   "....KbbbbbK.KbbbbbK.....",
   ".....KKKKK...KKKKK......"] },
 
-{ id: "uchis", nombre: "Uchis", clase: "Pícara", desc: "Pelo castaño largo, diadema dorada y capa roja sobre una túnica con rombos turquesa y dorados. Lanza cuchillas antes de que termines de leer la pregunta.", frase: "Too slow!",
+{ id: "uchis", nombre: "Uchis", clase: "Pícara", desc: "Pelo castaño largo, diadema dorada y capa roja sobre una túnica con rombos turquesa y dorados. Lanza cuchillas antes de que termines de leer la pregunta.", frase: "No importa lo lento que vayas, siempre y cuando no te detengas.",
   arma: "cuchillas", brazo: "C", mano: "U",
   guardia: { mano: [15, 21], dir: [0.3, -0.95] },
   pal: { H: "#7A4A2C", h: "#4E2E1A", S: "#F6DCCB", s: "#D7B09C", L: "#D9667A", G: "#E0B040", E: "#3B82F6",
@@ -310,7 +310,7 @@ const T = [
   "....KbbbbbK.KbbbbbK.....",
   ".....KKKKK...KKKKK......"] },
 
-{ id: "janet", nombre: "Janet", clase: "Elfo", desc: "Pelo largo castaño claro, barba y armadura de escamas como hojas. Dispara flechas desde lejos y casi nunca falla.", frase: "Right on target!",
+{ id: "janet", nombre: "Janet", clase: "Elfo", desc: "Pelo largo castaño claro, barba y armadura de escamas como hojas. Dispara flechas desde lejos y casi nunca falla.", frase: "Apunta a la luna. Aunque falles, llegarás a las estrellas.",
   arma: "arco", brazo: "L", mano: "S",
   pal: { H: "#C9A577", h: "#9A7A50", S: "#F0D2BC", s: "#CFA88F", D: "#8A6640", W: "#EDEAE0", Q: "#6B4430", G: "#6B7A3A", g: "#4C5728",
          L: "#3F5A3A", l: "#2C4029", B: "#3A2418", Y: "#C9A24B", T: "#4A4A3A", M: "#A9B2BF", m: "#7C8594" },
@@ -346,7 +346,7 @@ const T = [
   "....KMMMMMK.KMMMMK......",
   ".....KKKKK...KKKKK......"] },
 
-{ id: "jelic", nombre: "Jelic", clase: "Paladín", desc: "Armadura completa, penacho rojo y los colores azul y rojo de la U. No usa espada: embiste con su escudo.", frase: "Hold the line!",
+{ id: "jelic", nombre: "Jelic", clase: "Paladín", desc: "Armadura completa, penacho rojo y los colores azul y rojo de la U. No usa espada: embiste con su escudo.", frase: "Cáete siete veces, levántate ocho.",
   arma: "escudo", brazo: "M", mano: "M",
   guardia: { mano: [16, 20], dir: [0, -1] },
   pal: { R: "#D7263D", r: "#9B1428", M: "#9AA3B2", m: "#646C7C", L: "#D9DEE8", A: "#1E3FAE", a: "#13297A",
@@ -382,7 +382,7 @@ const T = [
   ".....KmmmK.KmmmK........",
   "....KmmmmmKKmmmmmK......",
   ".....KKKKK..KKKKKK......"] },
-{ id: "cupe", nombre: "Cupe", clase: "Noble", desc: "Perrito blanco de rizos y orejas enormes, con coronita de príncipe, levita gris con ribetes dorados y corbata de encaje. Pelea con florete, como todo noble.", frase: "En garde!",
+{ id: "cupe", nombre: "Cupe", clase: "Noble", desc: "Perrito blanco de rizos y orejas enormes, con coronita de príncipe, levita gris con ribetes dorados y corbata de encaje. Pelea con florete, como todo noble.", frase: "Una corona no te hace rey, son tus acciones las que te dan ese título.",
   hombro: [17, 16],
   arma: "sable", brazo: "G", mano: "W",
   pal: { W: "#F6F4EE", v: "#E9E3D6", w: "#D6CFC0", O: "#F2C230", R: "#D7263D", Z: "#FFFFFF", L: "#FFFFFF", G: "#8E939C", g: "#5F646E",
@@ -418,7 +418,7 @@ const T = [
   ".......KDDYK.KDDYK......",
   "......KDDDDDKKDDDDDK....",
   ".......KKKKK..KKKKKK...."] },
-{ id: "july", nombre: "July", clase: "Herrero", desc: "Alto, calvo y con barba blanca hasta el pecho. Delantal de cuero, brazos de forja y un martillo que pesa más que un yunque.", frase: "Strike while the iron is hot!",
+{ id: "july", nombre: "July", clase: "Herrero", desc: "Alto, calvo y con barba blanca hasta el pecho. Delantal de cuero, brazos de forja y un martillo que pesa más que un yunque.", frase: "Somos lo que hacemos repetidamente.",
   arma: "martillo", brazo: "S", mano: "g",
   pal: { S: "#D9A27A", s: "#A8714C", Z: "#F2CDA8", W: "#F2F2F2", w: "#C8C8D0", A: "#7A4A2A", Y: "#E8B830", B: "#8E2A20",
          G: "#C9A24B", P: "#5A5E6A", M: "#A9B2BF", m: "#7C8594", b: "#4A3426", g: "#3A2A20" },
@@ -453,7 +453,7 @@ const T = [
   "...KMMMMK.KMMMMK........",
   "...KbbbbbKKbbbbbK.......",
   "....KKKKK..KKKKKK......."] },
-{ id: "edith", nombre: "Edith", clase: "Warlock", desc: "Pelo negro largo y con rulos, túnica morada, hombrera de cráneo y un grimorio morado. Su grimorio flota a su lado y lanza rayos.", frase: "Here comes the storm!",
+{ id: "edith", nombre: "Edith", clase: "Warlock", desc: "Pelo negro largo y con rulos, túnica morada, hombrera de cráneo y un grimorio morado. Su grimorio flota a su lado y lanza rayos.", frase: "Los libros han ganado más batallas que las armas.",
   arma: "libro", rayo: true, brazo: "P", mano: "G", orbe: "#C4A7FF",
   pal: { H: "#1E1A22", h: "#4A4256", S: "#F0D6C8", s: "#C9A898", L: "#9B2D5A", P: "#4E2A6E", p: "#341A4C", C: "#E8DFC4",
          O: "#E9E1C8", B: "#2A1C30", Y: "#B8902A", b: "#1A1020", G: "#3A3A48" },
@@ -488,7 +488,7 @@ const T = [
   "KYYYYYYYYYYYYYYYYYYK....",
   ".KKbbKKKKKKKKbbKKKK.....",
   "...KKK......KKK........."] },
-{ id: "uzu", nombre: "Uzu", clase: "Goblin", desc: "Bajito, de orejas enormes y casco con púas. Sonríe con todos los dientes y blande un hacha de hueso más grande que él.", frase: "Shiny! Mine!",
+{ id: "uzu", nombre: "Uzu", clase: "Goblin", desc: "Bajito, de orejas enormes y casco con púas. Sonríe con todos los dientes y blande un hacha de hueso más grande que él.", frase: "No tienes que ser grande para empezar, pero tienes que empezar para ser grande.",
   hombro: [12, 17],
   arma: "hachahueso", salta: true, brazo: "G", mano: "G", manoMini: true, venda: ["#D6CFBC", "#8E8570"],
   guardia: { mano: [15, 23], dir: [0.8, -0.6] },
@@ -525,7 +525,7 @@ const T = [
   ".....KvVK...KvVK........",
   "....KGGGGK.KGGGGK.......",
   "...KgKgKgK.KgKgKgK......"] },
-{ id: "xitin", nombre: "Xitin", clase: "Invocadora", desc: "Rubia platino, trenza larga, pintura de guerra y manto de piel. Cuando ataca, ¡puf!: se transforma en un enorme oso pardo que ruge.", frase: "Unleash the bear!",
+{ id: "xitin", nombre: "Xitin", clase: "Invocadora", desc: "Rubia platino, trenza larga, pintura de guerra y manto de piel. Cuando ataca, ¡puf!: se transforma en un enorme oso pardo que ruge.", frase: "La educación no cambia el mundo: cambia a las personas que van a cambiar el mundo.",
   arma: "puno", brazo: "S", mano: "S", manoChica: true, espiritu: true,
   pal: { H: "#F4E7B8", h: "#C9B47A", Z: "#FFFBEA", p: "#C9707A", S: "#F2D6C4", s: "#CFA88F", R: "#4A3A5A", L: "#6B3F22", l: "#4E2C16", F: "#E6E1D6", f: "#B0A898",
          B: "#3A2418", O: "#D8DEE8", T: "#5A3A28", t: "#40281A", b: "#3A2418" },
