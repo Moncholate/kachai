@@ -765,13 +765,17 @@ function Verdict({ status, score, secret, practice, detail }) {
   const t = useT()
   const look = {
     right: ['bg-green-600', '✅'],
-    partial: ['bg-amber-500', '🟡'],
+    partial: ['bg-amber-500', '🤏'],
     wrong: ['bg-rose-600', '❌'],
     none: ['bg-slate-500', '😶'],
   }[status]
   return (
     <div className={`rounded-3xl ${look[0]} text-white text-center px-4 py-4 shadow`}>
-      <p className="text-3xl font-black">{look[1]} {t(`veredicto_${status}`)}</p>
+      {/* El ícono va en un círculo blanco: la ❌ roja sobre el fondo rojo casi no se distinguía. */}
+      <p className="text-3xl font-black flex items-center justify-center gap-3">
+        <span className="grid place-items-center w-12 h-12 rounded-full bg-white text-2xl shrink-0 shadow">{look[1]}</span>
+        {t(`veredicto_${status}`)}
+      </p>
       {detail && <p className="font-bold opacity-90">{detail}</p>}
       {secret
         ? <p className="mt-1 font-bold opacity-90">{t('puntosSecretos')}</p>
