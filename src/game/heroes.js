@@ -20,7 +20,8 @@
      · en el podio, quien gana celebra y el resto aplaude.
    ========================================================================== */
 import { HEROES as CLASICOS } from './heroesClasicos.js'
-import { HD_POR_ID, HD_BASE_POR_ID, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
+import { CRUDO, lienzoPear36 } from './pear36.js'
+import { HD_POR_ID, HD_BASE_POR_ID, hdColor, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
 
 const K = HDK
 
@@ -86,11 +87,25 @@ function aves(g) {
   });
 }
 function fondo(g) {
+  const antes = g[CRUDO]; g[CRUDO] = true;   // el bosque y sus aves conservan sus colores (no pasan a Pear36)
   if (!FONDO) FONDO = pintarFondo();
   g.drawImage(FONDO, 0, 0);
   aves(g);
+  g[CRUDO] = antes;
 }
 const sombra = (g, cx, dy = 0) => { g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(cx - 7, SUELO + dy + 1, 14, 2); g.fillRect(cx - 5, SUELO + dy + 3, 10, 1); };
+/* Impacto de un golpe (k de 0 a 1, unos 180 ms): destello blanco, estrella amarilla que crece y chispas que se abren y se apagan. */
+function impacto(g, x, y, k) {
+  const f = Math.min(3, Math.floor(k * 4)), ocho = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  if (f === 0) { g.fillStyle = "#FFFFFF"; g.fillRect(x - 1, y - 1, 3, 3); g.fillRect(x - 3, y, 7, 1); g.fillRect(x, y - 3, 1, 7); }
+  else if (f === 1) chispa(g, x, y, 1, "#FFE478");
+  else {
+    const r = f === 2 ? 5 : 7, lado = f === 2 ? 2 : 1;
+    g.fillStyle = f === 2 ? "#FFE478" : "#F2A65E";
+    ocho.forEach(([a, b]) => g.fillRect(Math.round(x + a * r), Math.round(y + b * r), lado, lado));
+    if (f === 2) { g.fillStyle = "#FFFFFF"; g.fillRect(x, y, 1, 1); ocho.slice(0, 4).forEach(([a, b]) => g.fillRect(x + a * 3, y + b * 3, 1, 1)); }
+  }
+}
 function chispa(g, x, y, f, col = "#FBBF24") {
   const r = [2, 4, 6, 4][f] ?? 0; if (!r) return;
   g.fillStyle = "#FFFFFF"; g.fillRect(x - r, y, r * 2 + 1, 1); g.fillRect(x, y - r, 1, r * 2 + 1);
@@ -123,7 +138,13 @@ function paso(c, tt) {
   if (tt < 1400) return d;
   return d * (1 - (tt - 1400) / 300);
 }
-const poseAtaque = (c, tt, t) => (tt >= 0 && tt < 1700 && !reduce ? hdPose(c, "ataque", tt) : hdPose(c, "guardia", t));
+/* cargaPrevia (ms): el personaje empieza a tomar impulso antes (Xitin carga maná y se lo lanza al báculo); toda esa
+   preparación, más el impulso de siempre, avanza como una sola fase "impulso" con k de 0 a 1. */
+const poseAtaque = (c, tt, t) => {
+  const pre = c.cargaPrevia || 0;
+  if (pre && !reduce && tt >= -pre && tt < 760) return { ...hdPose(c, "ataque", 600), k: (tt + pre) / (pre + 760), t };
+  return tt >= 0 && tt < 1700 && !reduce ? hdPose(c, "ataque", tt) : hdPose(c, "guardia", t);
+};
 
 /* Duelo: primero ataca uno y después el otro; nadie gana todavía. */
 function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
@@ -134,16 +155,24 @@ function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) 
   const xa = 2 + dx + paso(yo.hd, tA), xb = 2 + dx + paso(rival.hd, tB);
   sombra(g, centroX(xa, false), dy); sombra(g, centroX(xb, true), dy);
   figura(g, rival.hd, poseAtaque(rival.hd, tB, t + 300), xb, dy, true);
-  figura(g, yo.hd, poseAtaque(yo.hd, tA, t), xa, dy, false);
+  const preA = yo.hd.cargaPrevia || 0, tAp = preA && tA >= 3400 - preA ? tA - 3400 : tA;   // la carga previa empieza al final de la vuelta anterior
+  figura(g, yo.hd, poseAtaque(yo.hd, tAp, t), xa, dy, false);
+  if (!reduce) {   // el golpe conecta: chispa de impacto en el pecho del que lo recibe
+    const pecho = (c) => YB + dy + HD_OY + (c.bajar || 0) + c.hombro[1] + 2;
+    if (tA >= 900 && tA < 1080) impacto(g, centroX(xb, true) - 8, pecho(rival.hd), (tA - 900) / 180);
+    if (tB >= 900 && tB < 1080) impacto(g, centroX(xa, false) + 8, pecho(yo.hd), (tB - 900) / 180);
+  }
   g.restore();
 }
 
+/* ¿El rival lleva el collar de oso? (Xitin lo cambió por un báculo: si collar === false, la desarman como a todos.) */
+const llevaCollar = (r) => r.id === "xitin" && r.hd.collar !== false;
 /* El rival sin arma, con las manos arriba. Xitin conserva su collar de oso salvo que se lo quiten (conCollar === false). */
 function rendido(c, conCollar) {
   const [sx, sy] = c.hombro;
   const r = { ...c, arma: undefined, armaDetras: undefined, proyectil: undefined, forma: undefined, manos: { ...c.manos, guardia: [sx + 3, sy - 8] }, codos: undefined, codoDinamico: undefined, manoDinamica: undefined };
   if (c.brazoCerca) r.brazoCerca = { ...c.brazoCerca, poses: {}, todas: [[-3, -8], [-4, -3]], encima: false };
-  if (c.id === "xitin" && conCollar !== false) r.arma = (px) => collarOso(px, 9, 16);
+  if (c.id === "xitin" && c.collar !== false && conCollar !== false) r.arma = (px) => collarOso(px, 9, 16);
   return r;
 }
 /* El rival hincado, con la mano en el pecho, listo para que Cupe lo nombre caballero. */
@@ -180,9 +209,12 @@ function armaSuelta(g, id, x, y, cuartos = 0) {
   const base = HD_BASE_POR_ID[id]; if (!base) return;
   if (!armasSueltas.has(id)) {
     const c = document.createElement("canvas"); c.width = c.height = 56; const cg = c.getContext("2d");
-    const px = (a, b, col) => { cg.fillStyle = col; cg.fillRect(28 + a, 34 + b, 1, 1); };
+    const color = hdColor(HD_POR_ID[id] || base);   // con la paleta del personaje (Pear36)
+    const px = (a, b, col) => { cg.fillStyle = color(col); cg.fillRect(28 + a, 34 + b, 1, 1); };
     const p = { mano: [0, 0], fase: "guardia", t: 0, k: 0 };
-    if (base.arma) base.arma(px, p); else if (base.armaDetras) base.armaDetras(px, { ...p, fase: "suelta" });
+    const actual = HD_POR_ID[id];
+    if (actual && actual.armaSuelta) actual.armaSuelta(px);   // el diseño actual trae su propia arma suelta
+    else if (base.arma) base.arma(px, p); else if (base.armaDetras) base.armaDetras(px, { ...p, fase: "suelta" });
     armasSueltas.set(id, c);
   }
   g.save(); g.imageSmoothingEnabled = false; g.translate(Math.round(x), Math.round(y)); g.rotate((cuartos % 4) * Math.PI / 2); g.drawImage(armasSueltas.get(id), -28, -28); g.restore();
@@ -416,10 +448,10 @@ const collarCae = (g, xb, dy, Tm, desde) => {
   collarEntero(g, lerp(x0, W - 10, q), lerp(y0, suelo - 3, q) - Math.sin(Math.PI * q) * 16, q < 1 && Math.floor(q * 6) % 2 === 1);
 };
 /* Xitin sin su collar (para las poses de derrota que parten del rival rendido). */
-const sinCollar = (r, rival) => (rival.id === "xitin" ? { ...r, arma: undefined } : r);
+const sinCollar = (r, rival) => (llevaCollar(rival) ? { ...r, arma: undefined } : r);
 /* Lo que Uzu se lleva de trofeo: el arma del rival, o el collar de oso si es Xitin (centrado en x, y). */
 const botinUzu = (g, rival, x, y, cuartos) => {
-  if (rival.id !== "xitin") return armaSuelta(g, rival.id, x, y, cuartos);
+  if (!llevaCollar(rival)) return armaSuelta(g, rival.id, x, y, cuartos);
   collarEntero(g, x, y - 4);   // derecho, para que se vea la cara de oso
 };
 /* Ciclo de carrera de Uzu: zancadas alternadas, el cuerpo inclinado y los brazos que se balancean poco, con el codo en su lugar. */
@@ -522,7 +554,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     }
   } else if (quien === "xitin") {   // el oso ruge y el rival huye corriendo
     const huye = Math.max(0, (Tm - 1500) / 900);
-    if (huye <= 0) { sombra(g, cR, dy); figura(g, rendido(rival.hd, rival.id === "xitin"), hdPose(rival.hd, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
+    if (huye <= 0) { sombra(g, cR, dy); figura(g, rendido(rival.hd, llevaCollar(rival)), hdPose(rival.hd, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
     else if (huye < 1) {
       const xr = W - (xb + HD_OX + 30) + huye * 60;   // da media vuelta (mira a la derecha) y corre
       figura(g, rival.hd, hdPose(rival.hd, "ataque", 820), xr, dy, false);
@@ -531,7 +563,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       [[-4, 0, 3], [-10, 1, 2]].forEach(([ox, oy, r]) => { for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) if (a * a + b * b <= r * r) g.fillRect(Math.round(xr + HD_OX + 8 + ox + a), SUELO + dy - 2 + oy + b, 1, 1); });
     }
   } else if (quien === "jelic") {   // el escudazo lo desarma y lo deja viendo estrellas
-    const xitinR = rival.id === "xitin", vaiven = Math.round(Math.sin(t / 260) * 2), r = rendido(rival.hd, xitinR ? false : undefined);
+    const xitinR = llevaCollar(rival), vaiven = Math.round(Math.sin(t / 260) * 2), r = rendido(rival.hd, xitinR ? false : undefined);
     sombra(g, cR + vaiven, dy); figura(g, r, hdPose(r, "guardia", 0), xb - vaiven, dy, true);
     pajaritos(g, cR + vaiven, cabezaY - 2, t);
     if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
@@ -544,7 +576,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       const tapado = sinCollar(encandilado(rival.hd), rival);
       sombra(g, cR + vaiven, dy); figura(g, tapado, hdPose(tapado, "guardia", t), xb - vaiven, dy, true);
       encandilamiento(g, caraX + vaiven, ojosY, t);
-      if (rival.id !== "xitin") {   // suelta el arma, que cae detrás de él
+      if (!llevaCollar(rival)) {   // suelta el arma, que cae detrás de él
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 400);
         const ax = lerp(W - (xb + HD_OX + hx), W - 8, q), ay = lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 8;
         armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 4) : 1);
@@ -554,13 +586,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   } else if (quien === "cupe") {   // lo desarma y después lo nombra caballero
     sombra(g, cR, dy);
     const k = Math.max(0, Math.min(1, (Tm - 1700) / 400));
-    if (k <= 0) { const r = rendido(rival.hd, rival.id === "xitin" ? false : undefined); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
+    if (k <= 0) { const r = rendido(rival.hd, llevaCollar(rival) ? false : undefined); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
     else {
       const r = sinCollar(arrodillado(rival.hd), rival), [pa, pd] = rival.hd.pies;
       figura(g, r, { ...hdPose(r, "guardia", 0), agacha: Math.round(k * 7), pies: [[pa[0] - Math.round(k * 7), pa[1]], [pd[0] + Math.round(k * 2), pd[1]]] }, xb, dy, true);
       if (Tm >= 3800) [[-4, 16], [3, 13], [7, 19]].forEach(([ox, oy], i) => { if ((Math.floor(t / 200) + i) % 3) destello(g, cR + ox, cabezaY + oy, t + i * 90); });   // ya es caballero: brilla
     }
-    if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);
+    if (!llevaCollar(rival)) armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);
   } else if (quien === "malia") {   // le da a probar la mermelada: queda con la panza llena y le da sueño
     if (Tm < 1500) {   // se la come: la boca llena de mermelada y se saborea
       const rc = Tm >= 1000 ? caraMermelada(rival.hd, rival.id, { lame: true, t }) : rival.hd;
@@ -573,7 +605,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       const dormido = Tm > 2300, rc = caraMermelada(r, rival.id, { lame: !dormido, dormido, t }), pr = { ...hdPose(rc, "guardia", 0), agacha: Math.round(k * 3) };
       sombra(g, cR + vaiven, dy); figura(g, rc, pr, xb - vaiven, dy, true);
       if (Tm > 2300) zzz(g, cR + 6 + vaiven, cabezaY + 2 + Math.round(k * 3), t);
-      if (rival.id !== "xitin") {   // deja el arma en el suelo
+      if (!llevaCollar(rival)) {   // deja el arma en el suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1500) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 8, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q) - Math.sin(Math.PI * q) * 5, q < 1 ? Math.floor(q * 2) : 1);
       } else collarCae(g, xb, dy, Tm, 1500);
@@ -588,14 +620,14 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
         const k = ((t / 1500 + i / 3) % 1), hx = Math.round(cR + vaiven - 4 + i * 4 + Math.sin(t / 300 + i) * 2), hy = Math.round(cabezaY - 2 - k * 14);
         if (k < 0.85) corazon3(g, hx, hy, i % 2 ? "#F472B6" : "#FB7185");
       }
-      if (rival.id !== "xitin") {   // bota el arma: se le cae de la mano y queda en el suelo
+      if (!llevaCollar(rival)) {   // bota el arma: se le cae de la mano y queda en el suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1300) / 350);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), W - 9, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
       } else collarCae(g, xb, dy, Tm, 1300);
     }
     if (Tm >= 950 && Tm < 1400) [[-6, 6], [2, 2], [-2, 12]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 120) + i) % 2) corazon3(g, cR + ox, cabezaY + oy, "#F472B6"); });   // las notas llegan y brotan corazones
   } else if (quien === "tivan") {   // la poción estalla en humo, el arma sale volando y el rival queda tiznado y tosiendo
-    const r = rendido(rival.hd, rival.id === "xitin" ? false : undefined), cy = cabezaY + 20;
+    const r = rendido(rival.hd, llevaCollar(rival) ? false : undefined), cy = cabezaY + 20;
     sombra(g, cR, dy);
     if (Tm < 900) figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true);
     else {
@@ -612,7 +644,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       }
       const crece = Math.min(1, (Tm - 900) / 300), sevA = Tm < 1900 ? 1 : Math.max(0, 1 - (Tm - 1900) / 700);
       humoTivan(g, cR, cy - crece * 4, 4 + crece * 14 + (sevA < 1 ? (1 - sevA) * 6 : 0), t, sevA);
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);   // el arma (o el collar) sale volando del humo
+      if (!llevaCollar(rival)) armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900);   // el arma (o el collar) sale volando del humo
     }
   } else if (quien === "patroclus") {   // su águila agarra al rival de los hombros y se lo lleva volando fuera de la pantalla
     const hombroY = YB + dy + HD_OY + (rival.hd.bajar || 0) + 3;   // las garras lo toman desde arriba de la cabeza
@@ -620,44 +652,44 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true);
       if (Tm >= 1100) sudor(g, cR - 6, cabezaY + 2, true);
     } else if (Tm < 2700) {
-      const k = Math.min(1, (Tm - 1350) / 1250), sube = k * k * 75, corre = k * 30, r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      const k = Math.min(1, (Tm - 1350) / 1250), sube = k * k * 75, corre = k * 30, r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
       const cuelga = Math.round(Math.sin(t / 120) * 1);   // las piernas se balancean colgando
       sombra(g, cR + corre, dy);
       figura(g, r, { ...hdPose(r, "guardia", t), pies: [[r.pies[0][0] - 1 + cuelga, r.pies[0][1] - 2], [r.pies[1][0] + 1 - cuelga, r.pies[1][1] - 2]] }, xb - corre, dy - sube, true);
       sudor(g, cR - 6 + corre, cabezaY + 2 - sube, false);
       aguilaVuela(g, cR + corre, hombroY - sube, t);
-      if (rival.id !== "xitin") {   // suelta el arma, que cae al suelo
+      if (!llevaCollar(rival)) {   // suelta el arma, que cae al suelo
         const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1350) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), cR + 6, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
       } else collarCae(g, xb, dy, Tm, 1350);
-    } else if (rival.id !== "xitin") armaSuelta(g, rival.id, cR + 6, SUELO + dy - 3, 1);
+    } else if (!llevaCollar(rival)) armaSuelta(g, rival.id, cR + 6, SUELO + dy - 3, 1);
     else collarCae(g, xb, dy, Tm, 1350);
   } else if (quien === "uchis") {   // ataca al aire (Uchis se esfumó), ella aparece detrás y lo asusta: salta y suelta el arma
     if (Tm < 1900) {
       const tt = Tm - 200, xr = xb + (tt >= 0 && tt < 1700 ? paso(rival.hd, tt) : 0);
       sombra(g, W - (xr + HD_OX + 15), dy); figura(g, rival.hd, tt >= 0 && tt < 1700 ? hdPose(rival.hd, "ataque", tt) : hdPose(rival.hd, "guardia", t), xr, dy, true);
     } else {
-      const k = Math.min(1, (Tm - 1900) / 350), brinco = Math.round(Math.sin(Math.PI * k) * 8), adelante = Math.round(k * 12), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      const k = Math.min(1, (Tm - 1900) / 350), brinco = Math.round(Math.sin(Math.PI * k) * 8), adelante = Math.round(k * 12), r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
       sombra(g, cR - adelante, dy); figura(g, r, hdPose(r, "guardia", t), xb + adelante, dy - brinco, true);
       sudor(g, cR - 6 - adelante, cabezaY + 2 - brinco, true);
       if (Tm < 2300) [[-9, -2], [-11, 4], [-9, 10]].forEach(([ox, oy], i) => { if ((Math.floor(Tm / 90) + i) % 2) { g.fillStyle = "#FFFFFF"; g.fillRect(cR + 10 + ox * -1, cabezaY + oy - brinco, 3, 1); } });   // rayitas del susto
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - 1000); else collarCae(g, xb, dy, Tm, 1900);
+      if (!llevaCollar(rival)) armaVuela(g, rival, xb, dy, Tm - 1000); else collarCae(g, xb, dy, Tm, 1900);
     }
   } else if (quien === "july") {   // la onda del martillazo llega por el suelo, lo hace saltar y lo deja tambaleando sin arma
     const xIni = 2 + dx + HD_OX + 32, llega = 1350, xOnda = lerp(xIni, cR - 6, (Tm - 950) / (llega - 950));
     if (Tm >= 950 && Tm < 2000) ondaSuelo(g, xIni, Tm < llega ? xOnda : cR - 6, SUELO + dy, t, Tm < 1600 ? 1 : 1 - (Tm - 1600) / 400);
     if (Tm < llega) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
     else {
-      const k = Math.min(1, (Tm - llega) / 450), vuelo = Math.round(Math.sin(Math.PI * k) * 9), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+      const k = Math.min(1, (Tm - llega) / 450), vuelo = Math.round(Math.sin(Math.PI * k) * 9), r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
       const tambalea = k >= 1 ? (Math.floor(t / 220) % 2 ? 1 : -1) : 0;   // cae desequilibrado
       sombra(g, cR, dy);
       figura(g, r, { ...hdPose(r, "guardia", t), inclina: tambalea, pies: [[r.pies[0][0] - 2, r.pies[0][1]], [r.pies[1][0] + 2, r.pies[1][1]]] }, xb, dy - vuelo, true);
       sudor(g, cR - 6, cabezaY + 2 - vuelo, Tm < 2200);
       if (k >= 1 && Tm < 2300) [[-7, 0], [6, 1]].forEach(([ox, oy], i) => { const q = Math.min(1, (Tm - llega - 450) / 500); g.globalAlpha = 1 - q; g.fillStyle = "#D6CFC0"; g.fillRect(cR + ox - 2 - Math.round(q * 3 * (i ? -1 : 1)), SUELO + dy - 2 + oy, 4, 2); g.globalAlpha = 1; });   // polvo al caer
-      if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (llega - 900)); else collarCae(g, xb, dy, Tm, llega);
+      if (!llevaCollar(rival)) armaVuela(g, rival, xb, dy, Tm - (llega - 900)); else collarCae(g, xb, dy, Tm, llega);
     }
   } else if (quien === "edith") {   // la nube de tormenta le tira rayos a los lados y lo hace correr de un lado a otro
-    const c = corridaEdith(Tm, cR), r = rendido(rival.hd, rival.id === "xitin" ? false : undefined);
+    const c = corridaEdith(Tm, cR), r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
     const antes = Tm < INICIO_EDITH;
     if (c.dir === 0) { sombra(g, c.x, dy); figura(g, antes ? rival.hd : r, hdPose(antes ? rival.hd : r, "guardia", t), W - c.x - HD_OX - 15, dy, true); }
     else {   // corre: piernas que se alternan, mirando hacia donde va
@@ -666,7 +698,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       if (c.dir < 0) figura(g, r, pc, W - c.x - HD_OX - 15, dy, true); else figura(g, r, pc, c.x - HD_OX - 15, dy, false);
     }
     if (!antes) sudor(g, c.x - 6 * (c.dir || -1), cabezaY + 2, c.dir === 0);
-    if (!antes) { if (rival.id !== "xitin") armaVuela(g, rival, xb, dy, Tm - (INICIO_EDITH - 900)); else collarCae(g, xb, dy, Tm, INICIO_EDITH); }
+    if (!antes) { if (!llevaCollar(rival)) armaVuela(g, rival, xb, dy, Tm - (INICIO_EDITH - 900)); else collarCae(g, xb, dy, Tm, INICIO_EDITH); }
     if (Tm >= 600) {   // la nube aparece y sigue al rival con un poco de atraso, apurándose
       const escala = Math.min(1, (Tm - 600) / 700), nubeY = YB + dy + HD_OY - 10, nx = nubeEdithX(Tm, cR);
       nubeTormenta(g, nx, nubeY, escala, t);
@@ -682,11 +714,11 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     }
     if (Tu >= 1150 && !(Tu >= 2600 && uzuRecogio(Tu, W - (xb + HD_OX + 15) + 4, 2 + dx))) {   // el arma (o el collar de Xitin) en el suelo, hasta que Uzu lo recoge
       const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tu - 1150) / 350);
-      const [x0, y0] = rival.id === "xitin" ? [cR - 9, YB + dy + HD_OY + 18] : [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy];   // el collar cae del cuello de Xitin, que ya dio media vuelta
+      const [x0, y0] = llevaCollar(rival) ? [cR - 9, YB + dy + HD_OY + 18] : [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy];   // el collar cae del cuello de Xitin, que ya dio media vuelta
       botinUzu(g, rival, lerp(x0, W - (xb + HD_OX + 15) + 4, q), lerp(y0, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
     }
   } else if (quien === "janet") {   // la flecha rebota en el suelo, sube, atraviesa el arma y la deja clavada arriba en el borde
-    const xitinR = rival.id === "xitin", xj = 2 + dx;
+    const xitinR = llevaCollar(rival), xj = 2 + dx;
     const arco = arcoJanet(xj, dy), [hx, hy] = rival.hd.manos.guardia, mano = [W - (xb + HD_OX + hx), YB + dy + HD_OY + hy - 6];
     const suelo = [Math.round((arco[0] + mano[0]) / 2) - 4, SUELO + dy - 1], clavo = [W - 4, cabezaY - 4];
     const enMano = Tm < 1050;
@@ -704,13 +736,16 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       flechaTramo(g, x, y, ux, uy, 0, 6);
       if (k >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, clavo[1] - 6, 1, 12); }
     } else if (!enMano) {}
-  } else if (quien === "agattita") {   // atrapado por enredaderas y con flor
-    sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", 0), xb, dy, true);
+  } else if (quien === "agattita") {   // atrapado por enredaderas y con flor; las enredaderas le arrancan el arma (o el collar de Xitin)
+    const xitinR = llevaCollar(rival), suelta = Tm >= 900;
+    const c = suelta ? { ...rival.hd, arma: undefined, armaDetras: undefined, proyectil: undefined } : rival.hd;
+    sombra(g, cR, dy); figura(g, c, hdPose(c, "guardia", 0), xb, dy, true);
     enredaRival(g, cR, cabezaY + 14, SUELO + dy - 1, Math.min(1, (Tm - 900) / 600));
     if (Tm > 1500) florCabeza(g, cR, cabezaY - 4);
+    if (suelta) { if (!xitinR) armaVuela(g, rival, xb, dy, Tm); else collarCae(g, xb, dy, Tm, 900); }
   } else {   // desarmado: el arma vuela (o la flecha de Janet se la lleva al borde)
     sombra(g, cR, dy);
-    const janet = quien === "janet", xitinR = rival.id === "xitin";
+    const janet = quien === "janet", xitinR = llevaCollar(rival);
     figura(g, rendido(rival.hd, xitinR ? false : undefined), hdPose(rival.hd, "guardia", t), xb, dy, true);
     sudor(g, cR - 6, cabezaY + 2, Tm < 1700);
     const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), manoY = YB + dy + HD_OY + hy;
@@ -921,7 +956,10 @@ function pintarRetrato(g, c, lado, t = 0) {
   g.drawImage(tmp, r.x, r.y, r.w, r.h, Math.round((lado - r.w * esc) / 2), Math.round((lado - r.h * esc) / 2), Math.round(r.w * esc), Math.round(r.h * esc));
 }
 
-export { T as HEROES, escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato }
+/* Las escenas se pintan con los efectos en Pear36 (los personajes ya traen su paleta; el fondo queda igual). */
+const enPear36 = (escena) => (g, ...resto) => escena(lienzoPear36(g), ...resto)
+const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato].map(enPear36)
+export { T as HEROES, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
 export const heroOf = (id) => T.find((c) => c.id === id) || null
 /* Para quien todavía no eligió: uno fijo según su id, así no cambia entre pantallas. */
 export function heroFor(id, chosen) {

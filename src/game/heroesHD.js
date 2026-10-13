@@ -73,16 +73,32 @@ function hdFaldaVuelo(falda, adelante, atras) {
 }
 
 /* Dibuja un personaje mejorado. p: { mano, inclina, bob, agacha, pies, capa, pelo, fase, t } */
+/* Color con que se pinta cada píxel de un personaje: su contorno propio (c.contorno) en vez del de siempre,
+   y su tabla de traducción a Pear36 (c.mapa: "#ORIGINAL" -> "#PEAR36"), que cubre también los colores
+   escritos dentro de brazos, armas y mascotas. Sin contorno ni mapa, el color queda igual. */
+const hdTraducciones = new WeakMap();   // por cada mapa: color ya traducido (se calcula una vez)
+function hdColor(c) {
+  const K = c.contorno || HDK, mapa = c.mapa;
+  if (!mapa) return (col) => (col === HDK ? K : col);
+  let hechos = hdTraducciones.get(mapa); if (!hechos) { hechos = new Map(); hdTraducciones.set(mapa, hechos); }
+  return (col) => {
+    if (col === HDK) return K;
+    let v = hechos.get(col);
+    if (v === undefined) { v = (typeof col === "string" && mapa[col.toUpperCase()]) || col; hechos.set(col, v); }
+    return v;
+  };
+}
 function hdDibujar(g, x, y, c, p) {
-  if (c.retoque) { const r = c.retoque(p, c); if (r) { c = r.c; p = r.p; } }   // retoque que ve la escena (Jelic surfea en el podio)
+  if (c.retoque) { const r = c.retoque(p, c); if (r) { c = { ...r.c, contorno: r.c.contorno || c.contorno, mapa: r.c.mapa || c.mapa }; p = r.p; } }   // retoque que ve la escena (Jelic surfea en el podio)
   if (p.voltea) {   // mirando al otro lado (el giro de July): se dibuja en espejo sobre su propio centro
     g.save(); g.translate(2 * (x + HD_OX) + 31, 0); g.scale(-1, 1); hdDibujar(g, x, y, c, { ...p, voltea: false }); g.restore(); return;
   }
-  if (c.forma) { const f = c.forma(p); if (f) { p = { ...p, mano: f.manos[p.fase] || f.manos.guardia }; c = f; } }   // transformación (Xitin → oso)
+  if (c.forma) { const f = c.forma(p); if (f) { p = { ...p, mano: f.manos[p.fase] || f.manos.guardia }; c = { ...f, contorno: f.contorno || c.contorno, mapa: f.mapa || c.mapa }; } }   // transformación (Xitin → oso), con la paleta del personaje
   if (c.manoDinamica) p = { ...p, mano: c.manoDinamica(p) };   // la mano sigue un arco cuadro a cuadro (martillazo de July)
   const bj = c.bajar || 0, baja = (p.bob || 0) + (p.agacha || 0) + bj, inc = p.inclina || 0;   // bajar: personajes más bajitos, de piernas cortas
-  const px = (a, b, col) => { g.fillStyle = col; g.fillRect(x + HD_OX + a + inc, y + HD_OY + b + baja, 1, 1); };
-  const pf = (a, b, col) => { g.fillStyle = col; g.fillRect(x + HD_OX + a, y + HD_OY + b, 1, 1); };
+  const color = hdColor(c);   // paleta Pear36: contorno propio y colores traducidos antes de pintar
+  const px = (a, b, col) => { g.fillStyle = color(col); g.fillRect(x + HD_OX + a + inc, y + HD_OY + b + baja, 1, 1); };
+  const pf = (a, b, col) => { g.fillStyle = color(col); g.fillRect(x + HD_OX + a, y + HD_OY + b, 1, 1); };
   const [pa, pd] = p.pies || c.pies, alto = Math.min(0, p.bob || 0);
   if (c.capa) hdFilas(px, c.capa[(p.capa || 0) % c.capa.length], c.pal);
   if (c.atras) c.atras(px, p);
@@ -146,9 +162,10 @@ const HD_JELIC = (() => {
       const borde = Math.abs(x - cx) === w || i === 0 || i >= Hh - 2;
       pts.push([x, top + i, borde ? (x < cx ? pal.L : pal.M) : (i < 4 ? pal.Q : i < 11 ? pal.A : pal.a)]); } }
     hdContorno(px, pts);
-    for (let i = 2; i <= 8; i++) { px(cx - 3, top + i, pal.R); px(cx + 3, top + i, pal.R); px(cx + 2, top + i, i > 6 ? pal.R : pal.r); }
-    for (let x = cx - 2; x <= cx + 2; x++) px(x, top + 9, pal.R); px(cx - 3, top + 9, pal.r); px(cx + 3, top + 9, pal.r);
-    px(cx - 4, top + 2, "#9FB4F2"); px(cx - 4, top + 3, "#9FB4F2"); px(cx - 4, top + 4, "#7F98E8");
+    /* El emblema: un búho posado, con penachos, ojos dorados, pecho blanco rayado, alas plegadas y patitas. */
+    const COL = { P: "#8C3F5D", p: "#BA6156", O: "#FFE478", o: "#F2A65E", K: "#272736", W: "#FFFFEB", b: "#C2C2D1" };
+    [".P.....P.", ".PpppppP.", ".pOOpOOp.", ".pOKpKOp.", ".ppPoPpp.", "PpWbWbWpP", "PpbWbWbpP", "PppWbWppP", ".PpbWbpP.", "..PPPPP..", "...o.o..."]
+      .forEach((f, i) => [...f].forEach((k, j) => { if (COL[k]) px(cx - 4 + j, top + 1 + i, COL[k]); }));
   };
   return {
     id: "jelic", nombre: "Jelic", pal,
@@ -178,6 +195,19 @@ const HD_JELIC = (() => {
     choque: [36, 20],
   };
 })();
+
+/* Arma de Cupe: espada de caballero (la misma para el ataque, el saludo del podio, el nombramiento y cuando se le cae).
+   Hoja de 2 px que brilla, guarda recta dorada y pomo en forma de corona, como la suya. Se dibuja a lo largo de la
+   dirección del golpe (u) y su perpendicular, así queda bien en cualquier ángulo. */
+const armaCupe = (px, hx, hy, d) => {
+  const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, pts = [];
+  const P = (i, j) => [Math.round(hx + 1 + ux * i - uy * j), Math.round(hy + ux * j + uy * i)];
+  const ORO = "#FFE478", ORO2 = "#F2A65E";
+  for (let i = 3; i <= 17; i++) { pts.push([...P(i, 0), i >= 16 ? "#FFFFFF" : "#FFFFEB"]); if (i < 16) pts.push([...P(i, 1), "#C2C2D1"]); }   // hoja
+  for (let j = -2; j <= 3; j++) pts.push([...P(2, j), j < 1 ? ORO : ORO2]);   // guarda
+  pts.push([...P(-2, -1), ORO], [...P(-2, 0), "#EB564B"], [...P(-2, 1), ORO], [...P(-3, -1), ORO], [...P(-3, 1), ORO]);   // pomo de corona
+  hdContorno(px, pts);
+};
 
 /* ======================= LATTE ======================= */
 const HD_LATTE = (() => {
@@ -705,12 +735,7 @@ const HD_CUPE = (() => {
   };
   const DIR = { guardia: [0.5, -0.87], impulso: [1, -0.15], golpe: [1, 0], choque: [1, 0], sigue: [1, 0.05], sube: [0.3, -1], alto: [0.3, -1] };
   /* Florete: cazoleta dorada en la mano y hoja finita. */
-  const florete = (px, hx, hy, d) => {
-    const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, pts = [];
-    for (let i = 2; i <= 17; i++) pts.push([Math.round(hx + 1 + ux * i), Math.round(hy + uy * i), i === 17 ? "#FFFFFF" : "#D9DEE6"]);
-    for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) if (i * i + j * j <= 4) pts.push([Math.round(hx + 1 + ux * 2) + i, Math.round(hy + uy * 2) + j, i + j < 0 ? "#F2D27A" : "#C9A24B"]);
-    hdContorno(px, pts);
-  };
+  const florete = (px, hx, hy, d) => armaCupe(px, hx, hy, d);   // ver armaCupe
   return {
     id: "cupe", nombre: "Cupe", pal,
     cuerpo: [
@@ -1032,12 +1057,7 @@ HD_CUPE34.pal.P = "#F7A8B8";
    después una reverencia inclinando la cabeza (cierra los ojos mientras está abajo), y desde arriba le llueven rosas. */
 {
   const CICLO = 3800, mod = (a, n) => ((a % n) + n) % n;
-  const florete = (px, hx, hy, [dx, dy]) => {   // como su florete de siempre, pero apuntando a donde diga el saludo
-    const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, pts = [];
-    for (let i = 2; i <= 17; i++) pts.push([Math.round(hx + 1 + ux * i), Math.round(hy + uy * i), i === 17 ? "#FFFFFF" : "#D9DEE6"]);
-    for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) if (i * i + j * j <= 4) pts.push([Math.round(hx + 1 + ux * 2) + i, Math.round(hy + uy * 2) + j, i + j < 0 ? "#F2D27A" : "#C9A24B"]);
-    hdContorno(px, pts);
-  };
+  const florete = (px, hx, hy, d) => armaCupe(px, hx, hy, d);   // ver armaCupe
   const POSES = {
     guardia: { mano: HD_CUPE34.manos.guardia, dir: [0.5, -0.87] },
     saluda: { mano: [23, 14], dir: [0.12, -1] },   // la hoja vertical frente a la cara
@@ -2033,6 +2053,8 @@ const florCabeza = (g, x, y) => {
     g.fillStyle = "rgba(60,40,20,.5)"; g.fillRect(x - 1, suelo - 1, 3, 1);   // tierra removida
   };
   HD_UCHIS34.arma = (px, p) => { if ((p.fase === "sube" || p.fase === "alto") && p.t % 2600 >= 450 && !p.duelo) return; armaU(px, p); };
+  /* Desarmada: sus dos dagas de ahora (puntiagudas), una al lado de la otra, no la versión antigua de perfil. */
+  HD_UCHIS34.armaSuelta = (px) => { dagaUchis(px, -1, -1); dagaUchis(px, 4, -1); };
   HD_UCHIS34.proyectil = (g, x, y, p) => {
     if ((p.fase !== "sube" && p.fase !== "alto") || p.duelo) return proyU(g, x, y, p);
     const T = p.t % 2600, suelo = y + HD_OY + 39 + 1;
@@ -2741,6 +2763,399 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_UCHIS34.cuerpo = HD_UCHIS34.cuerpo.map((f, i) => (i >= 16 && i <= 27 ? pinta(f, i) : f));
   HD_UCHIS34.falda = { 27: HD_UCHIS34.cuerpo[27], ...HD_UCHIS34.falda, 28: pinta(HD_UCHIS34.falda[28], 28), 29: ".........KKKKYTYKKK", 30: "............KKYKK", 31: ".............KK" };   // la fila 27 se repinta encima: la pierna de adelante no deja una raya
 }
+/* ======================= PALETA PEAR36 (piloto: Jelic) =======================
+   Paleta común Pear36 (lospec.com/palette-list/pear36), colores elegidos a mano por material.
+   Reglas: contorno exterior oscuro (#272736) y líneas interiores de un tono oscuro del color vecino;
+   luz desde arriba (al voltearse en los duelos no cambia); brillo en los ojos; los detalles que se
+   mueven (texturas de la capa, brillos chicos) con tonos vecinos para que no parpadeen. */
+{
+  Object.assign(HD_JELIC.pal, {
+    L: "#FFFFEB", M: "#C2C2D1", m: "#7E7E8F", d: "#606070", Q: "#4DA6FF", A: "#4B5BAB", a: "#473B78",
+    P: "#FF6B97", R: "#EB564B", r: "#B0305C", z: "#BA6156", S: "#BA6156", s: "#8C3F5D", W: "#FFFFEB", w: "#C2C2D1",
+    Y: "#FFE478", y: "#F2A65E", B: "#322947", v: "#5E315B", n: "#43434F",   // v, n: líneas interiores (los dígitos los usan las escenas)
+  });
+  const pal = HD_JELIC.pal;
+  Object.assign(HD_JELIC.brazo, { luz: pal.L, base: pal.M, sombra: pal.m, mano: pal.d, manoLuz: pal.M, codo: pal.Y });
+  Object.assign(HD_JELIC.pierna, { luz: pal.L, base: pal.M, sombra: pal.m, bota: pal.M, botaSombra: pal.d, rodilla: pal.Y });
+  HD_JELIC.contorno = HD_JELIC34.contorno = "#272736";
+  /* Capa tranquila: sin los puntos de sombra que se movían por dentro; una sola sombra fija junto al cuerpo. */
+  HD_JELIC.capa = HD_JELIC.capa.map((fr) => Object.fromEntries(Object.entries(fr).map(([f, txt]) => {
+    const ult = Math.max(...[...txt].map((k, i) => (k !== "K" && k !== "." ? i : -1)));
+    return [f, [...txt].map((k, i) => (i === ult && k !== "Q" ? "a" : k === "a" ? "A" : k)).join("")];
+  })));
+  HD_JELIC34.capa = HD_JELIC.capa.map((fr) => Object.fromEntries(Object.entries(fr).map(([k, v]) => [k, ".." + v])));
+  /* Casco y pecho con luz desde arriba, brillo en la cúpula y en los ojos, contorno interior de color. */
+  HD_JELIC34.cuerpo = [
+    "...............................", "...............................", "............KKKKKK.............", "...........KMLLLLMKK...........",
+    "..........KmLWLLLLLmK..........", ".........KmMLLLLLLMMmK.........", ".........KMMMMMMMMMMMmK........", "........KmMMMMMMMMMMMMmK.......",
+    "........KMMMMmmmmmmmmMMK.......", "........KMMMmssssssssKmK.......", "........KMMmszSSSSSSSsmK.......", "........KMMmsSSWSSSWSsmK.......",
+    "........KMMmsSSKSSSKSsmK.......", "........KMmmvsSSSSsSSsmK.......", "........KMmmvsSWWWWWSsmK.......", "........KmmmvssSwWWwSKK........",
+    ".........KmmKvssSSSSKK.........", "..........KKKdddddnsK..........", "..........KdMMMMMMMMMMK", "..........KMLLLLLLLLLMK",
+    "..........KMMQQQQQQQQMK", "..........KMMQRAAARAQMK", "..........KMMQRAAARAQMK", "..........KMMQRRRRRAQMK",
+    "..........KMMQAAAAAAAMK", "..........KBBBBBBYBBBBK", "...........KRaRaRaRaRaK", "...........KaRaRaRaRaRK",
+  ];
+}
+/* ======================= PALETA PEAR36 (tanda 1: Malala, Agattita, Cupe, Malía) =======================
+   Mismas reglas que Jelic. Los colores se traducen con c.mapa (ver hdColor), así que los escritos dentro
+   de brazos, armas y mascotas también cambian; la grilla trae el contorno interior y el antialiasing. */
+{
+  /* Malala: pelo negro, rubor y brillo en el pelo. */
+  HD_MALALA34.contorno = "#272736";
+  HD_MALALA34.mapa = {
+    "#86CFA0": "#8FDE5D", "#5FB383": "#8FDE5D", "#2E8B57": "#3CA370", "#3F8A5E": "#3CA370", "#1F4D3A": "#3D6E70", "#12301F": "#323E4F",
+    "#2E6B52": "#3D6E70", "#3A5A2A": "#3D6E70", "#D9A13B": "#F2A65E", "#E0B04A": "#FFE478", "#A8762A": "#F2A65E", "#9A6A3A": "#BA6156",
+    "#6E4824": "#8C3F5D", "#4A3628": "#5E315B", "#2A1E14": "#3E2347", "#B8692C": "#BA6156", "#E08A3C": "#F2A65E", "#9A3B2A": "#964253",
+    "#3A2A30": "#43434F", "#5E4A56": "#606070", "#24212B": "#43434F", "#15121A": "#322947", "#0E0A12": "#322947", "#3A3A48": "#43434F",
+    "#F4F1EA": "#FFFFEB", "#F4F8F2": "#FFFFEB", "#D9D2C4": "#C2C2D1", "#7A6656": "#7E7E8F", "#F4D3BE": "#FFB5B5", "#D4A58C": "#FFB5B5",
+    "#C9707A": "#FF6B97", "#E39A86": "#FF9166", "#F472B6": "#FF6B97", "#A7F3D0": "#66FFE3", "#14B8A6": "#66FFE3",
+  };
+  Object.assign(HD_MALALA34.pal = { ...HD_MALALA34.pal }, {Á: "#7E7E8F", É: "#322947", Í: "#272736"});
+  HD_MALALA34.cuerpo = [
+    "...................KK", "..............KKKKHHK", ".............KhHHHKK", "............KhHhK",
+    "...........KhHhK", "..........KhHHhK", ".........KhjHHhK", "........KhHYYYYK",
+    "...KKKKKhHHHHHHhKKKKK", "..KhhhhhhhhhhhhhhhhhhK", "...KYÉÉYÉÉYÉÉYÉÉYÉKYK", "....KLLLLLLLLLLLLK",
+    "....KLLLÁLLLLÁLLLK", "....KLLlLLLlLLLlLK", "....KLlLLSLSSLSLLK", "....KLlLÍSpSSSSpLK",
+    "....KLlLKhsSSpSÍLK", "....KLLÍhDDDDDhKLK", "...KLÍYYYYYYYYYK", "..KÍLÍYYYYYYEYYK",
+    "..KLlLÍYYYYYYYK", "...KLKQQQQQQQK", "....KQQQQQQQQK", "....KYDYDYDYDK",
+    "....KQQQQQQQQQK", "....KQQQQQQQQQK", "...KQQQQQQQQQQQK", "...KQQQQQQQQQQQQK",
+  ];
+  /* Agattita: pelaje gris, rubor, luz arriba en las orejas (sin la franja clara del costado). */
+  HD_AGATTITA34.contorno = "#272736";
+  HD_AGATTITA34.mapa = {
+    "#8C7B6A": "#7E7E8F", "#4F4236": "#43434F", "#B5A592": "#C2C2D1", "#F6F0E6": "#FFFFEB", "#D9CDBB": "#C2C2D1", "#2F6B45": "#3CA370",
+    "#1E4A2F": "#3D6E70", "#4C8E62": "#8FDE5D", "#9A6A3A": "#BA6156", "#6E4824": "#8C3F5D", "#7A4A2A": "#8C3F5D", "#55331C": "#5E315B",
+    "#B7CAD0": "#C2C2D1", "#62777F": "#7E7E8F", "#D8DEE8": "#C2C2D1", "#86EFAC": "#8FDE5D", "#4ADE80": "#8FDE5D", "#34D399": "#66FFE3",
+    "#E7A9A0": "#C2C2D1", "#E39A86": "#FF9166", "#FFFFFF": "#FFFFEB", "#8FA6AE": "#C2C2D1",
+  };
+  Object.assign(HD_AGATTITA34.pal = { ...HD_AGATTITA34.pal }, {É: "#606070", Í: "#FFB5B5"});   // Í: rubor (las orejas van en gris)
+  HD_AGATTITA34.cuerpo = [
+    "..........KK.........KK", ".........KIZK.......KZIK", "........KIIFFK.....KFFIK", "........KIFFFFKKKKKFFFFK",
+    ".......KFFfFFOOOOOOFFFFK", ".......KFFFfFFOMOFFfFFFFK", "......KFFFFFfFFFFFFfFFFFK", "......KFFFFFFFFFFFFFFFFFFK",
+    "......KFFFFFKKFFFFFKKFFFFK", "......KFFFFFKWFFFFFKWFFFFK", ".....KFFFFFFKKFFFFFKKFFFFFK", "...KFfFFFFfFWWWWNNWWWWFfFFfFK",
+    "....KFfFFFFFWWWKWWKWWWFFfFFK", "......KFFFFFÍWWWWWWWWÍFFFK", "........KKFFFWWWWWWWWFFKK", "..........KÉÉgggggggKKK",
+    "..........KGGGGGGGGGK", ".........KGGGGGMGGGGgK", ".........KHgGGGGGGGgGK", "..........KKgWWWWWgKK",
+    "............KWWWWWWKK", "............KWWwWWWK", "............KFWWWWFK", "............KBBBBBBK",
+    "............KBbBBbBK", "...........KgTTTTTTK", "...........KTTWWWTTK", "...........KKTTTTTKK",
+  ];
+  /* Cupe: brillo en los ojos. */
+  HD_CUPE34.contorno = "#272736";
+  HD_CUPE34.mapa = {
+    "#141218": "#272736", "#F6F4EE": "#FFFFEB", "#E9E3D6": "#C2C2D1", "#D6CFC0": "#C2C2D1", "#F2C230": "#FFE478", "#D7263D": "#EB564B",
+    "#FFFFFF": "#FFFFEB", "#E8E4F0": "#FFFFEB", "#8E939C": "#7E7E8F", "#5F646E": "#606070", "#C9A24B": "#F2A65E", "#7A5230": "#8C3F5D",
+    "#24212B": "#43434F", "#C0263A": "#EB564B", "#8A1A2A": "#B0305C", "#F7A8B8": "#FFB5B5", "#B4B9C2": "#C2C2D1", "#D9DEE6": "#FFFFEB",
+    "#F2D27A": "#FFE478", "#2A1E22": "#3E2347",
+  };
+  Object.assign(HD_CUPE34.pal = { ...HD_CUPE34.pal }, {Á: "#BA6156", É: "#272736"});
+  HD_CUPE34.cuerpo = [
+    "............O...O...O", "............OO.OOO.OO", "............OROOROORO", ".........KKKOOOOOOOOOKKK",
+    ".......KKvWKYYYYYYYYYKWvKK", "......KvWWWWWWWWWWWWWWWWvK", ".....KvWvWWWWWWWWWWWWWWvWvK", ".....KWWWWWWWWWWWWWWWWWWWWK",
+    "....KwKWWWWWWWWWWWWWWWWWWKwK", "...KGwKWWWWWWWKWWWWWWWKWWWKwwK", "...KwwKWWWWWWKKWWWWWWKKWWWKwwK", "...KwwKWWWWWWKKWWKKWWKKWWWKwwK",
+    "...KwwKWWWPPWWWKWKKWKWWPPWKwwK", "...KwwKWWWWWWWWWKWWKWWWWWWKwwK", "...KwwKKWWWWWWWWWWWWWWWWWKKwwK", "....KwwKKKWWWWWWWWWWWWWKKKwwK",
+    ".....KKK.KGGGGKZZZKGGK...KKK", "........KgGGGYÁZLZÁYGK", "........KGgGGYKBZBKYGK", "........KGgGGYKBYBKYGK",
+    "........KGgGGYKBBBKYGK", "........KGgGGYKBYBKYGK", "........KGgGGYÉDDDÉYGK", "........KGgGGYÉDDDÉYGK",
+    "........KGgGYYÉDKDÉYGK", "........KKKKKKKDKDKKKK", ".............KDDKDDK", ".............KDDKDDK",
+  ];
+  /* Malia: blusa durazno. */
+  HD_MALIA34.contorno = "#272736";
+  HD_MALIA34.mapa = {
+    "#ECEEF4": "#FFFFEB", "#B4BACA": "#C2C2D1", "#F4F2EC": "#FFFFEB", "#CFCBC0": "#C2C2D1", "#EBB2A6": "#FFB5B5", "#C7867A": "#FF9166",
+    "#F5CABF": "#FFB5B5", "#F4A3AE": "#FF6B97", "#C9707A": "#FF6B97", "#A9445A": "#B0305C", "#CDB898": "#FFB570", "#A8946F": "#FF9166",
+    "#8A5A2A": "#BA6156", "#64401C": "#8C3F5D", "#24212B": "#43434F", "#3A3644": "#606070", "#C9A24B": "#F2A65E", "#E8304A": "#EB564B",
+    "#B01E36": "#B0305C", "#FBE38A": "#FFE478", "#3E9A42": "#3CA370", "#2F7D32": "#3D6E70", "#FFFFFF": "#FFFFEB", "#C68A4E": "#BA6156",
+    "#E2D2B4": "#C2C2D1", "#3A3A48": "#43434F", "#15121A": "#322947", "#0E0A12": "#322947", "#F0407A": "#FF6B97", "#E2B07A": "#FFB570",
+    "#FF7FA6": "#FF6B97", "#F2C893": "#FFB570", "#FFD0DE": "#FFB5B5", "#2F8F5A": "#3CA370",
+  };
+  Object.assign(HD_MALIA34.pal = { ...HD_MALIA34.pal }, {Á: "#7E7E8F", É: "#BD4882", Í: "#E36956", Ó: "#73275C", Ú: "#272736"});
+  HD_MALIA34.cuerpo = [
+    "..........KKKK", ".........KhHHhK", ".........KHhHHK", "........KKWKWKWKK",
+    ".......KhWWWWWWWhK", "......KhHHHHHHHHHhK", ".....KhHhHHHHHHHHHK", ".....KHhHHHHHHHHHHhK",
+    "....KKHhHHpzSSSSSSHK", "...KSÁhHHpSSKKSSKKHK", "....KSÁhHpSSKZSSKZK", "....KpHhHÉPSSSsSSPK",
+    ".....KHhÍsSSSSsSSK", ".....KHhÍsSSSmmSK", "......KKKKssSSÓK", ".........KKBBsK",
+    "........KsBBWWWBK", ".......KsBBBWWWWBK", "......KsbBBBWWwWBsK", "......KBbBBBWWWWBBK",
+    "......KBbBBBWWWWBBK", "......KDDDDDDDDDDDK", "......KDdDDDDDDDDDK", "......KNNWWWWWWWWK",
+    "......KNNWWWwGgGWK", ".....KÚNNWWWRRgRRWWK", ".....KNNNWWWRTRRrWWK", ".....KNNNNWWRRRTrWWWK",
+  ];
+}
+/* ======================= PALETA PEAR36 (tanda 3: Uchis, Janet, July) =======================
+   Mismas reglas que Jelic; colores traducidos con c.mapa (ver hdColor). */
+{
+  /* Uchis: piel rosada clara, pelo café rojizo, pañuelo rojo, banda turquesa, brillo en los ojos. */
+  HD_UCHIS34.contorno = "#272736";
+  HD_UCHIS34.mapa = {
+    "#F06A52": "#FF9166", "#D8402E": "#EB564B", "#9E2A1E": "#B0305C", "#7A4A36": "#964253", "#5A3426": "#5E315B", "#3E2218": "#3E2347",
+    "#A0503A": "#964253", "#6E3424": "#57294B", "#7A4A2C": "#BA6156", "#4E2E1A": "#8C3F5D", "#E0B040": "#FFE478", "#3B82F6": "#4DA6FF",
+    "#F6DCCB": "#FFB5B5", "#D7B09C": "#FF9166", "#D9667A": "#FF6B97", "#F2E8D0": "#FFFFEB", "#2F8F8A": "#3D6E70", "#8A5A30": "#BA6156",
+    "#FFFDF4": "#FFFFEB", "#CFC3A6": "#C2C2D1", "#B88A5A": "#E36956", "#9A6A3A": "#BA6156", "#6E4424": "#8C3F5D", "#C9A24B": "#F2A65E",
+    "#D9DEE6": "#C2C2D1", "#9AA3B0": "#C2C2D1", "#FFFFFF": "#FFFFEB",
+  };
+  HD_UCHIS34.pal = { ...HD_UCHIS34.pal, "Á": "#E36956", "É": "#5E315B", "Í": "#73275C" };
+  HD_UCHIS34.cuerpo = [
+    "..........KKKKKKK", "........KKhHHHHHhKK", ".......KhHhHHHHHHHhK", "......KhhHHHHHHHHHHhK",
+    "......KHhHHHHHHHHHHHK", ".....KhhHHHHGGGGGEGGK", ".....KHhHHHhSSSSSSSSK", ".....KHhHHhSSSSSSSSSK",
+    ".....KHhHHhSSCSSSCSSK", ".....KHhHHhSSKSSSKSSK", "....KhhHHhsSSSSSsSSSK", "....KHhHHhsSSSSLLSSSK",
+    "....KHhHHHhsSSSSSSSK", "....KHhHHHHhÁssSSSK", "....KHhHHHhRCCÁLKK", "....KHhHHhRRCCCCK",
+    "....KHhHhRRCYTTTYK", "....KHhHhRCCYTYTYCK", "....KHhHhRCCYYYYYCK", "....KHhÉRrCCYTYTYCK",
+    ".....KhÉRrCCYTTTYCK", ".....KKKRrÍBBBBGBBK", "........KrCCYTTTYCK", "........KrCCYTYTYCcK",
+    "........KrCCYYYYYCCK", "........KrCCYTYTYCCK", "........KrCCYTTTYCCK", "........KKCCYTTTYCK",
+  ];
+  /* Janet: piel rosada clara, pelo dorado, túnica verde, brillo en los ojos. */
+  HD_JANET34.contorno = "#272736";
+  HD_JANET34.mapa = {
+    "#8A6446": "#BA6156", "#6B4A30": "#8C3F5D", "#4A3020": "#5E315B", "#3A2418": "#5E315B", "#24160E": "#3E2347", "#C9A577": "#F2A65E",
+    "#9A7A50": "#BA6156", "#F0D2BC": "#FFB5B5", "#CFA88F": "#FF9166", "#EDEAE0": "#FFFFEB", "#8A6640": "#8C3F5D", "#6B4430": "#8C3F5D",
+    "#5FA83E": "#3CA370", "#C2622E": "#E36956", "#8E3E1C": "#964253", "#C9A24B": "#F2A65E", "#3E7A2A": "#3D6E70", "#7FC25A": "#8FDE5D",
+    "#FFE6D4": "#FFFFEB", "#B07A44": "#BA6156", "#8A5A30": "#964253", "#D9DEE6": "#C2C2D1", "#4ADE80": "#8FDE5D",
+  };
+  HD_JANET34.pal = { ...HD_JANET34.pal, "Á": "#C2C2D1", "É": "#3E2347" };
+  HD_JANET34.cuerpo = [
+    "..........KKKKKK", "........KKhHHHHhKK", ".......KhHhHHHHHHhK", "......KhhHHHHHHHHHhK",
+    "......KHhHHHHHHHHHHhK", ".....KhhHHHHHHHHHHHHK", ".....KHhHHHHHHHHHHHHK", ".....KHShHHHHHSSSSSSK",
+    ".....KHSShHHhSSSSSSSK", ".....KHsShhSSWSSSWSSK", "..KK.KHhHHBSSKSSSKSSK", ".KÁWKKHhHKDSSSSSsSSSK",
+    ".KWQKKHhHKDDSSDDDDDDK", "..KQKKHhHHKDDDDSSDDK", "..KQKKHhHHHBDDDDDDK", "..KQKKhHHgGGLBBBKK",
+    "..KQKKhHgGGLlLGGK", "..KQKKhDGGLlLlLGgK", "..KQKKDGGlLlLlLGGK", "..KQKKGGGLlLlLlGGK",
+    "...KQBGGGlLlLlLGGK", "...KQBGGÉBBBBYBBBK", "...KQBGgGLlLlLGGGK", "....KKGgGGLlLGGGgK",
+    "......KgGGGGGGGGgK", "......KggGGGKGGGgK", "......KggggggggggK", "......KKKKKKKKKKKK",
+  ];
+  /* July: piel durazno, barba blanca, delantal café, brillo en los ojos. */
+  HD_JULY34.contorno = "#272736";
+  HD_JULY34.mapa = {
+    "#7A7E8A": "#7E7E8F", "#5A5E6A": "#606070", "#3E414A": "#43434F", "#A9B2BF": "#C2C2D1", "#7C8594": "#7E7E8F", "#D9A27A": "#FFB570",
+    "#F2CDA8": "#FFB5B5", "#F2F2F2": "#FFFFEB", "#A8714C": "#FF9166", "#7A4A2A": "#8C3F5D", "#5A341C": "#5E315B", "#C9A24B": "#F2A65E",
+    "#94603A": "#BA6156", "#8E2A20": "#B0305C", "#9A6A3A": "#BA6156", "#5A4A40": "#5E315B", "#3A2A20": "#3E2347", "#6E4824": "#8C3F5D",
+    "#5E6673": "#606070", "#9AA3B0": "#C2C2D1", "#D9DEE6": "#C2C2D1", "#9B1428": "#964253", "#C8C8D0": "#C2C2D1", "#E8B830": "#FFE478",
+  };
+  HD_JULY34.cuerpo = [
+    ".........KKKKKK", ".......KKSZZSSsKK", "......KSZZSSSSSSsK", ".....KSZSSSSSSSSSsK",
+    ".....KSSSSSSSSSSSSK", ".....KSSSSSSSSSSSSsK", ".....KSSSSWWWSWWWSSK", "....KSKSSSSWSSSWSSSK",
+    "....KsKSSSSKSSSKSSSK", ".....KSSSSSSSSsSSSSK", ".....KSSSSSWWWWWSSSK", ".....KSSSWWWKKWWWSSK",
+    "......KSSWWWWWWWSSK", ".......KKSWWWWWSKK", "..........KSSSSK", "........KKAASSAaKK",
+    "......KSSSSaGAAAAGaK", "......KSSSSaAAAAAAaK", "......KsSSSalAAAAAaK", "......KsSSalAAAAAAaK",
+    "......KsSaAlAAAaaAaK", "......KsaAAlAAAaAaaK", "......KBBBBBBBGBBBBK", "......KPMMMlAAAAmmaK",
+    "......KPahAlAAAAmAmK", "......KPahAlAaaAmAmK", "......KPahAlAAAAAAaK", "......KPaAAlAAAAAAaK",
+  ];
+}
+/* ======================= PALETA PEAR36 (tanda 4: Edith, Uzu, Xitin) =======================
+   Mismas reglas que Jelic; colores traducidos con c.mapa (ver hdColor). */
+{
+  /* Edith: piel rosada clara, pelo negro, túnica ciruela, brillo en los ojos. */
+  HD_EDITH34.contorno = "#272736";
+  HD_EDITH34.mapa = {
+    "#4A3A50": "#43434F", "#2A1C30": "#3E2347", "#0E0812": "#272736", "#1E1A22": "#43434F", "#4A4256": "#606070", "#F0D6C8": "#FFB5B5",
+    "#C9A898": "#FF9166", "#9B2D5A": "#B0305C", "#4E2A6E": "#5A265E", "#E8DFC4": "#FFFFEB", "#341A4C": "#422445", "#B8902A": "#F2A65E",
+    "#6E4A8E": "#80366B", "#5A5A6A": "#606070", "#3A3A48": "#323E4F", "#6E3C96": "#80366B", "#F4EEDC": "#FFFFEB", "#B9AE92": "#C2C2D1",
+    "#C9BFA6": "#C2C2D1", "#E9D5FF": "#FFFFEB", "#C4A7FF": "#BD4882", "#FFFFFF": "#FFFFEB", "#C4B5FD": "#BD4882",
+  };
+  HD_EDITH34.pal = { ...HD_EDITH34.pal, "Á": "#272736" };
+  HD_EDITH34.cuerpo = [
+    "..........KKKKKK", "........KKÁhHHhÁKK", ".......KÁhHHhHHhHÁK", "......KÁHhHHHhHHHhÁK",
+    "......KhHHHhHHHHHHHK", ".....KÁHhHHHHHHHHHHHK", ".....KhHHHhHHÁSSSSSSK", "....KÁHhHHHHÁSSSSSSSK",
+    "....KhHHhHHÁSSSSSSSSK", "....KHHhHHHÁSSCSSSCSK", "...KHHHhHHÁSSSKSSSKSK", "...KHHhHHHÁsSSSSsSSSK",
+    "...KhHHhHHÁsSSSLLSSK", "...KHHhHHHHÁssSSSSK", "...KhHHhHHHHpKsSKK", "...KHHhHHHpPPKpK",
+    "...KhHHhHpPPPPPpK", "...KHHhHpPPCPPPPCK", "...KhHHpPPPCPPPPCPK", "...KHhHpPPPPCPPPCPK",
+    "...KhHHpPpPPCPPPCPK", "...KHhpPPpPPCBBBCBK", "....KKKPPpPPPCPCPPK", ".......KPPpPPPPCPPpK",
+    ".......KPpPPPPPCPPPK", "......KpPpPPPPPCPPPpK", "......KPpPPPPPPCPPPPpK", ".....KPPpPPPPPPCPPPPPPK",
+  ];
+  /* Uzu: piel verde lima, casco gris, ojos rojos con brillo; modo berserk en rojo Pear36. */
+  HD_UZU34.contorno = "#272736";
+  HD_UZU34.mapa = {
+    "#8A6438": "#BA6156", "#6B4A2A": "#8C3F5D", "#4A321C": "#5E315B", "#4A7A2C": "#3CA370", "#2E5418": "#323E4F", "#B8C0CC": "#C2C2D1",
+    "#5E636E": "#606070", "#8A909C": "#7E7E8F", "#6FA544": "#8FDE5D", "#E04848": "#EB564B", "#E8E4D8": "#FFFFEB", "#5A3A22": "#5E315B",
+    "#D6CFBC": "#C2C2D1", "#7A5232": "#8C3F5D", "#C9A24B": "#F2A65E", "#8FC064": "#CFFF70", "#B8B2A2": "#C2C2D1", "#3E4048": "#43434F",
+    "#2A2C33": "#272736", "#9AA3B0": "#C2C2D1", "#FFF3B0": "#FFE478", "#F2C230": "#FFE478", "#8E8570": "#7E7E8F",
+  };
+  HD_UZU34.pal = { ...HD_UZU34.pal, "Á": "#43434F", "É": "#3D6E70", "Í": "#B0305C" };
+  HD_UZU34.cuerpo = [
+    "", "", "", "",
+    "", "", "", "",
+    ".............K..K..K", "............KMKKMKKMK", "...........KÁBBBBBBBÁK", "..........KÁBbBBBBBBBÁK",
+    "..KK....KBBbBBBBBBBBBBÁK...KK", ".KgÉKK..KBBBBBBBBBBBBBBK..KggK", ".KGGggKKgGGGGGGGGGGGGGGKKGGgK", "..KGGgGKGGGWRÍGGGGWgGGGKKGgK",
+    "...KKGgKGGGRRÍGGGGRÍGGGGK", ".....KKKGGGGGGGGGGgGGGGGK", "........KGGgWgWgWgWgWgGK", ".........KGGGKgKgKgKgGGK",
+    "..........KgGGGGGGGGKK", "..........KWtVWtWVtWK", "..........KTtTTWVTtTK", "..........KTTTtVTTTTK",
+    "..........KBBBBYBBBBK", "..........KTTtTTTtTTK", "..........KtTTTTTTtTK", "..........KKKKKKKKKKK",
+  ];
+  /* Xitin: piel rosada clara, cola de caballo rubia, oso café rojizo, brillo en los ojos. */
+  HD_XITIN_NUEVA2.contorno = "#272736";
+  HD_XITIN_NUEVA2.mapa = {
+    "#553418": "#8C3F5D", "#F4E7B8": "#FFE478", "#FFFBEA": "#FFFFEB", "#C9B47A": "#F2A65E", "#3A3646": "#43434F", "#24212B": "#322947",
+    "#14121A": "#272736", "#A9B2BF": "#C2C2D1", "#7C8594": "#7E7E8F", "#F2D6C4": "#FFB5B5", "#4A3A5A": "#5A265E", "#CFA88F": "#FF9166",
+    "#C9707A": "#FF6B97", "#E6E1D6": "#FFFFEB", "#6B4426": "#8C3F5D", "#C9A24B": "#F2A65E", "#FFF0E4": "#FFFFEB", "#E5E7EB": "#FFFFEB",
+    "#B8C0CC": "#C2C2D1", "#DCFCE7": "#FFFFEB", "#86EFAC": "#66FFE3", "#6B3F22": "#8C3F5D", "#9A6B40": "#BA6156", "#1A1420": "#272736",
+    "#E2C79C": "#FFB570", "#4ADE80": "#8FDE5D", "#9A6A3E": "#BA6156", "#F2E8C4": "#FFFFEB", "#F4A6B8": "#FFB5B5", "#6E4626": "#8C3F5D",
+    "#FFFFFF": "#FFFFEB", "#EBD2AE": "#FFB5B5", "#B8865A": "#BA6156", "#F6E4C8": "#FFFFEB", "#A57A4E": "#BA6156", "#F2EEE0": "#FFFFEB",
+    "#5A1E2A": "#57294B", "#4A2E18": "#5E315B", "#8A5E38": "#964253", "#4E2C16": "#5E315B", "#B0A898": "#C2C2D1", "#D8DEE8": "#C2C2D1",
+    "#5A3A28": "#8C3F5D", "#40281A": "#5E315B", "#7A4E2C": "#BA6156",
+  };
+  HD_XITIN_NUEVA2.pal = { ...HD_XITIN_NUEVA2.pal, "Á": "#422445", "É": "#E36956" };
+  HD_XITIN_NUEVA2.cuerpo = [
+    "..........KKKKKK", "........KKhHZHHhKK", ".......KhHhHHZHHHhK", "......KhHhHHHHHHHHhK",
+    "......KHhHHHHHHHHHHhK", ".....KhhHHHHHHHHHHHHK", ".....KHhHHHHHHHpSSSSK", ".....KHhHHHHHpSSSSSSK",
+    "....KhhHHHHHpSSSSSSSK", "....KHhHHHHpSSZSSSZSK", "...KSUhHHHHpSSKSSSKSK", "....KHhHHHHÁRSSSSsSSK",
+    "....KKHhHHÉsRSSSSSSK", "....KHhHHÉsSSSSppSK", "....KHhHHHÉssSSSSK", ".........KKSSSKK",
+    ".......KSSSSSSSSSK", ".......KSNNNNNNNSK", ".......KNNNNNNNNNK", ".......KNnNNNNNNNK",
+    ".......KFFFFFFFFFK", ".......KSSSSsSSSSK", ".......KSSSSSSsSSK", ".......KBBBBGBBBBK",
+    ".......KPPPPPPPPPK", ".......KPPPPPPPPPK", ".......KPPPPKPPPPK", ".......KPqPPKPPqPK",
+  ];
+}
+/* Pantalones, calzas y zapatos con más variedad (Pear36), a juego con la paleta de cada personaje.
+   Se cambia el objeto en su lugar para que también lo vean las versiones de podio armadas antes. */
+Object.assign(HD_LATTE34.pierna, { luz: "#3D6E70", base: "#323E4F", sombra: "#322947", base2: "#323E4F", bota: "#BA6156", botaSombra: "#8C3F5D" });   // pantalón azul petróleo, botas café como el abrigo
+Object.assign(HD_CUPE34.pierna, { bota: "#EB564B", botaSombra: "#B0305C" });   // zapatos rojos de rey, como la capa
+Object.assign(HD_MALALA34.pierna, { luz: "#3D6E70", base: "#323E4F", sombra: "#322947", bota: "#8C3F5D", botaSombra: "#5E315B" });   // medias verde oscuro como el sombrero, zapatos café
+Object.assign(HD_MALIA34.pierna, { luz: "#FFFFEB", base: "#C2C2D1", sombra: "#7E7E8F", bota: "#EB564B", botaSombra: "#B0305C" });   // medias blancas de cocinera, zapatos rojo frutilla
+Object.assign(HD_KENNY34.pierna, { luz: "#4B5BAB", base: "#473B78", sombra: "#322947", bota: "#BA6156", botaSombra: "#8C3F5D" });   // pantalón índigo, botas café como el laúd
+Object.assign(HD_TIVAN34.pierna, { luz: "#C2C2D1", base: "#7E7E8F", sombra: "#606070", bota: "#8C3F5D", botaSombra: "#5E315B" });   // pantalón gris como su pelo, botas café
+Object.assign(HD_PATROCLUS34.pierna, { bota: "#BA6156", botaSombra: "#8C3F5D" });   // botas de cuero café de explorador
+Object.assign(HD_UCHIS34.pierna, { luz: "#3D6E70", base: "#323E4F", sombra: "#322947", bota: "#8C3F5D", botaSombra: "#5E315B" });   // calzas turquesa oscuro como su banda
+Object.assign(HD_JANET34.pierna, { luz: "#F2A65E", base: "#BA6156", sombra: "#8C3F5D", bota: "#3D6E70", botaSombra: "#323E4F" });   // pantalón café claro, botas verde bosque
+Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   // zapatos ciruela como su túnica
+/* ======================= PALETA PEAR36 (tanda 2: Latte, Kenny, Tiván, Patroclus) =======================
+   Mismas reglas que Jelic; colores traducidos con c.mapa (ver hdColor). */
+{
+  /* Latte: piel durazno, sombrero ciruela, abrigo café rojizo, brillo en los ojos. */
+  HD_LATTE34.contorno = "#272736";
+  HD_LATTE34.mapa = {
+    "#283147": "#322947", "#4A6E55": "#3CA370", "#2F4A3A": "#3D6E70", "#1C2E24": "#323E4F", "#56637E": "#606070", "#3B4660": "#43434F",
+    "#2A2230": "#272736", "#1A1520": "#272736", "#45405A": "#473B78", "#2A2733": "#322947", "#17151D": "#272736", "#F4F1E8": "#FFFFEB",
+    "#C0263A": "#EB564B", "#8A1A2A": "#B0305C", "#C8622E": "#E36956", "#E58A4E": "#FF9166", "#8E3E18": "#964253", "#D9A27A": "#FFB570",
+    "#A8714C": "#FF9166", "#45393F": "#43434F", "#B9804A": "#BA6156", "#EAD7B7": "#FFFFEB", "#85562E": "#8C3F5D", "#4A2E22": "#5E315B",
+    "#D4AF4F": "#FFE478", "#D9A46C": "#F2A65E", "#5E8E98": "#7E7E8F", "#3E6E78": "#3D6E70", "#F8F5EE": "#FFFFEB", "#D9D2C2": "#C2C2D1",
+    "#D7263D": "#EB564B", "#FFFFFF": "#FFFFEB", "#F9A8D4": "#FFB5B5", "#EDBE96": "#FFB570", "#2E262B": "#272736", "#C9B48F": "#C2C2D1",
+  };
+  HD_LATTE34.pal = { ...HD_LATTE34.pal, "Á": "#3E2347" };
+  HD_LATTE34.cuerpo = [
+    "............KKKKKKK", "............KtTTTTK", "............KtTTTuK", "............KtTTTuK",
+    "............KtTTWWK", "............KYYYWYK", "............KyyyyyK", ".........KKKKTTTTTKKKK",
+    "........KtTTTTTTTTTTTuK", "........KHiHHHiHHHHhK", ".......KHiHhHHSHSSSSiK", "........KHiHhSSSSSSSSK",
+    ".......KHhHhSSWSSSSWSK", "........KhHhSSESSsSESK", ".........KhHSSSSSssSSK", ".........KhXXSXXXXXXSK",
+    "..........KXXXXSSXXXK", "...........KXXXXXXXK", "..........KjJJJuLLLjJJK", "..........KJJJJjLLLjJJK",
+    "..........KjJJJjLLLjJJK", "..........KjJJJJjLjJJJK", "..........KjJJJJjLjJJJK", "..........KjJJJJJÁJJJJK",
+    "..........KjBBBBBBGBBBK", "..........KjJJJJJJJJJJK", "..........KjjJJJJJJJJJK", "..........KKjjjjjjjjjjK",
+  ];
+  /* Kenny: piel durazno, chaqueta burdeo, chaleco verde. */
+  HD_KENNY34.contorno = "#272736";
+  HD_KENNY34.mapa = {
+    "#E07F48": "#F2A65E", "#C0622B": "#BA6156", "#8A421B": "#8C3F5D", "#8A6446": "#BA6156", "#6B4A30": "#8C3F5D", "#4A3020": "#5E315B",
+    "#3A2418": "#3E2347", "#24160E": "#3E2347", "#3B2618": "#5E315B", "#22150C": "#3E2347", "#D6A27C": "#FFB570", "#22222E": "#272736",
+    "#7DD3FC": "#4DA6FF", "#AE7655": "#FF9166", "#6B4426": "#8C3F5D", "#1C8C85": "#3CA370", "#12645F": "#3D6E70", "#7A2E3A": "#73275C",
+    "#5E8F4E": "#3CA370", "#561E28": "#422445", "#4A2E22": "#5E315B", "#D9A13B": "#F2A65E", "#E8B27A": "#F2A65E", "#8A5228": "#964253",
+    "#C98A4A": "#E36956", "#E0A868": "#F2A65E", "#A86A34": "#BA6156", "#2A1608": "#3E2347", "#FFF4DC": "#FFFFEB", "#E5E7EB": "#FFFFEB",
+    "#9A4A56": "#964253", "#E8B892": "#FFB570", "#5A3C26": "#8C3F5D", "#FFFFFF": "#FFFFEB",
+  };
+  HD_KENNY34.cuerpo = [
+    ".........................", "...........KKKKKK", ".........KKhHHHHhKK", "........KhHhHHHHHHhK",
+    ".......KhHhHHHHHHHHhK", ".......KHhHHHHHHHHHHhK", "......KhHhHHHHHHHHHHHK", "......KHhHHHhSSSSSSSSK",
+    "......KHhHHhSSSSSSSSSK", "......KHhHHhSFQFFFFQFK", "......KHHhHhSFFFSSFFFK", "......KHhHHhsSSSSsSSSK",
+    "......KHhHKDDSDDDDSDDK", ".......KhHKDDDDSSDDDK", ".......KKKKDDDDDDDDK", "...........KHDDDDKK",
+    "........KKTTTTTTTK", ".......KtTTTtTTTTtK", ".......KTTjTTTTTTTK", "........KJJJJGGJJJjK",
+    "........KJJJGGGJJJJK", "........KJjJGGGJJJJK", "........KJjJGGGJjJJK", "........KBBBBBYBBBBK",
+    "........KJjGGGGGJJJK", "........KJjGGGGGJJJK", "........KjjGGGGGjjJK", "........KKjjjjjjjjjK",
+  ];
+  /* Tivan: piel durazno, abrigo mostaza, pelo gris, brillo en los ojos. */
+  HD_TIVAN34.contorno = "#272736";
+  HD_TIVAN34.mapa = {
+    "#141218": "#272736", "#B08A2E": "#F2A65E", "#80621C": "#BA6156", "#7A5A44": "#8C3F5D", "#5A3A28": "#5E315B", "#3E2618": "#3E2347",
+    "#221A20": "#272736", "#120E12": "#272736", "#C4C8D2": "#C2C2D1", "#868C9C": "#7E7E8F", "#E6E9F0": "#FFFFEB", "#5A3A22": "#8C3F5D",
+    "#C9A24B": "#F2A65E", "#9BD8F0": "#4DA6FF", "#C99470": "#FFB570", "#9E6B4B": "#FF9166", "#EEF0F2": "#FFFFEB", "#4ADE80": "#8FDE5D",
+    "#4A2E22": "#5E315B", "#7A5232": "#BA6156", "#FFFFFF": "#FFFFEB", "#C2C6CE": "#C2C2D1", "#9A7252": "#BA6156", "#BBF7D0": "#66FFE3",
+    "#16A34A": "#3CA370", "#D9E8E0": "#FFFFEB", "#8A5A2A": "#964253", "#86EFAC": "#66FFE3", "#5A5568": "#606070", "#24212B": "#272736",
+    "#15131A": "#272736", "#0E0C12": "#272736", "#050406": "#272736", "#2B2833": "#322947", "#F4F4F6": "#FFFFEB", "#1B1920": "#272736",
+    "#E0304A": "#EB564B", "#9B1428": "#964253", "#3E3A4A": "#43434F", "#4A4558": "#43434F", "#D0AA4A": "#FFE478",
+  };
+  HD_TIVAN34.pal = { ...HD_TIVAN34.pal, "Á": "#4B5BAB", "É": "#606070", "Í": "#E36956" };
+  HD_TIVAN34.cuerpo = [
+    "........K...K...K", ".......KHK.KHK.KHK", "......KhhhKhhhKhhhK", ".....KHhHIHHHIHHHHhK",
+    "......KHhHHHHHHHHHHHK", ".....KHhHHHHKoÁoKoÁoK", "......KhHEEEKGQGKGQGKK", ".......KhHHHKoÁoKoÁoKK",
+    ".......KHhHHhSSSSSSSK", "......KhHhHhSSISSSISK", "......KSÉhHÍSSKSSSKSK", "......KKKhÉsSSSSsSSSK",
+    ".........KKsSSSssSSK", "..........KKssSSSK", "........KOOKKÍsoOK", ".......KoOOOoWWoOoK",
+    "......KoOoOOoWWDOOoK", "......KOOoOBVBVBVBOoK", "......KOoOOOBBBBBBOOOK", "......KOoOOOOOOOOOOOK",
+    "......KOoOKDDDDGDDDDK", "......KOoOKUUOOOUUOOK", "......KOoOKOOOOOOOOOK", "......KOoOKOOOOOOOOOK",
+    "......KOoOOKOOOOOOOOK", "......KOoOOKOOOOOOOOoK", "......KOoOOOKOOOOOOOOK", "......KOoOOOKOOOOOOOOK",
+  ];
+  /* Patroclus: piel tostada, pelo negro, pañuelo rojo, pantalón azul, brillo en los ojos. */
+  HD_PATROCLUS34.contorno = "#272736";
+  HD_PATROCLUS34.mapa = {
+    "#C8372B": "#EB564B", "#8E2418": "#B0305C", "#6A7A98": "#7E7E8F", "#4A5A78": "#4B5BAB", "#33405A": "#323E4F", "#3A2A1E": "#3E2347",
+    "#241A12": "#3E2347", "#1A1518": "#43434F", "#3A3036": "#606070", "#B07B55": "#F2A65E", "#86583A": "#BA6156", "#8A5A36": "#BA6156",
+    "#F4E9C8": "#FFFFEB", "#2DD4BF": "#66FFE3", "#6A4026": "#8C3F5D", "#3A2418": "#5E315B", "#C9A24B": "#F2A65E", "#FFFFFF": "#FFFFEB",
+    "#BDB5A6": "#C2C2D1", "#CC9670": "#FFB570", "#F4F4F0": "#FFFFEB", "#F2C230": "#FFE478", "#CFCFC8": "#C2C2D1", "#B8901C": "#F2A65E",
+    "#6B4423": "#8C3F5D", "#4A2E17": "#5E315B", "#9A6A3A": "#BA6156", "#6E4824": "#8C3F5D", "#3E8A8A": "#3D6E70", "#C0283A": "#B0305C",
+    "#B8BCC4": "#C2C2D1", "#7A4A34": "#964253", "#CFE3EA": "#C2C2D1", "#5A5F66": "#606070", "#5A3424": "#5E315B", "#E8D44A": "#FFE478",
+    "#B8A030": "#F2A65E", "#A87A5E": "#BA6156", "#E5E7EB": "#FFFFEB", "#9AA3B0": "#C2C2D1", "#E8604E": "#FF9166", "#E9E4DA": "#FFFFEB",
+  };
+  HD_PATROCLUS34.pal = { ...HD_PATROCLUS34.pal, "Á": "#272736", "É": "#73275C", "Í": "#473B78" };
+  HD_PATROCLUS34.cuerpo = [
+    "", "", "", ".........KKKKKKK",
+    ".......KKÁHHHHHÁKK", "......KÁHHHHHHHHHÁK", "......KHhHHHHHHHHHK", ".....KÁhHHHHHHHHHHK",
+    ".....KHhHHHHSSSSSSK", ".....KHhHHÁSSSSSSSK", ".....KHHHÁSSFSSSFSK", ".....KÁSÁSSSKSSSKSK",
+    "......KSSKsSSSSsSSK", "......KKsKsSSssSSK", ".........KlsSSSK", "......KGGgGGGGGGGK",
+    "......KGgLLlNZNlLK", "......KgÉLLLLlZlLLK", "......KLLLLlLLLLLK", "......KLLLLLLLlLLK",
+    "......KBBBBYBBBBBK", "......KLLLLLLLLLLK", "......KTTTTTÍTTTTK", "......KTTTTTTTTTTK",
+    "......KTTTTTTTTTTK", "......KTTTTTTTTTTK", "......KTTTTTTTTTTK", "......KKKKKKKKKKKK",
+  ];
+}
+/* Agattita: los pelitos que le salen de lado desde dentro del oído (como a la gata que la inspira).
+   Pasan por dentro de la oreja, dejan su contorno intacto y asoman por fuera; al mecerse, la punta cae un poco. */
+HD_AGATTITA34.pelo = [
+  { 3: ".....Www.w............w.wwW" },
+  { 3: "......ww.w............w.ww", 4: ".....W....................W" },
+];
+/* ======================= XITIN: TÚNICA DE INVOCADORA Y BÁCULO =======================
+   Túnica azul con ribete dorado al centro, faja roja, mangas claras y un broche con huella de oso.
+   En vez del collar lleva un báculo plateado con una garra de oso dorada que abraza una gema verde.
+   Al atacar carga maná en la mano libre, le lanza un rayo a la gema y la gema la transforma en oso. */
+const baculoXitin = (px, hx, hy, brilla = false) => {
+  const pts = [];
+  for (let y = hy - 9; y <= hy + 7; y++) pts.push([hx, y, "#C2C2D1"], [hx + 1, y, "#7E7E8F"]);   // vara
+  pts.push([hx - 1, hy + 7, "#F2A65E"], [hx, hy + 7, "#FFE478"], [hx + 1, hy + 7, "#F2A65E"], [hx + 2, hy + 7, "#F2A65E"]);   // regatón
+  pts.push([hx - 1, hy - 10, "#F2A65E"], [hx, hy - 10, "#FFE478"], [hx + 1, hy - 10, "#FFE478"], [hx + 2, hy - 10, "#F2A65E"]);   // base de la garra
+  pts.push([hx - 2, hy - 11, "#FFE478"], [hx - 2, hy - 12, "#F2A65E"], [hx - 1, hy - 14, "#FFE478"]);   // uña izquierda
+  pts.push([hx + 3, hy - 11, "#F2A65E"], [hx + 3, hy - 12, "#BA6156"], [hx + 2, hy - 14, "#F2A65E"]);   // uña derecha
+  pts.push([hx - 1, hy - 11, "#8FDE5D"], [hx, hy - 11, "#3CA370"], [hx + 1, hy - 11, "#3CA370"], [hx + 2, hy - 11, "#3CA370"]);   // gema
+  pts.push([hx - 1, hy - 12, "#CFFF70"], [hx, hy - 12, "#8FDE5D"], [hx + 1, hy - 12, "#8FDE5D"], [hx + 2, hy - 12, "#3CA370"]);
+  pts.push([hx, hy - 13, "#8FDE5D"], [hx + 1, hy - 13, "#3CA370"]);
+  hdContorno(px, pts);
+  px(hx - 1, hy - 12, brilla ? "#FFFFEB" : "#CFFF70");   // destello de la gema
+};
+{
+  const X = HD_XITIN_NUEVA2;
+  X.pal = { ...X.pal, Ó: "#4B5BAB", Ú: "#473B78", á: "#4DA6FF", é: "#FFE478", í: "#EB564B", ó: "#B0305C", ú: "#FFFFEB" };
+  const TORSO = {   // filas 16 a 27 (la túnica), con la huella dorada en las filas 19 a 22
+    16: "KúúúúúúúúúK", 17: "KáÓÓÓGÓÓÓÚK", 18: "KáÓÓÓGÓÓÓÚK", 19: "KáÓÓéÓéÓÓÚK", 20: "KáÓéÓÓÓéÓÚK",
+    21: "KáÓÓéééÓÓÚK", 22: "KáÓÓéééÓÓÚK", 23: "KíííííGíóíK", 24: "KáÓÓÓGÓÓÓÚK", 25: "KáÓÓÓGÓÓÓÚK", 26: "KáÓÓÓGÓÓÓÚK", 27: "KáÓÓÓGÓÓÓÚK",
+  };
+  X.cuerpo = X.cuerpo.map((f, i) => (TORSO[i] ? "......." + TORSO[i] : f));
+  X.falda = { 28: "......KáÓÓÓÓGÓÓÓÚK", 29: "......KáÓÓÓÓÓGÓÓÓÚK", 30: "......KGGGGGGGGGGGGK", 31: ".......KKKKKKKKKKKKK" };
+  X.faldaVuelo = true;
+  Object.assign(X.brazo, { luz: "#FFFFEB", base: "#FFFFEB", sombra: "#C2C2D1", mano: "#FFB5B5", manoLuz: "#FFB5B5" });
+  Object.assign(X.pierna, { luz: "#C2C2D1", base: "#7E7E8F", sombra: "#606070", bota: "#8C3F5D", botaSombra: "#5E315B", ancho: 3 });
+  X.collar = false;
+  X.cargaPrevia = 400;   // empieza a cargar antes: la secuencia completa dura más de un segundo y se entiende   // ya no lleva el collar de oso: la desarman como a todos (se le cae el báculo)
+  X.manoEncima = true;
+  const gema = (p) => [p.mano[0], p.mano[1] - 12];
+  X.arma = (px, p) => {
+    const t = p.t || 0, [sx, sy] = X.brazoCerca.hombro, libre = [sx - 1, sy + 8];
+    baculoXitin(px, p.mano[0], p.mano[1], Math.floor(t / 400) % 2 === 1 || p.fase === "impulso");
+    if (p.fase !== "impulso") return;
+    const k = p.k || 0, [gx, gy] = gema(p);
+    if (k < 0.5) hdCarga(px, libre[0], libre[1], k / 0.5, "#8FDE5D", "#3CA370", t);   // carga maná en la mano libre
+    else if (k < 0.78) {   // le lanza un rayo de maná a la gema del báculo
+      const avance = (k - 0.5) / 0.28, fx = Math.round(libre[0] + (gx - libre[0]) * avance), fy = Math.round(libre[1] + (gy - libre[1]) * avance);
+      let n = 0;
+      hdLinea(libre[0], libre[1], fx, fy, (x, y) => {   // rayo grueso y brillante, con chispitas que titilan a lo largo
+        px(x - 1, y, "#8FDE5D"); px(x + 1, y, "#8FDE5D"); px(x, y - 1, "#CFFF70"); px(x, y + 1, "#CFFF70"); px(x, y, "#FFFFEB");
+        if ((n++ + Math.floor(t / 60)) % 4 === 0) px(x + 2, y - 2, "#CFFF70");
+      });
+      hdCarga(px, libre[0], libre[1], 0.4, "#8FDE5D", "#3CA370", t);   // la mano sigue brillando mientras dispara
+      px(fx, fy, "#FFFFEB"); px(fx - 1, fy, "#FFFFEB"); px(fx, fy - 1, "#FFFFEB");
+    } else hdCarga(px, gx, gy, (k - 0.78) / 0.22, "#CFFF70", "#8FDE5D", t);   // la gema estalla de luz
+  };
+  X.armaSuelta = (px) => baculoXitin(px, -1, 2);
+  const puf = HD_XITIN_NUEVA2.proyectil;   // ¡puf! recién cuando la gema ya recibió el rayo
+  X.proyectil = (g, x, y, p) => {
+    if (p.fase === "impulso") { if (p.k > 0.9) puf(g, x, y, { ...p, k: 0.56 + (p.k - 0.9) / 0.1 * 0.44 }); return; }
+    puf(g, x, y, p);
+  };
+}
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
-export { HDK, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
+export { HDK, hdColor, armaCupe, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
