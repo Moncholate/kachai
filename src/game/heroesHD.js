@@ -107,9 +107,13 @@ function hdDibujar(g, x, y, c, p) {
   const brazoAtras = c.brazoAtras && c.brazoAtras(p);   // la mano en alto pasa detrás de la cabeza
   if (brazoAtras) { hdBrazo(px, c.hombro, p.mano, c.brazo, c.brazoGrueso); if (c.arma) c.arma(px, p); }
   hdFilas(px, Object.fromEntries(c.cuerpo.map((f, i) => [i + (c.top || 0), f])), c.pal);
+  if (c.cierraCintura) { const y = c.cuerpo.length + (c.top || 0); [...c.cuerpo[c.cuerpo.length - 1]].forEach((k, x) => { if (k !== ".") px(x, y, HDK); }); }   // línea bajo la ropa: separa la cintura de la pierna de atrás
   if (c.pelo) hdFilas(px, c.pelo[(p.pelo || 0) % c.pelo.length], c.pal);
   if (!c.sinPiernas) hdPierna(pf, [c.caderas[1][0] + inc, c.caderas[1][1] + baja], [pd[0], pd[1] + alto], c.pierna, true, 11 - bj);
   if (c.falda) hdFilas(px, c.faldaVuelo ? hdFaldaVuelo(c.falda, (p.pies || c.pies)[1][0] - c.pies[1][0] + (p.fase === "sube" || p.fase === "alto" ? Math.round((p.agacha || 0) * 1.5) : 0), c.pies[0][0] - (p.pies || c.pies)[0][0]) : c.falda, c.pal);   // vestido largo: va encima de las piernas
+  /* Con los brazos en alto, los brazos pasan por delante de los adornos de los hombros (hombreras de Edith). */
+  const brazosArriba = !!(p.mano && c.hombro && p.mano[1] < c.hombro[1] - 2);
+  if (c.adorno && brazosArriba) c.adorno(px, p);
   const brazoCerca = () => {   // tres cuartos: el brazo de cerca, tranquilo junto al cuerpo con el codo hacia afuera
     const [sx, sy] = c.brazoCerca.hombro;
     const [mano, codo] = { sube: [[-5, -2], [-4, 2]], alto: [[-6, -9], [-5, -3]], ...(c.brazoCerca.poses || {}) }[p.fase] || c.brazoCerca.todas || [[-1, 7], [-3, 4]];   // al celebrar levanta los dos brazos
@@ -121,6 +125,7 @@ function hdDibujar(g, x, y, c, p) {
   const codo = (c.codoDinamico && c.codoDinamico(p)) || (c.codos && (c.codos[p.fase] || (p.fase === "vuelve" ? c.codos.guardia : undefined)));   // codo a mano: el brazo sube y baja con naturalidad
   if (!brazoAtras) hdBrazo(px, c.hombro, p.mano, c.brazo, c.brazoGrueso, codo, !!c.brazoCerca);
   if (c.arma && !brazoAtras) c.arma(px, p);
+  if (c.adorno && !brazosArriba) c.adorno(px, p);   // ropa y adornos que no son el arma (siguen puestos aunque lo desarmen)
   if (c.manoEncima && !brazoAtras) {   // la mano se dibuja sobre el mango: se ve agarrando el arma
     const [hx, hy] = p.mano, m = (c.brazoGrueso || 3) >= 3 ? 2 : 1, pts = [];
     for (let i = -1; i <= m; i++) for (let j = -1; j <= m; j++) pts.push([hx + i, hy + j, i === -1 || j === -1 ? c.brazo.manoLuz || c.brazo.mano : c.brazo.mano]);
@@ -340,20 +345,21 @@ const HD_MALALA = (() => {
     D: "#1F4D3A", C: "#E9E2CF", c: "#C4B999", E: "#14B8A6",
     Q: (x, y) => { const i = (x >> 1) & 1, j = (y >> 1) & 1; return i && j ? "#2E8B57" : i || j ? "#86CFA0" : "#F4F8F2"; },
   };
+  const LUNA = [".OO.", "O...", "O...", ".oo."];   // remate de la escoba: luna creciente dorada
   const escoba = (px, hx, hy, horizontal) => {
     const pts = [], PAJA = "#E0B04A", PAJA2 = "#A8762A", ATADO = "#9A3B2A";
     if (horizontal) {
       for (let x = hx - 9; x <= hx + 11; x++) pts.push([x, hy, "#9A6A3A"], [x, hy + 1, "#6E4824"]);
       for (let x = hx - 14; x <= hx - 10; x++) for (let y = hy - 1 - Math.round((hx - 10 - x) / 3); y <= hy + 2 + Math.round((hx - 10 - x) / 3); y++) pts.push([x, y, (y - hy) % 2 ? PAJA2 : PAJA]);   // pajas un poco más cortas y angostas
       pts.push([hx - 10, hy - 1, ATADO], [hx - 10, hy + 2, ATADO]);
+      LUNA.forEach((f, j) => [...f].forEach((k, i) => { if (k !== ".") pts.push([hx + 12 + (3 - j), hy - 1 + i, k === "O" ? "#FFE478" : "#F2A65E"]); }));   // la luna, acostada con la escoba
       hdContorno(px, pts);
-      [[12, 0], [13, -1], [13, 1], [14, 0]].forEach(([dx, dy]) => px(hx + dx, hy + dy, dx === 13 && !dy ? "#FFFFFF" : "#A7F3D0"));
     } else {
       for (let y = hy - 13; y <= hy + 5; y++) pts.push([hx + 1, y, "#9A6A3A"], [hx + 2, y, "#6E4824"]);
       for (let y = hy + 6; y <= hy + 11; y++) for (let x = hx - Math.round((y - hy - 6) / 3); x <= hx + 3 + Math.round((y - hy - 6) / 3); x++) pts.push([x, y, (x - hx) % 2 ? PAJA2 : PAJA]);   // pajas un poco más cortas y angostas
       pts.push([hx, hy + 6, ATADO], [hx + 3, hy + 6, ATADO]);
+      LUNA.forEach((f, j) => [...f].forEach((k, i) => { if (k !== ".") pts.push([hx + i, hy - 17 + j, k === "O" ? "#FFE478" : "#F2A65E"]); }));   // la luna en la punta del mango
       hdContorno(px, pts);
-      [[1, -14], [0, -15], [2, -15], [1, -16]].forEach(([dx, dy]) => px(hx + 1 + dx - 1, hy + dy, "#A7F3D0"));
     }
   };
   return {
@@ -772,12 +778,7 @@ const HD_JULY = (() => {
   };
   const DIR = { guardia: [0.45, 0.9], impulso: [-0.7, -0.7], golpe: [1, 0.15], choque: [1, 0.45], sigue: [0.9, 0.55], sube: [0.1, -1], alto: [0.05, -1] };
   /* Martillo de forja: mango de madera y una cabeza de hierro grande. */
-  const martillo = (px, hx, hy, d) => {
-    const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, nx = -uy, ny = ux, pts = [];
-    for (let i = -3; i <= 10; i++) for (let k = 0; k < 2; k++) pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), k ? "#6E4824" : "#9A6A3A"]);
-    for (let i = 9; i <= 14; i++) for (let k = -5; k <= 5; k++) pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), i === 9 ? "#5E6673" : k < -3 ? "#D9DEE6" : k > 3 ? "#5E6673" : "#9AA3B0"]);
-    hdContorno(px, pts);
-  };
+  const martillo = (px, hx, hy, d) => { const L = Math.hypot(d[0], d[1]); martilloJuly(px, hx, hy, d[0] / L, d[1] / L); };   // el mismo martillo de guerra (ver martilloJuly)
   return {
     id: "july", nombre: "July", pal,
     cuerpo: [
@@ -1440,10 +1441,22 @@ const anguloJuly = (p) => {
   for (let n = 1; n < K.length; n++) if (T <= K[n][0]) { const [t0, a0] = K[n - 1], [t1, a1] = K[n]; return ((a0 + (a1 - a0) * Math.max(0, (T - t0) / (t1 - t0))) * Math.PI) / 180; }
   return (430 * Math.PI) / 180;
 };
+/* Mazo de July (como el de la foto que eligió la profesora): cabeza de hierro con óxido y una X grabada,
+   mango claro con amarras de cuero junto a la cabeza y en la empuñadura, y un pomo al final. Gira entero con el mango. */
 const martilloJuly = (px, hx, hy, ux, uy) => {
   const nx = -uy, ny = ux, pts = [];
-  for (let i = -3; i <= 10; i++) for (let k = 0; k < 2; k++) pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), k ? "#6E4824" : "#9A6A3A"]);
-  for (let i = 9; i <= 14; i++) for (let k = -5; k <= 5; k++) pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), i === 9 ? "#5E6673" : k < -3 ? "#D9DEE6" : k > 3 ? "#5E6673" : "#9AA3B0"]);
+  const P = (i, k, col) => pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), col]);
+  for (let k = -1; k <= 2; k++) P(-5, k, k < 1 ? "#F2A65E" : "#BA6156");   // el pomo
+  for (let i = -4; i <= 8; i++) for (let k = 0; k < 2; k++) {
+    const cuero = i <= 0 || i >= 6;   // amarras de cuero en la empuñadura y junto a la cabeza
+    P(i, k, cuero ? (i % 2 ? "#5E315B" : "#3E2347") : k ? "#F2A65E" : "#FFB570");
+  }
+  for (let i = 9; i <= 14; i++) for (let k = -5; k <= 5; k++) {   // la cabeza de hierro
+    const x1 = -5 + (i - 9) * 2, x2 = 5 - (i - 9) * 2;   // las dos diagonales de la X grabada
+    const marca = (k === x1 || k === x1 + 1 || k === x2 || k === x2 - 1) && Math.abs(k) < 5 && i > 9 && i < 14;
+    const oxido = (i * 7 + k * 3) % 11 === 0;
+    P(i, k, marca ? "#43434F" : i === 9 ? "#606070" : k === -5 ? "#C2C2D1" : k === 5 ? "#43434F" : oxido ? "#964253" : "#7E7E8F");
+  }
   hdContorno(px, pts);
 };
 const HD_JULY34 = { ...HD_JULY, pal: { ...HD_JULY.pal, P: "#5A5E6A", M: "#A9B2BF", m: "#7C8594", h: "#9A6A3A", l: "#94603A" }, brazoGrueso: 2, brazoCerca: { hombro: [8, 18] }, manoEncima: true,
@@ -1480,8 +1493,9 @@ const HD_EDITH34 = { ...HD_EDITH, brazoGrueso: 2, brazoCerca: { hombro: [9, 19] 
   hombro: [17, 19],
   manos: { guardia: [21, 23], impulso: [19, 19], golpe: [23, 18], choque: [23, 18], sigue: [22, 20], sube: [22, 16], alto: [24, 13] },
   /* Hombreras de hueso: dos puntas blancas curvas en cada hombro (reemplazan al cráneo). El grimorio no cambia. */
-  arma: (px, p) => {
-    HD_EDITH.arma((a, b, c) => { if (!(a >= 10 && a <= 16 && b >= 14 && b <= 20)) px(a, b, c); }, p);   // sin el cráneo
+  arma: (px, p) => HD_EDITH.arma((a, b, c) => { if (!(a >= 10 && a <= 16 && b >= 14 && b <= 20)) px(a, b, c); }, p),   // el grimorio, sin el cráneo
+  /* Las hombreras son ropa, no arma: van en adorno, que se dibuja siempre (no las pierde cuando la desarman). */
+  adorno: (px) => {
     [[9, 18, -1], [17, 18, 1]].forEach(([sx, sy, d]) => {
       const pts = [];
       for (let i = -1; i <= 1; i++) pts.push([sx + i, sy, "#3A3A48"]);   // base oscura de la hombrera
@@ -2792,7 +2806,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_JELIC34.cuerpo = [
     "...............................", "...............................", "............KKKKKK.............", "...........KMLLLLMKK...........",
     "..........KmLWLLLLLmK..........", ".........KmMLLLLLLMMmK.........", ".........KMMMMMMMMMMMmK........", "........KmMMMMMMMMMMMMmK.......",
-    "........KMMMMmmmmmmmmMMK.......", "........KMMMmssssssssKmK.......", "........KMMmszSSSSSSSsmK.......", "........KMMmsSSWSSSWSsmK.......",
+    "........KMMMMmmmmmmmmMMK.......", "........KMMMmssssssssKmK.......", "........KMMmszBBBSBBBsmK.......", "........KMMmsSSWSSSWSsmK.......",
     "........KMMmsSSKSSSKSsmK.......", "........KMmmvsSSSSsSSsmK.......", "........KMmmvsSWWWWWSsmK.......", "........KmmmvssSwWWwSKK........",
     ".........KmmKvssSSSSKK.........", "..........KKKdddddnsK..........", "..........KdMMMMMMMMMMK", "..........KMLLLLLLLLLMK",
     "..........KMMQQQQQQQQMK", "..........KMMQRAAARAQMK", "..........KMMQRAAARAQMK", "..........KMMQRRRRRAQMK",
@@ -2839,7 +2853,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
     "....KFfFFFFFWWWKWWKWWWFFfFFK", "......KFFFFFÍWWWWWWWWÍFFFK", "........KKFFFWWWWWWWWFFKK", "..........KÉÉgggggggKKK",
     "..........KGGGGGGGGGK", ".........KGGGGGGMGGGgK", ".........KHgGGGGGGGgGK", "..........KKgWWWWWgKK",
     "............KWWWWWWKK", "............KWWwWWWK", "............KFWWWWFK", "............KBBBBBBK",
-    "............KBbBBbBK", "...........KgTTTTTTK", "...........KTTWWWTTK", "...........KKTTTTTKK",
+    "............KBbBBbBK", "...........KgTTTTTTK", "...........KTTTtTTTK", "...........KKKKKKKKK",
   ];
   /* Cupe: brillo en los ojos. */
   HD_CUPE34.contorno = "#272736";
@@ -2874,7 +2888,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
     "..........KKKK", ".........KhHHhK", ".........KHhHHK", "........KKWKWKWKK",
     ".......KhWWWWWWWhK", "......KhHHHHHHHHHhK", ".....KhHhHHHHHHHHHK", ".....KHhHHHHHHHHHHhK",
     "....KKHhHHpzSSSSSSHK", "...KSÁhHHpSSKKSSKKHK", "....KSÁhHpSSKZSSKZK", "....KpHhHÉPSSSsSSPK",
-    ".....KHhÍsSSSSsSSK", ".....KHhÍsSSSmmSK", "......KKKKssSSÓK", ".........KKBBsK",
+    ".....KHhÍsSSSSsSSSK", ".....KHhÍsSSSmmSSK", "......KKKKssSSSÓK", ".........KKBBsK",
     "........KsBBWWWBK", ".......KsBBBWWWWBK", "......KsbBBBWWwWBsK", "......KBbBBBWWWWBBK",
     "......KBbBBBWWWWBBK", "......KDDDDDDDDDDDK", "......KDdDDDDDDDDDK", "......KNNWWWWWWWWK",
     "......KNNWWWwGgGWK", ".....KÚNNWWWRRgRRWWK", ".....KNNNWWWRTRRrWWK", ".....KNNNNWWRRRTrWWWK",
@@ -2895,7 +2909,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_UCHIS34.pal = { ...HD_UCHIS34.pal, "Á": "#E36956", "É": "#5E315B", "Í": "#73275C" };
   HD_UCHIS34.cuerpo = [
     "..........KKKKKKK", "........KKhHHHHHhKK", ".......KhHhHHHHHHHhK", "......KhhHHHHHHHHHHhK",
-    "......KHhHHHHHHHHHHHK", ".....KhhHHHHGGGGGEGGK", ".....KHhHHHhSSSSSSSSK", ".....KHhHHhSSSSSSSSSK",
+    "......KHhHHHHHHHHHHHK", ".....KhhHHHHGGGGGEGGK", ".....KHhHHHhSSSSSSSSK", ".....KHhHHhShhhShhhSK",
     ".....KHhHHhSSCSSSCSSK", ".....KHhHHhSSKSSSKSSK", "....KhhHHhsSSSSSsSSSK", "....KHhHHhsSSSSLLSSSK",
     "....KHhHHHhsSSSSSSSK", "....KHhHHHHhÁssSSSK", "....KHhHHHhRCCÁLKK", "....KHhHHhRRCCCCK",
     "....KHhHhRRCYTTTYK", "....KHhHhRCCYTYTYCK", "....KHhHhRCCYYYYYCK", "....KHhÉRrCCYTYTYCK",
@@ -2914,7 +2928,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_JANET34.cuerpo = [
     "..........KKKKKK", "........KKhHHHHhKK", ".......KhHhHHHHHHhK", "......KhhHHHHHHHHHhK",
     "......KHhHHHHHHHHHHhK", ".....KhhHHHHHHHHHHHHK", ".....KHhHHHHHHHHHHHHK", ".....KHShHHHHHSSSSSSK",
-    ".....KHSShHHhSSSSSSSK", ".....KHsShhSSWSSSWSSK", "..KK.KHhHHBSSKSSSKSSK", ".KÁWKKHhHKDSSSSSsSSSK",
+    ".....KHSShHHhhhShhhSK", ".....KHsShhSSWSSSWSSK", "..KK.KHhHHBSSKSSSKSSK", ".KÁWKKHhHKDSSSSSsSSSK",
     ".KWQKKHhHKDDSSDDDDDDK", "..KQKKHhHHKDDDDSSDDK", "..KQKKHhHHHBDDDDDDK", "..KQKKhHHgGGLBBBKK",
     "..KQKKhHgGGLlLGGK", "..KQKKhDGGLlLlLGgK", "..KQKKDGGlLlLlLGGK", "..KQKKGGGLlLlLlGGK",
     "...KQBGGGlLlLlLGGK", "...KQBGGÉBBBBYBBBK", "...KQBGgGLlLlLGGGK", "....KKGgGGLlLGGGgK",
@@ -2923,7 +2937,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   /* July: piel durazno, barba blanca, delantal café, brillo en los ojos. */
   HD_JULY34.contorno = "#272736";
   HD_JULY34.mapa = {
-    "#7A7E8A": "#7E7E8F", "#5A5E6A": "#606070", "#3E414A": "#43434F", "#A9B2BF": "#C2C2D1", "#7C8594": "#7E7E8F", "#D9A27A": "#FFB570",
+    "#7A7E8A": "#7E7E8F", "#5A5E6A": "#606070", "#3E414A": "#43434F", "#A9B2BF": "#C2C2D1", "#7C8594": "#7E7E8F", "#D9A27A": "#FFB5B5",
     "#F2CDA8": "#FFB5B5", "#F2F2F2": "#FFFFEB", "#A8714C": "#FF9166", "#7A4A2A": "#8C3F5D", "#5A341C": "#5E315B", "#C9A24B": "#F2A65E",
     "#94603A": "#BA6156", "#8E2A20": "#B0305C", "#9A6A3A": "#BA6156", "#5A4A40": "#5E315B", "#3A2A20": "#3E2347", "#6E4824": "#8C3F5D",
     "#5E6673": "#606070", "#9AA3B0": "#C2C2D1", "#D9DEE6": "#C2C2D1", "#9B1428": "#964253", "#C8C8D0": "#C2C2D1", "#E8B830": "#FFE478",
@@ -2953,7 +2967,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_EDITH34.cuerpo = [
     "..........KKKKKK", "........KKÁhHHhÁKK", ".......KÁhHHhHHhHÁK", "......KÁHhHHHhHHHhÁK",
     "......KhHHHhHHHHHHHK", ".....KÁHhHHHHHHHHHHHK", ".....KhHHHhHHÁSSSSSSK", "....KÁHhHHHHÁSSSSSSSK",
-    "....KhHHhHHÁSSSSSSSSK", "....KHHhHHHÁSSCSSSCSK", "...KHHHhHHÁSSSKSSSKSK", "...KHHhHHHÁsSSSSsSSSK",
+    "....KhHHhHHÁSHHHSHHHK", "....KHHhHHHÁSSCSSSCSK", "...KHHHhHHÁSSSKSSSKSK", "...KHHhHHHÁsSSSSsSSSK",
     "...KhHHhHHÁsSSSLLSSK", "...KHHhHHHHÁssSSSSK", "...KhHHhHHHHpKsSKK", "...KHHhHHHpPPKpK",
     "...KhHHhHpPPPPPpK", "...KHHhHpPPCPPPPCK", "...KhHHpPPPCPPPPCPK", "...KHhHpPPPPCPPPCPK",
     "...KhHHpPpPPCPPPCPK", "...KHhpPPpPPCBBBCBK", "....KKKPPpPPPCPCPPK", ".......KPPpPPPPCPPpK",
@@ -2993,7 +3007,7 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_XITIN_NUEVA2.cuerpo = [
     "..........KKKKKK", "........KKhHZHHhKK", ".......KhHhHHZHHHhK", "......KhHhHHHHHHHHhK",
     "......KHhHHHHHHHHHHhK", ".....KhhHHHHHHHHHHHHK", ".....KHhHHHHHHHpSSSSK", ".....KHhHHHHHpSSSSSSK",
-    "....KhhHHHHHpSSSSSSSK", "....KHhHHHHpSSZSSSZSK", "...KSUhHHHHpSSKSSSKSK", "....KHhHHHHÁRSSSSsSSK",
+    "....KhhHHHHHphhhShhhK", "....KHhHHHHpSSZSSSZSK", "...KSUhHHHHpSSKSSSKSK", "....KHhHHHHÁRSSSSsSSK",
     "....KKHhHHÉsRSSSSSSK", "....KHhHHÉsSSSSppSK", "....KHhHHHÉssSSSSK", ".........KKSSSKK",
     ".......KSSSSSSSSSK", ".......KSNNNNNNNSK", ".......KNNNNNNNNNK", ".......KNnNNNNNNNK",
     ".......KFFFFFFFFFK", ".......KSSSSsSSSSK", ".......KSSSSSSsSSK", ".......KBBBBGBBBBK",
@@ -3029,7 +3043,7 @@ Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   
   HD_LATTE34.cuerpo = [
     "............KKKKKKK", "............KtTTTTK", "............KtTTTuK", "............KtTTTuK",
     "............KtTTWWK", "............KYYYWYK", "............KyyyyyK", ".........KKKKTTTTTKKKK",
-    "........KtTTTTTTTTTTTuK", "........KHiHHHiHHHHhK", ".......KHiHhHHSHSSSSiK", "........KHiHhSSSSSSSSK",
+    "........KtTTTTTTTTTTTuK", "........KHiHHHiHHHHhK", ".......KHiHhHHSHSSSSiK", "........KHiHhhhhSShhhK",
     ".......KHhHhSSWSSSSWSK", "........KhHhSSESSsSESK", ".........KhHSSSSSssSSK", ".........KhXXSXXXXXXSK",
     "..........KXXXXSSXXXK", "...........KXXXXXXXK", "..........KjJJJuLLLjJJK", "..........KJJJJjLLLjJJK",
     "..........KjJJJjLLLjJJK", "..........KjJJJJjLjJJJK", "..........KjJJJJjLjJJJK", "..........KjJJJJJÁJJJJK",
@@ -3047,7 +3061,7 @@ Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   
   };
   HD_KENNY34.cuerpo = [
     ".........................", "...........KKKKKK", ".........KKhHHHHhKK", "........KhHhHHHHHHhK",
-    ".......KhHhHHHHHHHHhK", ".......KHhHHHHHHHHHHhK", "......KhHhHHHHHHHHHHHK", "......KHhHHHhSSSSSSSSK",
+    ".......KhHhHHHHHHHHhK", ".......KHhHHHHHHHHHHhK", "......KhHhHHHHHHHHHHHK", "......KHhHHHhhhhShhhhK",
     "......KHhHHhSSSSSSSSSK", "......KHhHHhSFQFFFFQFK", "......KHHhHhSFFFSSFFFK", "......KHhHHhsSSSSsSSSK",
     "......KHhHKDDSDDDDSDDK", ".......KhHKDDDDSSDDDK", ".......KKKKDDDDDDDDK", "...........KHDDDDKK",
     "........KKTTTTTTTK", ".......KtTTTtTTTTtK", ".......KTTjTTTTTTTK", "........KJJJJGGJJJjK",
@@ -3069,7 +3083,7 @@ Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   
   HD_TIVAN34.cuerpo = [
     "........K...K...K", ".......KHK.KHK.KHK", "......KhhhKhhhKhhhK", ".....KHhHIHHHIHHHHhK",
     "......KHhHHHHHHHHHHHK", ".....KHhHHHHKoÁoKoÁoK", "......KhHEEEKGQGKGQGKK", ".......KhHHHKoÁoKoÁoKK",
-    ".......KHhHHhSSSSSSSK", "......KhHhHhSSISSSISK", "......KSÉhHÍSSKSSSKSK", "......KKKhÉsSSSSsSSSK",
+    ".......KHhHHhHHHSHHHK", "......KhHhHhSSISSSISK", "......KSÉhHÍSSKSSSKSK", "......KKKhÉsSSSSsSSSK",
     ".........KKsSSSssSSK", "..........KKssSSSK", "........KOOKKÍsoOK", ".......KoOOOoWWoOoK",
     "......KoOoOOoWWDOOoK", "......KOOoOBVBVBVBOoK", "......KOoOOOBBBBBBOOOK", "......KOoOOOOOOOOOOOK",
     "......KOoOKDDDDGDDDDK", "......KOoOKUUOOOUUOOK", "......KOoOKOOOOOOOOOK", "......KOoOKOOOOOOOOOK",
@@ -3090,7 +3104,7 @@ Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   
   HD_PATROCLUS34.cuerpo = [
     "", "", "", ".........KKKKKKK",
     ".......KKÁHHHHHÁKK", "......KÁHHHHHHHHHÁK", "......KHhHHHHHHHHHK", ".....KÁhHHHHHHHHHHK",
-    ".....KHhHHHHSSSSSSK", ".....KHhHHÁSSSSSSSK", ".....KHHHÁSSFSSSFSK", ".....KÁSÁSSSKSSSKSK",
+    ".....KHhHHHHSSSSSSK", ".....KHhHHÁHHHSHHHK", ".....KHHHÁSSFSSSFSK", ".....KÁSÁSSSKSSSKSK",
     "......KSSKsSSSSsSSK", "......KKsKsSSssSSK", ".........KlsSSSK", "......KGGgGGGGGGGK",
     "......KGgLLlNZNlLK", "......KgÉLLLLlZlLLK", "......KLLLLlLLLLLK", "......KLLLLLLLlLLK",
     "......KBBBBYBBBBBK", "......KLLLLLLLLLLK", "......KTTTTTÍTTTTK", "......KTTTTTTTTTTK",
@@ -3105,6 +3119,95 @@ HD_AGATTITA34.pelo = [
 ];
 /* Cupe desarmado: la espada en el suelo con su mango a la vista. */
 HD_CUPE34.armaSuelta = (px) => armaCupe(px, 0, 0, [0.5, -0.87], true);
+
+/* Cintura cerrada: la pierna de atrás se dibuja antes que la ropa y la ropa le tapaba su borde de arriba (quedaban
+   pegadas sin línea). cierraCintura dibuja una fila de contorno bajo la ropa, también en las versiones del podio. */
+for (const c of [HD_JELIC34, HD_LATTE34, HD_CUPE34, HD_TIVAN34]) c.cierraCintura = true;
+
+/* Uzu berserk: la sombra roja de las botas (heroes.js, uzuSinPolera) también en Pear36. */
+HD_UZU34.mapa["#6A1A14"] = "#73275C";
+
+/* Edith desarmada: solo cae el grimorio (la calaverita es un adorno de su ropa, no se suelta con el libro). */
+HD_EDITH34.armaSuelta = (px) => HD_EDITH.arma((x, y, col) => { if (x >= 21) px(x, y, col); }, { mano: [0, 0], fase: "guardia", t: 0, k: 0 });
+
+/* ======================= PATROCLUS: BOOMERANG =======================
+   En vez del bordón con tótem: un boomerang de madera con franjas en sus colores (rojo de la pañoleta y turquesa).
+   Lo lanza, viaja girando hasta el rival y vuelve a su mano; en el podio lo lanza alto y su águila lo atrapa.
+   Gira en cuartos de vuelta (4 posiciones del mismo dibujo): el pixel art no se rota. */
+{
+  const B = HD_PATROCLUS34, AGUILA_POSADA = B.armaDetras;
+  const FORMA = [".LLL.........", "LRTLLLLLL....", ".RTMMMMMMLL..", "..SSSSSSMMML.", "........SMMM.", ".........MMS.", ".........MMS.", ".........TTS.", ".........RRS.", ".........RS.."];
+  const COL = { L: "#F2A65E", M: "#BA6156", S: "#8C3F5D", R: "#EB564B", T: "#3D6E70" };
+  const PUNTA = [4, 4];   // la punta que se toma con la mano, respecto del centro del dibujo
+  const gira = ([dx, dy], q) => { for (let r = 0; r < q; r++) [dx, dy] = [-dy, dx]; return [dx, dy]; };
+  const boomerang = (px, cx, cy, q) => {
+    const pts = [];
+    FORMA.forEach((f, y) => [...f].forEach((k, x) => { if (COL[k]) { const [dx, dy] = gira([x - 6, y - 5], q); pts.push([cx + dx, cy + dy, COL[k]]); } }));
+    hdContorno(px, pts);
+  };
+  const enMano = (px, [hx, hy], q) => { const [ox, oy] = gira(PUNTA, q); boomerang(px, hx - ox, hy - oy, q); };   // tomado de la punta
+  const pantalla = (g, x, y) => (a, b, col) => { g.fillStyle = col === HDK ? "#272736" : col; g.fillRect(x + HD_OX + a, y + HD_OY + b, 1, 1); };
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const VUELA = ["golpe", "choque", "sigue"];
+  B.choque = [72, 20];   // ataca a distancia: casi no avanza
+  B.armaDetras = AGUILA_POSADA;
+  B.arma = (px, p) => {
+    if (!VUELA.includes(p.fase) && !p.sinBoomerang) enMano(px, p.mano, p.fase === "sube" || p.fase === "alto" ? 0 : 1);
+  };
+  B.adorno = (px) => [[7, 12, "#E5E7EB"], [7, 13, "#9AA3B0"]].forEach(([x, y, c]) => px(x, y, c));   // el arito de plata: no lo pierde al ser desarmado
+  B.armaSuelta = (px) => boomerang(px, 0, -2, 0);
+  /* El vuelo: sale de la mano, llega girando al pecho del rival, sube en un arco y vuelve a la mano. */
+  const vuelo = (p) => {
+    const k = Math.max(0, Math.min(1, p.k || 0)), MANO = [24, 21], RIVAL = [58, 20], ARRIBA = [44, 4];
+    if (p.fase === "golpe") return [lerp(MANO[0], RIVAL[0], k), lerp(MANO[1], RIVAL[1], k) - Math.sin(Math.PI * k) * 5];
+    if (p.fase === "choque") return [lerp(RIVAL[0], ARRIBA[0], k), lerp(RIVAL[1], ARRIBA[1], k)];
+    return [lerp(ARRIBA[0], MANO[0], k), lerp(ARRIBA[1], MANO[1], k) + Math.sin(Math.PI * k) * 3];
+  };
+  /* Podio: lo lanza lejos; el boomerang queda girando en el aire, el águila deja su vuelta, va a buscarlo, lo atrapa
+     y vuelve a dar vueltas alrededor de Patroclus llevándolo en las garras. */
+  const LANZA = 300, LLEGA = 1100, ALCANZA = 1600, VUELVE = 2500, LEJOS = [54, 6];
+  const circulo = (x, y, t) => { const a = t / 650; return { cx: x + HD_OX + 16 + Math.cos(a) * 20, cy: y + HD_OY + 20 + Math.sin(a) * 6, delante: Math.sin(a) > 0, izq: Math.sin(a) > 0 }; };
+  const aguila = (x, y, T) => {
+    const lejos = { cx: x + HD_OX + LEJOS[0], cy: y + HD_OY + LEJOS[1] - 6 };
+    if (T < LANZA || T >= VUELVE) return circulo(x, y, T);
+    if (T < ALCANZA) { const de = circulo(x, y, LANZA), k = (T - LANZA) / (ALCANZA - LANZA); return { cx: lerp(de.cx, lejos.cx, k), cy: lerp(de.cy, lejos.cy, k) - Math.sin(Math.PI * k) * 8, delante: true, izq: false }; }   // va a buscarlo
+    const a = circulo(x, y, VUELVE), k = (T - ALCANZA) / (VUELVE - ALCANZA);
+    return { cx: lerp(lejos.cx, a.cx, k), cy: lerp(lejos.cy, a.cy, k) - Math.sin(Math.PI * k) * 6, delante: true, izq: true };   // vuelve con él
+  };
+  const podio = (g, x, y, p, delante) => {
+    const T = Math.max(0, p.t || 0), a = aguila(x, y, T), px = pantalla(g, x, y);
+    if (a.delante !== delante) return;
+    aguilaVuela(g, a.cx, a.cy, T, a.izq);
+    if (T >= ALCANZA) boomerang(px, Math.round(a.cx - x - HD_OX), Math.round(a.cy - y - HD_OY + 6), 1);   // en las garras
+  };
+  B.proyectil = (g, x, y, p) => {
+    if (p.enPodio) {
+      const T = Math.max(0, p.t || 0), q = Math.floor(T / 70) % 4, px = pantalla(g, x, y);
+      if (T > LANZA && T < LLEGA) {   // sale lejos girando
+        const k = (T - LANZA) / (LLEGA - LANZA), [hx, hy] = B.manos.alto;
+        boomerang(px, Math.round(lerp(hx, LEJOS[0], k)), Math.round(lerp(hy, LEJOS[1], k) - Math.sin(Math.PI * k) * 10), q);
+      } else if (T >= LLEGA && T < ALCANZA) boomerang(px, LEJOS[0], LEJOS[1] + Math.round(Math.sin(T / 120)), q);   // girando en el aire, esperando al águila
+      return podio(g, x, y, p, true);
+    }
+    if (!VUELA.includes(p.fase)) return;
+    const [bx, by] = vuelo(p);
+    boomerang(pantalla(g, x, y), Math.round(bx), Math.round(by), Math.floor((p.t || 0) / 60) % 4);
+  };
+  B.proyectilAtras = (g, x, y, p) => { if (p.enPodio) podio(g, x, y, p, false); };
+  B.retoque = (p, c) => {   // en el podio: celebra saltando, con las manos libres (el boomerang ya va volando)
+    if (!p.enPodio) return null;
+    const T = Math.max(0, p.t || 0), v = hdPose(c, "victoria", T), alto = v.fase === "alto" || v.fase === "sube";
+    const salto = alto ? (Math.floor(T / 260) % 2 ? -5 : 0) : 0;
+    return { c: { ...c, retoque: undefined, armaDetras: undefined },
+      p: { ...v, enPodio: true, sinBoomerang: T > LANZA, mano: alto ? c.manos.alto : v.mano, bob: alto ? salto : v.bob, agacha: alto && !salto ? 2 : v.agacha || 0 } };
+  };
+}
+
+/* El oso de Xitin: hocico rugiendo más claro (nariz negra, boca abierta con dos colmillos y la lengua). */
+{
+  const HOCICO = { 9: [13, "MMKKKKMMB"], 10: [13, "MKWRRWKMB"], 11: [14, "MKPPKMB"], 12: [15, "MKKMM"] };
+  OSO34.cuerpo = OSO34.cuerpo.map((f, i) => (HOCICO[i] ? f.slice(0, HOCICO[i][0]) + HOCICO[i][1] + f.slice(HOCICO[i][0] + HOCICO[i][1].length) : f));
+}
 
 /* ======================= XITIN: TÚNICA DE INVOCADORA Y BÁCULO =======================
    Túnica azul con ribete dorado al centro, faja roja, mangas claras y un broche con huella de oso.

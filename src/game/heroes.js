@@ -210,11 +210,16 @@ function armaSuelta(g, id, x, y, cuartos = 0) {
   if (!armasSueltas.has(id)) {
     const c = document.createElement("canvas"); c.width = c.height = 56; const cg = c.getContext("2d");
     const color = hdColor(HD_POR_ID[id] || base);   // con la paleta del personaje (Pear36)
-    const px = (a, b, col) => { cg.fillStyle = color(col); cg.fillRect(28 + a, 34 + b, 1, 1); };
+    const puntos = [], anota = (a, b, col) => puntos.push([28 + a, 34 + b, col]);
     const p = { mano: [0, 0], fase: "guardia", t: 0, k: 0 };
     const actual = HD_POR_ID[id];
-    if (actual && actual.armaSuelta) actual.armaSuelta(px);   // el diseño actual trae su propia arma suelta
-    else if (base.arma) base.arma(px, p); else if (base.armaDetras) base.armaDetras(px, { ...p, fase: "suelta" });
+    if (actual && actual.armaSuelta) actual.armaSuelta(anota);   // el diseño actual trae su propia arma suelta
+    else if (base.arma) base.arma(anota, p); else if (base.armaDetras) base.armaDetras(anota, { ...p, fase: "suelta" });
+    /* Si el arma no cabe en el lienzo (el laúd de Kenny, el libro de Edith), se recentra: si no, se cortaba o desaparecía. */
+    const xs = puntos.map(([a]) => a), ys = puntos.map(([, b]) => b);
+    const sale = puntos.length && (Math.min(...xs) < 0 || Math.min(...ys) < 0 || Math.max(...xs) > 55 || Math.max(...ys) > 55);
+    const dx = sale ? 28 - Math.round((Math.min(...xs) + Math.max(...xs)) / 2) : 0, dy = sale ? 28 - Math.round((Math.min(...ys) + Math.max(...ys)) / 2) : 0;
+    puntos.forEach(([a, b, col]) => { cg.fillStyle = color(col); cg.fillRect(a + dx, b + dy, 1, 1); });
     armasSueltas.set(id, c);
   }
   g.save(); g.imageSmoothingEnabled = false; g.translate(Math.round(x), Math.round(y)); g.rotate((cuartos % 4) * Math.PI / 2); g.drawImage(armasSueltas.get(id), -28, -28); g.restore();
@@ -469,7 +474,8 @@ const uzuSinPolera = (c, berserk) => {
   const torso = { 21: "..........KGGgGGgGGGK", 22: "..........KGgGGGGgGGK", 23: "..........KGGGgGGGGGK" };
   const pal = berserk ? { ...c.pal, G: "#D9443A", g: "#9E2A22", Z: "#F07060", R: "#FDE047" } : c.pal;
   const rojo = berserk ? { luz: "#F07060", base: "#D9443A", sombra: "#9E2A22", mano: "#9E2A22", manoLuz: "#D9443A" } : {};
-  return { ...c, cuerpo: conCollarUzu(c.cuerpo.map((f, i) => torso[i] || f)), pal,   // el collar de huesos se queda puesto brazo: { ...c.brazo, ...rojo }, pierna: berserk ? { ...c.pierna, bota: "#9E2A22", botaSombra: "#6A1A14" } : c.pierna,
+  return { ...c, cuerpo: conCollarUzu(c.cuerpo.map((f, i) => torso[i] || f)), pal,   // el collar de huesos se queda puesto
+    brazo: { ...c.brazo, ...rojo }, pierna: berserk ? { ...c.pierna, bota: "#9E2A22", botaSombra: "#6A1A14" } : c.pierna,
     arma: undefined, armaDetras: undefined, proyectil: undefined, manoDinamica: undefined, codoDinamico: undefined, brazoAtras: undefined };
 };
 /* Flecha en cualquier dirección: punta en (x, y), cuerpo hacia atrás según (ux, uy). Se dibuja por tramos (de i0 a i1,
@@ -503,6 +509,8 @@ function armaVuela(g, rival, xb, dy, Tm) {
   const ax = lerp(manoX, fx, q), ay = lerp(manoY, fy, q) - Math.sin(Math.PI * q) * 20;
   armaSuelta(g, rival.id, ax, ay, q < 1 ? Math.floor(q * 6) : 1);
 }
+/* Victoria de Patroclus: cuánto rato apunta al rival con la mano antes de mandar a su águila (ms). */
+const APUNTA_PATROCLUS = 500;
 /* Nombramiento de Cupe: en qué momento está (0 levanta el florete, 1 toca un hombro, 2 lo pasa por arriba, 3 toca el otro). */
 const toqueCupe = (Tm) => (Tm >= 2200 && Tm < 3800 ? Math.floor((Tm - 2200) / 400) : -1);
 const destello = (g, cx, cy, t) => {
@@ -648,18 +656,19 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
     }
   } else if (quien === "patroclus") {   // su águila agarra al rival de los hombros y se lo lleva volando fuera de la pantalla
     const hombroY = YB + dy + HD_OY + (rival.hd.bajar || 0) + 3;   // las garras lo toman desde arriba de la cabeza
-    if (Tm < 1350) {
+    const D = APUNTA_PATROCLUS;   // primero Patroclus lo apunta con la mano; después va el águila
+    if (Tm < 1350 + D) {
       sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true);
-      if (Tm >= 1100) sudor(g, cR - 6, cabezaY + 2, true);
-    } else if (Tm < 2700) {
-      const k = Math.min(1, (Tm - 1350) / 1250), sube = k * k * 75, corre = k * 30, r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
+      if (Tm >= 1100 + D) sudor(g, cR - 6, cabezaY + 2, true);
+    } else if (Tm < 2700 + D) {
+      const k = Math.min(1, (Tm - 1350 - D) / 1250), sube = k * k * 75, corre = k * 30, r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
       const cuelga = Math.round(Math.sin(t / 120) * 1);   // las piernas se balancean colgando
       sombra(g, cR + corre, dy);
       figura(g, r, { ...hdPose(r, "guardia", t), pies: [[r.pies[0][0] - 1 + cuelga, r.pies[0][1] - 2], [r.pies[1][0] + 1 - cuelga, r.pies[1][1] - 2]] }, xb - corre, dy - sube, true);
       sudor(g, cR - 6 + corre, cabezaY + 2 - sube, false);
       aguilaVuela(g, cR + corre, hombroY - sube, t);
       if (!llevaCollar(rival)) {   // suelta el arma, que cae al suelo
-        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1350) / 400);
+        const [hx, hy] = rival.hd.manos.guardia, q = Math.min(1, (Tm - 1350 - D) / 400);
         armaSuelta(g, rival.id, lerp(W - (xb + HD_OX + hx), cR + 6, q), lerp(YB + dy + HD_OY + hy, SUELO + dy - 3, q * q), q < 1 ? Math.floor(q * 3) : 1);
       } else collarCae(g, xb, dy, Tm, 1350);
     } else if (!llevaCollar(rival)) armaSuelta(g, rival.id, cR + 6, SUELO + dy - 3, 1);
@@ -796,13 +805,16 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
       if (k < 0.9) nota(nx, ny, ["#FBBF24", "#F472B6", "#7DD3FC"][i]);
     }
   } else if (quien === "patroclus") {   // manda a su águila: ella vuela, agarra al rival y después vuelve a su hombro
-    const xp = 2 + dx, sinAguila = Tm >= 500 && Tm < 3300, c = sinAguila ? { ...yo.hd, armaDetras: undefined } : yo.hd;
-    const p = Tm < 500 ? hdPose(c, "guardia", t) : Tm < 1700 ? { ...hdPose(c, "guardia", t), mano: [c.manos.guardia[0] + 2, c.manos.guardia[1] - 3] } : celebraDuelo(c, Tm - 1700 + 400);
-    sombra(g, centroX(xp, false), dy); figura(g, c, p, xp, dy, false);
+    const D = APUNTA_PATROCLUS, xp = 2 + dx, sinAguila = Tm >= 500 + D && Tm < 3300 + D, c = sinAguila ? { ...yo.hd, armaDetras: undefined } : yo.hd;
+    /* Primero apunta al rival con el brazo estirado (la orden al águila); después el águila sale volando. */
+    const apunta = Tm >= 250 && Tm < 500 + D + 300;
+    const p = Tm < 250 ? hdPose(c, "guardia", t) : apunta ? { ...hdPose(c, "guardia", t), mano: [c.hombro[0] + 12, c.hombro[1] - 2] }
+      : Tm < 1700 + D ? { ...hdPose(c, "guardia", t), mano: [c.manos.guardia[0] + 2, c.manos.guardia[1] - 3] } : celebraDuelo(c, Tm - 1700 - D + 400);
+    sombra(g, centroX(xp, false), dy); figura(g, apunta ? { ...c, codos: undefined, arma: (px, q) => c.arma(px, { ...q, fase: "guardia", sinBoomerang: false }) } : c, p, xp, dy, false);
     const hombro = [xp + HD_OX + 7, YB + dy + HD_OY + 15], arriba = [cR, YB + dy + HD_OY - 14], agarre = [cR, YB + dy + HD_OY + (rival.hd.bajar || 0) + 3];
-    if (Tm >= 500 && Tm < 1100) { const k = (Tm - 500) / 600; aguilaVuela(g, lerp(hombro[0], arriba[0], k), lerp(hombro[1], arriba[1], k) - Math.sin(Math.PI * k) * 12, t); }
-    else if (Tm >= 1100 && Tm < 1350) { const k = (Tm - 1100) / 250; aguilaVuela(g, arriba[0], lerp(arriba[1], agarre[1], k * k), t); }   // en picada
-    else if (Tm >= 2700 && Tm < 3300) { const k = (Tm - 2700) / 600; aguilaVuela(g, lerp(W + 10, hombro[0], k), lerp(-10, hombro[1], k) - Math.sin(Math.PI * k) * 6, t); }   // vuelve a su hombro
+    if (Tm >= 500 + D && Tm < 1100 + D) { const k = (Tm - 500 - D) / 600; aguilaVuela(g, lerp(hombro[0], arriba[0], k), lerp(hombro[1], arriba[1], k) - Math.sin(Math.PI * k) * 12, t); }
+    else if (Tm >= 1100 + D && Tm < 1350 + D) { const k = (Tm - 1100 - D) / 250; aguilaVuela(g, arriba[0], lerp(arriba[1], agarre[1], k * k), t); }   // en picada
+    else if (Tm >= 2700 + D && Tm < 3300 + D) { const k = (Tm - 2700 - D) / 600; aguilaVuela(g, lerp(W + 10, hombro[0], k), lerp(-10, hombro[1], k) - Math.sin(Math.PI * k) * 6, t); }   // vuelve a su hombro
   } else if (quien === "uchis") {   // se esfuma como ninja y reaparece detrás del rival
     const detras = W - (xb + HD_OX + 30) + 14;   // Uchis mirando a la izquierda, a la espalda del rival
     const xDetras = W - (detras + HD_OX + 30);
