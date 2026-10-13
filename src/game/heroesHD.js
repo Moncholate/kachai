@@ -1660,7 +1660,7 @@ const HEROES_PALETA = [
     { brazo: { ...HD_KENNY34.brazo, luz: "#9A4A56", base: "#7A2E3A", sombra: "#561E28" } }),
    "Chaqueta burdeos para que resalte la capa naranja."],
   ["Tiván (opcional)", HD_TIVAN34, conPaleta(HD_TIVAN34, { O: "#B08A2E", o: "#80621C", P: "#D0AA4A" }),
-   "Abrigo mostaza de alquimista para salir del grupo verde."],
+   "Abrigo de alquimista (en Pear36 pasa a verde azulado)."],
 ];
 
 /* Paletas aprobadas por la profe (2026-10-11): Patroclus, Janet, Uzu, Kenny y Tiván. Xitin se rediseña aparte. */
@@ -2955,11 +2955,11 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
 /* ======================= PALETA PEAR36 (tanda 4: Edith, Uzu, Xitin) =======================
    Mismas reglas que Jelic; colores traducidos con c.mapa (ver hdColor). */
 {
-  /* Edith: piel rosada clara, pelo negro, túnica ciruela, brillo en los ojos. */
+  /* Edith: piel tostada, pelo negro, túnica ciruela, brillo en los ojos. */
   HD_EDITH34.contorno = "#272736";
   HD_EDITH34.mapa = {
-    "#4A3A50": "#43434F", "#2A1C30": "#3E2347", "#0E0812": "#272736", "#1E1A22": "#43434F", "#4A4256": "#606070", "#F0D6C8": "#FFB5B5",
-    "#C9A898": "#FF9166", "#9B2D5A": "#B0305C", "#4E2A6E": "#5A265E", "#E8DFC4": "#FFFFEB", "#341A4C": "#422445", "#B8902A": "#F2A65E",
+    "#4A3A50": "#43434F", "#2A1C30": "#3E2347", "#0E0812": "#272736", "#1E1A22": "#43434F", "#4A4256": "#606070", "#F0D6C8": "#F2A65E",
+    "#C9A898": "#BA6156", "#9B2D5A": "#B0305C", "#4E2A6E": "#5A265E", "#E8DFC4": "#FFFFEB", "#341A4C": "#422445", "#B8902A": "#F2A65E",
     "#6E4A8E": "#80366B", "#5A5A6A": "#606070", "#3A3A48": "#323E4F", "#6E3C96": "#80366B", "#F4EEDC": "#FFFFEB", "#B9AE92": "#C2C2D1",
     "#C9BFA6": "#C2C2D1", "#E9D5FF": "#FFFFEB", "#C4A7FF": "#BD4882", "#FFFFFF": "#FFFFEB", "#C4B5FD": "#BD4882",
   };
@@ -3068,16 +3068,16 @@ Object.assign(HD_EDITH34.pierna, { bota: "#80366B", botaSombra: "#5A265E" });   
     "........KJJJGGGJJJJK", "........KJjJGGGJJJJK", "........KJjJGGGJjJJK", "........KBBBBBYBBBBK",
     "........KJjGGGGGJJJK", "........KJjGGGGGJJJK", "........KjjGGGGGjjJK", "........KKjjjjjjjjjK",
   ];
-  /* Tivan: piel durazno, abrigo mostaza, pelo gris, brillo en los ojos. */
+  /* Tivan: piel durazno, abrigo verde azulado, pelo gris, brillo en los ojos. */
   HD_TIVAN34.contorno = "#272736";
   HD_TIVAN34.mapa = {
-    "#141218": "#272736", "#B08A2E": "#F2A65E", "#80621C": "#BA6156", "#7A5A44": "#8C3F5D", "#5A3A28": "#5E315B", "#3E2618": "#3E2347",
+    "#141218": "#272736", "#B08A2E": "#3D6E70", "#80621C": "#323E4F", "#7A5A44": "#8C3F5D", "#5A3A28": "#5E315B", "#3E2618": "#3E2347",
     "#221A20": "#272736", "#120E12": "#272736", "#C4C8D2": "#C2C2D1", "#868C9C": "#7E7E8F", "#E6E9F0": "#FFFFEB", "#5A3A22": "#8C3F5D",
     "#C9A24B": "#F2A65E", "#9BD8F0": "#4DA6FF", "#C99470": "#FFB570", "#9E6B4B": "#FF9166", "#EEF0F2": "#FFFFEB", "#4ADE80": "#8FDE5D",
     "#4A2E22": "#5E315B", "#7A5232": "#BA6156", "#FFFFFF": "#FFFFEB", "#C2C6CE": "#C2C2D1", "#9A7252": "#BA6156", "#BBF7D0": "#66FFE3",
     "#16A34A": "#3CA370", "#D9E8E0": "#FFFFEB", "#8A5A2A": "#964253", "#86EFAC": "#66FFE3", "#5A5568": "#606070", "#24212B": "#272736",
     "#15131A": "#272736", "#0E0C12": "#272736", "#050406": "#272736", "#2B2833": "#322947", "#F4F4F6": "#FFFFEB", "#1B1920": "#272736",
-    "#E0304A": "#EB564B", "#9B1428": "#964253", "#3E3A4A": "#43434F", "#4A4558": "#43434F", "#D0AA4A": "#FFE478",
+    "#E0304A": "#EB564B", "#9B1428": "#964253", "#3E3A4A": "#43434F", "#4A4558": "#43434F", "#D0AA4A": "#3CA370",
   };
   HD_TIVAN34.pal = { ...HD_TIVAN34.pal, "Á": "#4B5BAB", "É": "#606070", "Í": "#E36956" };
   HD_TIVAN34.cuerpo = [
