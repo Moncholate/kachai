@@ -71,7 +71,7 @@ Rampas de luz a sombra (cada una corre el matiz: la luz tira a amarillo y la som
 
 ## Podio (celular)
 
-Pedestal de metal (oro FFE478/F2A65E, plata FFFFEB/C2C2D1, bronce FFB570/E36956) con la cara de arriba iluminada y una **placa oscura** al frente. Dentro, una **corona de laureles** del metal del puesto (dos ramas en arco, abiertas arriba, cruzadas abajo) y el **número grande** de trazo de 2 px con contorno. El pedestal baja hasta el borde inferior de la escena, así la placa tiene espacio sin subir al personaje (que necesita espacio arriba para celebrar). Es  en heroes.js; se exporta como  para usarlo también en el proyector.
+Pedestal de metal (oro FFE478/F2A65E, plata FFFFEB/C2C2D1, bronce FFB570/E36956) con la cara de arriba iluminada y una **placa oscura** al frente. Dentro, una **corona de laureles** del metal del puesto (dos ramas en arco, abiertas arriba, cruzadas abajo) y el **número grande** de trazo de 2 px con contorno. El pedestal baja hasta el borde inferior de la escena, así la placa tiene espacio sin subir al personaje (que necesita espacio arriba para celebrar). Es `pedestal()` en heroes.js; se exporta como `pedestalPodio` para usarlo también en el proyector.
 
 ## Vista 3/4: dónde va el centro
 
