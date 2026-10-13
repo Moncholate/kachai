@@ -89,7 +89,8 @@ function hdColor(c) {
   };
 }
 function hdDibujar(g, x, y, c, p) {
-  if (c.retoque) { const r = c.retoque(p, c); if (r) { c = { ...r.c, contorno: r.c.contorno || c.contorno, mapa: r.c.mapa || c.mapa }; p = r.p; } }   // retoque que ve la escena (Jelic surfea en el podio)
+  if (c.retoque) { const r = c.retoque(p, c); if (r) { c = { ...r.c, contorno: r.c.contorno || c.contorno, mapa: r.c.mapa || c.mapa }; p = r.p; } }
+  if (p.corrX) x += p.corrX;   // corrimiento horizontal que pide un retoque (Jelic surfeando, centrado en el escalón)   // retoque que ve la escena (Jelic surfea en el podio)
   if (p.voltea) {   // mirando al otro lado (el giro de July): se dibuja en espejo sobre su propio centro
     g.save(); g.translate(2 * (x + HD_OX) + 31, 0); g.scale(-1, 1); hdDibujar(g, x, y, c, { ...p, voltea: false }); g.restore(); return;
   }
@@ -199,13 +200,14 @@ const HD_JELIC = (() => {
 /* Arma de Cupe: espada de caballero (la misma para el ataque, el saludo del podio, el nombramiento y cuando se le cae).
    Hoja de 2 px que brilla, guarda recta dorada y pomo en forma de corona, como la suya. Se dibuja a lo largo de la
    dirección del golpe (u) y su perpendicular, así queda bien en cualquier ángulo. */
-const armaCupe = (px, hx, hy, d) => {
+const armaCupe = (px, hx, hy, d, conMango = false) => {
   const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, pts = [];
   const P = (i, j) => [Math.round(hx + 1 + ux * i - uy * j), Math.round(hy + ux * j + uy * i)];
   const ORO = "#FFE478", ORO2 = "#F2A65E";
   for (let i = 3; i <= 17; i++) { pts.push([...P(i, 0), i >= 16 ? "#FFFFFF" : "#FFFFEB"]); if (i < 16) pts.push([...P(i, 1), "#C2C2D1"]); }   // hoja
   for (let j = -2; j <= 3; j++) pts.push([...P(2, j), j < 1 ? ORO : ORO2]);   // guarda
   pts.push([...P(-2, -1), ORO], [...P(-2, 0), "#EB564B"], [...P(-2, 1), ORO], [...P(-3, -1), ORO], [...P(-3, 1), ORO]);   // pomo de corona
+  if (conMango) for (let i = -1; i <= 1; i++) pts.push([...P(i, 0), i === 0 ? "#5E315B" : "#8C3F5D"], [...P(i, 1), "#5E315B"]);   // mango de cuero (en la mano lo tapa la pata)
   hdContorno(px, pts);
 };
 
@@ -2121,18 +2123,20 @@ HD_JELIC34.brazoGrueso = 3;
 
 /* Jelic en el podio: se sube a su escudo como tabla de surf y se mece sobre ella como si corriera una ola (en los duelos celebra como siempre). */
 {
-  const pal = HD_JELIC.pal, X0 = 5;
+  const pal = HD_JELIC.pal, X0 = 7;   // la tabla centrada bajo el cuerpo de Jelic
   const mod = (a, n) => ((a % n) + n) % n;
   /* El escudo acostado: la base atrás, la punta adelante y la franja roja a lo largo. Se mece entero como una mecedora:
      con inclina > 0 sube la punta y baja la base (y al revés), sin doblarse. */
   const meceTabla = (inclina, x) => -Math.round(inclina * (x - X0 - 8) / 8);   // cuánto sube cada columna respecto del centro
+  const BUHO_TABLA = [["#8C3F5D", "#BA6156", "#BA6156", "#BA6156", "#8C3F5D"], ["#BA6156", "#FFE478", "#BA6156", "#FFE478", "#BA6156"], ["#BA6156", "#BA6156", "#F2A65E", "#BA6156", "#BA6156"]];
   const tablaSurf = (px, cy, inclina) => {
     const pts = [];
     for (let i = 0; i < 17; i++) {
       const w = i < 9 ? 5 : Math.max(0, Math.round(5 * (16 - i) / 8)), v = Math.round(w * 0.4), dy = meceTabla(inclina, X0 + i);
       for (let y = cy - v; y <= cy + v + 1; y++) {
         const canto = y === cy + v + 1, borde = y === cy - v || i === 0;
-        pts.push([X0 + i, y + dy, canto ? pal.m : borde ? pal.L : y === cy && i > 1 && i < 14 ? pal.R : y < cy ? pal.Q : pal.A]);
+        const buho = i >= 4 && i <= 8 && y >= cy - 1 && y <= cy + 1 ? BUHO_TABLA[y - cy + 1][i - 4] : null;   // el búho del escudo, visto en la tabla
+        pts.push([X0 + i, y + dy, canto ? pal.m : borde ? pal.L : buho || (y < cy ? pal.Q : pal.A)]);
       }
     }
     hdContorno(px, pts);
@@ -2147,7 +2151,7 @@ HD_JELIC34.brazoGrueso = 3;
         const baja = (q.bob || 0) + (q.agacha || 0);
         tablaSurf((a, b, col) => px(a - (q.inclina || 0), b - baja, col), cy, mece);   // la tabla se mece sobre el escalón, el extremo que baja lo toca
       } };
-    return { c, p: { ...p, mano: [28, 22 - Math.round(s * 2)], bob, agacha: flexa, inclina: Math.round(s), pies: [[9, 39 + meceTabla(mece, 9)], [18, 39 + meceTabla(mece, 18)]], capa: mod(Math.floor(t / 110), 3), pelo: mod(Math.floor(t / 140), 2) } };
+    return { c, p: { ...p, corrX: -2, mano: [28, 22 - Math.round(s * 2)], bob, agacha: flexa, inclina: Math.round(s), pies: [[9, 39 + meceTabla(mece, 9)], [18, 39 + meceTabla(mece, 18)]], capa: mod(Math.floor(t / 110), 3), pelo: mod(Math.floor(t / 140), 2) } };
   };
 }
 
@@ -2824,16 +2828,16 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
   HD_AGATTITA34.mapa = {
     "#8C7B6A": "#7E7E8F", "#4F4236": "#43434F", "#B5A592": "#C2C2D1", "#F6F0E6": "#FFFFEB", "#D9CDBB": "#C2C2D1", "#2F6B45": "#3CA370",
     "#1E4A2F": "#3D6E70", "#4C8E62": "#8FDE5D", "#9A6A3A": "#BA6156", "#6E4824": "#8C3F5D", "#7A4A2A": "#8C3F5D", "#55331C": "#5E315B",
-    "#B7CAD0": "#C2C2D1", "#62777F": "#7E7E8F", "#D8DEE8": "#C2C2D1", "#86EFAC": "#8FDE5D", "#4ADE80": "#8FDE5D", "#34D399": "#66FFE3",
+    "#B7CAD0": "#C2C2D1", "#62777F": "#7E7E8F", "#D8DEE8": "#C2C2D1", "#86EFAC": "#8FDE5D", "#4ADE80": "#8FDE5D", "#34D399": "#8FDE5D",
     "#E7A9A0": "#C2C2D1", "#E39A86": "#FF9166", "#FFFFFF": "#FFFFEB", "#8FA6AE": "#C2C2D1",
   };
   Object.assign(HD_AGATTITA34.pal = { ...HD_AGATTITA34.pal }, {É: "#606070", Í: "#FFB5B5"});   // Í: rubor (las orejas van en gris)
   HD_AGATTITA34.cuerpo = [
     "..........KK.........KK", ".........KIZK.......KZIK", "........KIIFFK.....KFFIK", "........KIFFFFKKKKKFFFFK",
-    ".......KFFfFFOOOOOOFFFFK", ".......KFFFfFFOMOFFfFFFFK", "......KFFFFFfFFFFFFfFFFFK", "......KFFFFFFFFFFFFFFFFFFK",
+    ".......KFFfFFFOOOOOOFFFK", ".......KFFFfFFFOMMOfFFFFK", "......KFFFFFfFFFFFFfFFFFK", "......KFFFFFFFFFFFFFFFFFFK",
     "......KFFFFFKKFFFFFKKFFFFK", "......KFFFFFKWFFFFFKWFFFFK", ".....KFFFFFFKKFFFFFKKFFFFFK", "...KFfFFFFfFWWWWNNWWWWFfFFfFK",
     "....KFfFFFFFWWWKWWKWWWFFfFFK", "......KFFFFFÍWWWWWWWWÍFFFK", "........KKFFFWWWWWWWWFFKK", "..........KÉÉgggggggKKK",
-    "..........KGGGGGGGGGK", ".........KGGGGGMGGGGgK", ".........KHgGGGGGGGgGK", "..........KKgWWWWWgKK",
+    "..........KGGGGGGGGGK", ".........KGGGGGGMGGGgK", ".........KHgGGGGGGGgGK", "..........KKgWWWWWgKK",
     "............KWWWWWWKK", "............KWWwWWWK", "............KFWWWWFK", "............KBBBBBBK",
     "............KBbBBbBK", "...........KgTTTTTTK", "...........KTTWWWTTK", "...........KKTTTTTKK",
   ];
@@ -3099,22 +3103,29 @@ HD_AGATTITA34.pelo = [
   { 3: ".....Www.w............w.wwW" },
   { 3: "......ww.w............w.ww", 4: ".....W....................W" },
 ];
+/* Cupe desarmado: la espada en el suelo con su mango a la vista. */
+HD_CUPE34.armaSuelta = (px) => armaCupe(px, 0, 0, [0.5, -0.87], true);
+
 /* ======================= XITIN: TÚNICA DE INVOCADORA Y BÁCULO =======================
    Túnica azul con ribete dorado al centro, faja roja, mangas claras y un broche con huella de oso.
    En vez del collar lleva un báculo plateado con una garra de oso dorada que abraza una gema verde.
    Al atacar carga maná en la mano libre, le lanza un rayo a la gema y la gema la transforma en oso. */
+/* El báculo va inclinado hacia adelante (así la gema no le tapa la cara). Devuelve dónde quedó la gema. */
+const BACULO_DIR = [0.42, -0.91];
 const baculoXitin = (px, hx, hy, brilla = false) => {
-  const pts = [];
-  for (let y = hy - 9; y <= hy + 7; y++) pts.push([hx, y, "#C2C2D1"], [hx + 1, y, "#7E7E8F"]);   // vara
-  pts.push([hx - 1, hy + 7, "#F2A65E"], [hx, hy + 7, "#FFE478"], [hx + 1, hy + 7, "#F2A65E"], [hx + 2, hy + 7, "#F2A65E"]);   // regatón
-  pts.push([hx - 1, hy - 10, "#F2A65E"], [hx, hy - 10, "#FFE478"], [hx + 1, hy - 10, "#FFE478"], [hx + 2, hy - 10, "#F2A65E"]);   // base de la garra
-  pts.push([hx - 2, hy - 11, "#FFE478"], [hx - 2, hy - 12, "#F2A65E"], [hx - 1, hy - 14, "#FFE478"]);   // uña izquierda
-  pts.push([hx + 3, hy - 11, "#F2A65E"], [hx + 3, hy - 12, "#BA6156"], [hx + 2, hy - 14, "#F2A65E"]);   // uña derecha
-  pts.push([hx - 1, hy - 11, "#8FDE5D"], [hx, hy - 11, "#3CA370"], [hx + 1, hy - 11, "#3CA370"], [hx + 2, hy - 11, "#3CA370"]);   // gema
-  pts.push([hx - 1, hy - 12, "#CFFF70"], [hx, hy - 12, "#8FDE5D"], [hx + 1, hy - 12, "#8FDE5D"], [hx + 2, hy - 12, "#3CA370"]);
-  pts.push([hx, hy - 13, "#8FDE5D"], [hx + 1, hy - 13, "#3CA370"]);
+  const pts = [], [dx, dy] = BACULO_DIR, en = (i) => [Math.round(hx + dx * i), Math.round(hy + dy * i)];
+  for (let i = -7; i <= 10; i++) { const [x, y] = en(i); pts.push([x, y, "#C2C2D1"], [x + 1, y, "#7E7E8F"]); }   // vara
+  { const [x, y] = en(-8); pts.push([x - 1, y, "#F2A65E"], [x, y, "#FFE478"], [x + 1, y, "#F2A65E"]); }   // regatón
+  const [bx, by] = en(11);   // la garra dorada abraza la gema
+  pts.push([bx - 1, by, "#F2A65E"], [bx, by, "#FFE478"], [bx + 1, by, "#FFE478"], [bx + 2, by, "#F2A65E"]);
+  pts.push([bx - 2, by - 1, "#FFE478"], [bx - 2, by - 2, "#F2A65E"], [bx - 1, by - 4, "#FFE478"]);
+  pts.push([bx + 3, by - 1, "#F2A65E"], [bx + 3, by - 2, "#BA6156"], [bx + 2, by - 4, "#F2A65E"]);
+  pts.push([bx - 1, by - 1, "#8FDE5D"], [bx, by - 1, "#3CA370"], [bx + 1, by - 1, "#3CA370"], [bx + 2, by - 1, "#3CA370"]);
+  pts.push([bx - 1, by - 2, "#CFFF70"], [bx, by - 2, "#8FDE5D"], [bx + 1, by - 2, "#8FDE5D"], [bx + 2, by - 2, "#3CA370"]);
+  pts.push([bx, by - 3, "#8FDE5D"], [bx + 1, by - 3, "#3CA370"]);
   hdContorno(px, pts);
-  px(hx - 1, hy - 12, brilla ? "#FFFFEB" : "#CFFF70");   // destello de la gema
+  px(bx - 1, by - 2, brilla ? "#FFFFEB" : "#CFFF70");   // destello de la gema
+  return [bx, by - 2];
 };
 {
   const X = HD_XITIN_NUEVA2;
@@ -3131,12 +3142,12 @@ const baculoXitin = (px, hx, hy, brilla = false) => {
   X.collar = false;
   X.cargaPrevia = 400;   // empieza a cargar antes: la secuencia completa dura más de un segundo y se entiende   // ya no lleva el collar de oso: la desarman como a todos (se le cae el báculo)
   X.manoEncima = true;
-  const gema = (p) => [p.mano[0], p.mano[1] - 12];
+  X.manos = { ...X.manos, impulso: X.manos.guardia };   // mientras carga, la mano del báculo se queda a su lado (carga con la otra)
   X.arma = (px, p) => {
     const t = p.t || 0, [sx, sy] = X.brazoCerca.hombro, libre = [sx - 1, sy + 8];
-    baculoXitin(px, p.mano[0], p.mano[1], Math.floor(t / 400) % 2 === 1 || p.fase === "impulso");
+    const [gx, gy] = baculoXitin(px, p.mano[0], p.mano[1], Math.floor(t / 400) % 2 === 1 || p.fase === "impulso");
     if (p.fase !== "impulso") return;
-    const k = p.k || 0, [gx, gy] = gema(p);
+    const k = p.k || 0;
     if (k < 0.5) hdCarga(px, libre[0], libre[1], k / 0.5, "#8FDE5D", "#3CA370", t);   // carga maná en la mano libre
     else if (k < 0.78) {   // le lanza un rayo de maná a la gema del báculo
       const avance = (k - 0.5) / 0.28, fx = Math.round(libre[0] + (gx - libre[0]) * avance), fy = Math.round(libre[1] + (gy - libre[1]) * avance);

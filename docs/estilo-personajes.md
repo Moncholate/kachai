@@ -53,9 +53,9 @@ Rampas de luz a sombra (cada una corre el matiz: la luz tira a amarillo y la som
 
 | Personaje | Piel | Detalles de diseño |
 |---|---|---|
-| Jelic | café rojiza (BA6156) | Capa con una sola sombra fija. **Escudo con un búho posado** (café, ojos dorados, pecho blanco). |
-| Agattita | pelaje gris | Interior de las orejas gris claro y rubor rosado. **Pelitos que salen de lado desde dentro del oído** (como la gata real que la inspira): horizontales, nunca hacia arriba ni tapando la punta de la oreja. Sus enredaderas también desarman al rival. |
-| Cupe | blanco | **Espada de caballero**: hoja de 2 px, guarda recta dorada y pomo en forma de corona. Zapatos rojos. |
+| Jelic | café rojiza (BA6156) | Capa con una sola sombra fija. **Escudo con un búho posado** (café, ojos dorados, pecho blanco); la tabla de surf del podio es ese escudo acostado, con una carita de búho, centrada bajo sus pies. |
+| Agattita | pelaje gris | Interior de las orejas gris claro y rubor rosado. Gemas verdes (cintillo de 2 px sobre la nariz y broche al centro del pecho). **Pelitos que salen de lado desde dentro del oído** (como la gata real que la inspira): horizontales, nunca hacia arriba ni tapando la punta de la oreja. Sus enredaderas también desarman al rival. |
+| Cupe | blanco | **Espada de caballero**: hoja de 2 px, guarda recta dorada y pomo en forma de corona; el mango solo se dibuja en la espada suelta (en la mano lo tapa la pata). Zapatos rojos. |
 | Malala | rosada clara | Pelo negro (no ciruela), rubor, medias verde oscuro y zapatos café. |
 | Malía | rosada clara | Blusa durazno, medias blancas y zapatos rojo frutilla. |
 | Latte | durazno | Pantalón azul petróleo y botas café. |
@@ -67,7 +67,15 @@ Rampas de luz a sombra (cada una corre el matiz: la luz tira a amarillo y la som
 | July | durazno | Delantal café morado. |
 | Edith | rosada clara | Túnica ciruela y zapatos ciruela. |
 | Uzu | verde lima | Modo berserk en los rojos de Pear36. |
-| Xitin | rosada clara | **Rediseñada:** túnica azul tipo Kurapika con ribete dorado, faja roja y broche con huella de oso; **báculo plateado** con una garra dorada que sostiene una gema verde. Al atacar carga maná en la mano libre, le lanza un rayo a la gema y se transforma en oso (`cargaPrevia: 400` alarga la secuencia para que se entienda). Ya no lleva collar: la desarman como a todos. |
+| Xitin | rosada clara | **Rediseñada:** túnica azul tipo Kurapika con ribete dorado, faja roja y broche con huella de oso; **báculo plateado inclinado hacia adelante** (así no le tapa la cara; mientras carga, la mano del báculo se queda a su lado) con una garra dorada que sostiene una gema verde. Al atacar carga maná en la mano libre, le lanza un rayo a la gema y se transforma en oso (`cargaPrevia: 400` alarga la secuencia para que se entienda). Ya no lleva collar: la desarman como a todos. |
+
+## Podio (celular)
+
+Pedestal de metal (oro FFE478/F2A65E, plata FFFFEB/C2C2D1, bronce FFB570/E36956) con la cara de arriba iluminada y una **placa oscura** al frente. Dentro, una **corona de laureles** del metal del puesto (dos ramas en arco, abiertas arriba, cruzadas abajo) y el **número grande** de trazo de 2 px con contorno. El pedestal baja hasta el borde inferior de la escena, así la placa tiene espacio sin subir al personaje (que necesita espacio arriba para celebrar). Es  en heroes.js; se exporta como  para usarlo también en el proyector.
+
+## Vista 3/4: dónde va el centro
+
+En tres cuartos la cara y el pecho miran al rival: su centro está corrido hacia ese lado (la nariz marca el centro de la cara). Los adornos centrales (la gema del cintillo de Agattita, broches, emblemas) van alineados con ese centro, no con el centro de la grilla.
 
 ## Ideas descartadas (no volver a proponerlas)
 

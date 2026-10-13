@@ -899,8 +899,50 @@ function escenaGana2(g, t, [a1, a2], [b1, b2]) {
 }
 
 /* ======================= PODIO ======================= */
-const COLOR_PUESTO = [null, ["#FBBF24", "#FDE68A", "#B7791F"], ["#CBD5E1", "#F1F5F9", "#7C8594"], ["#D08A4E", "#F0B98A", "#8A5530"]];
-const DIGITO = { 1: [".#.", "##.", ".#.", ".#.", "###"], 2: ["##.", "..#", ".#.", "#..", "###"], 3: ["##.", "..#", ".#.", "..#", "##."] };
+/* Pedestal con corona de laureles: metal del puesto (oro, plata, bronce en Pear36), placa oscura al frente y,
+   dentro, la corona y el número grande. Llega hasta el borde de abajo, así la placa tiene espacio sin subir al personaje. */
+const METAL_PUESTO = [null, ["#FFE478", "#F2A65E", "#BA6156", "#8C3F5D"], ["#FFFFEB", "#C2C2D1", "#7E7E8F", "#606070"], ["#FFB570", "#E36956", "#964253", "#57294B"]];
+const NUMERO_PUESTO = {   // dígitos gruesos (trazo de 2 px), 7 × 9
+  1: ["..##...", ".###...", "####...", "..##...", "..##...", "..##...", "..##...", "..##...", "######."],
+  2: [".#####.", "##...##", ".....##", "....##.", "...##..", "..##...", ".##....", "##.....", "#######"],
+  3: [".#####.", "##...##", ".....##", ".....##", "..####.", ".....##", ".....##", "##...##", ".#####."],
+};
+const pixel = (g, x, y, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
+/* Corona de laureles: dos ramas en arco, abiertas arriba y cruzadas abajo, con hojas de a pares que se achican hacia la punta. */
+function laureles(g, cx, cy, r, [luz, base, sombra]) {
+  for (const lado of [-1, 1]) {
+    for (let k = 0; k <= 26; k++) { const a = (90 + lado * (12 + k * 5.6)) * Math.PI / 180; pixel(g, cx + Math.cos(a) * r, cy + Math.sin(a) * r, sombra); }   // la rama
+    for (let k = 1; k <= 8; k++) {
+      const a = (90 + lado * (18 + k * 17)) * Math.PI / 180, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      const tx = -Math.sin(a) * lado, ty = Math.cos(a) * lado, largo = k < 6 ? 3 : 2;   // hacia la punta de la rama
+      for (const [o, col] of [[1, luz], [-1, base]]) {   // hoja de afuera (clara) y de adentro
+        const nx = Math.cos(a) * o, ny = Math.sin(a) * o;
+        for (let i = 1; i <= largo; i++) {
+          const hx = x + (nx * 0.8 + tx * 0.7) * i, hy = y + (ny * 0.8 + ty * 0.7) * i;
+          pixel(g, hx, hy, i === largo ? luz : col);
+          if (i < largo) pixel(g, hx + tx * 0.9, hy + ty * 0.9, col);   // hoja de 2 px de grosor
+        }
+      }
+    }
+    pixel(g, cx + lado * 2, cy + r + 1, sombra); pixel(g, cx + lado * 3, cy + r + 2, sombra);   // los tallos que se cruzan abajo
+  }
+}
+/* Dibuja el pedestal del puesto y devuelve la altura donde se para el personaje. */
+function pedestal(g, puesto) {
+  const tope = [0, 52, 55, 58][puesto], alto = 76 - tope, [luz, base, sombra, prof] = METAL_PUESTO[puesto], ancho = 38, bx = W / 2 - 19, by = tope;
+  g.fillStyle = K; g.fillRect(bx - 1, by - 3, ancho + 2, alto + 3);
+  g.fillStyle = luz; g.fillRect(bx + 1, by - 2, ancho - 2, 2);   // cara de arriba
+  g.fillStyle = base; g.fillRect(bx, by, ancho, alto); g.fillStyle = luz; g.fillRect(bx, by, 2, alto);
+  g.fillStyle = sombra; g.fillRect(bx + ancho - 2, by, 2, alto); g.fillStyle = prof; g.fillRect(bx, by + alto - 2, ancho, 2);
+  const px0 = bx + 4, py0 = by + 2, pw = ancho - 8, ph = alto - 4;   // la placa oscura
+  g.fillStyle = prof; g.fillRect(px0 - 1, py0 - 1, pw + 2, ph + 2); g.fillStyle = "#322947"; g.fillRect(px0, py0, pw, ph); g.fillStyle = "#473B78"; g.fillRect(px0, py0, pw, 1);
+  const cx = W / 2, cy = py0 + Math.floor(ph / 2), r = Math.min(9, Math.floor(ph / 2) - 1);
+  laureles(g, cx, cy, r, [luz, base, sombra]);
+  const f = NUMERO_PUESTO[puesto], on = (i, j) => f[j] && f[j][i] === "#", nx = cx - 3, ny = cy - 4;   // el número, con contorno
+  for (let j = -1; j <= 9; j++) for (let i = -1; i <= 7; i++) if (!on(i, j) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => on(i + a, j + b))) pixel(g, nx + i, ny + j, K);
+  for (let j = 0; j < 9; j++) for (let i = 0; i < 7; i++) if (on(i, j)) pixel(g, nx + i, ny + j, j < 2 ? "#FFFFEB" : luz);
+  return by - 2;
+}
 function confeti(g, t) {
   const cols = ["#F472B6", "#FBBF24", "#60A5FA", "#4ADE80", "#F97316", "#FFFFFF"];
   for (let i = 0; i < 26; i++) {
@@ -912,11 +954,7 @@ function confeti(g, t) {
 function escenaPodio(g, t, c, puesto) {
   const Tm = reduce ? 2000 : t;
   fondo(g);
-  const alto = [0, 17, 13, 10][puesto], [col, luz, sombraP] = COLOR_PUESTO[puesto];
-  const bx = W / 2 - 16, by = SUELO + 4 - alto;
-  g.fillStyle = K; g.fillRect(bx - 1, by - 1, 34, alto + 2);
-  g.fillStyle = col; g.fillRect(bx, by, 32, alto); g.fillStyle = luz; g.fillRect(bx, by, 32, 2); g.fillStyle = sombraP; g.fillRect(bx, by + alto - 2, 32, 2);
-  DIGITO[puesto].forEach((fila, y) => [...fila].forEach((k, x) => { if (k === "#") { g.fillStyle = K; g.fillRect(bx + 15 + x, by + Math.floor((alto - 5) / 2) + y, 1, 1); } }));
+  const by = pedestal(g, puesto);
   const x = Math.round(W / 2 - HD_OX - 15), y = by - (HD_OY + 39);
   g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(W / 2 - 7, by - 1, 14, 1);
   const p = { ...hdPose(c.hd, "victoria", Tm), enPodio: true };
@@ -959,7 +997,7 @@ function pintarRetrato(g, c, lado, t = 0) {
 /* Las escenas se pintan con los efectos en Pear36 (los personajes ya traen su paleta; el fondo queda igual). */
 const enPear36 = (escena) => (g, ...resto) => escena(lienzoPear36(g), ...resto)
 const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato].map(enPear36)
-export { T as HEROES, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
+export { T as HEROES, pedestal as pedestalPodio, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
 export const heroOf = (id) => T.find((c) => c.id === id) || null
 /* Para quien todavía no eligió: uno fijo según su id, así no cambia entre pantallas. */
 export function heroFor(id, chosen) {
