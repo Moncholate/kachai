@@ -21,6 +21,7 @@ import {
   streaksOf, suggestTeamCount, teamIdsOf, teamRanking,
 } from '../game/teams.js'
 import confetti from 'canvas-confetti'
+import { heroOf, podioProyector } from '../game/heroes.js'
 import { IDIOMA_POR_DEFECTO, ProveedorIdioma, SelectorIdioma, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
 import { BotonTema, useTema } from '../tema.jsx'
 
@@ -541,7 +542,7 @@ function HostRoom({ store, pin, tema }) {
             closeLabel={t('volverPodio')} onClose={() => setReportOpen(false)} />
         )}
         {state.phase === 'end' && !reportOpen && (
-          <Podium ranking={teamRank ?? ranking} mvp={teamMode ? mvpOf(players, scores) : null} stage={stage}
+          <Podium ranking={teamRank ?? ranking} mvp={teamMode ? mvpOf(players, scores) : null} stage={stage} conPersonajes={!teamMode}
             onAgain={backToLobby} onReport={() => setReportOpen(true)} />
         )}
       </main>
@@ -1447,6 +1448,32 @@ function CountUp({ to, ms = 1200 }) {
   return value
 }
 
+/* El ancho del pedestal en pixel art (el lienzo es de 56 × 76): grande mientras se revela, más chico cuando aparece la lista. */
+const ANCHO_PIXEL = {
+  grande: { 1: 'clamp(11rem, 21vw, 21rem)', 2: 'clamp(9rem, 17vw, 17rem)', 3: 'clamp(9rem, 17vw, 17rem)' },
+  compacto: { 1: 'clamp(6.5rem, 10vw, 10rem)', 2: 'clamp(5.5rem, 8.5vw, 8.5rem)', 3: 'clamp(5.5rem, 8.5vw, 8.5rem)' },
+}
+/* Un puesto del podio en pixel art: el pedestal de laureles y, al revelarse, el personaje que eligió el alumno
+   celebrando a su manera (la celebración parte cuando se revela). Sin personaje, solo el pedestal. */
+function PodioPixel({ place, heroId, visible, ancho }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const g = ref.current.getContext('2d'), hero = visible && heroId ? heroOf(heroId) : null
+    const tmp = document.createElement('canvas'); tmp.width = 112; tmp.height = 76
+    const tg = tmp.getContext('2d'), inicio = performance.now()
+    let id
+    const cuadro = (now) => {
+      tg.clearRect(0, 0, 112, 76)
+      podioProyector(tg, now - inicio, hero, place, !visible)
+      g.clearRect(0, 0, 56, 76); g.drawImage(tmp, 28, 0, 56, 76, 0, 0, 56, 76)
+      id = requestAnimationFrame(cuadro)
+    }
+    id = requestAnimationFrame(cuadro)
+    return () => cancelAnimationFrame(id)
+  }, [place, heroId, visible])
+  return <canvas ref={ref} width={56} height={76} style={{ width: ancho, height: 'auto', imageRendering: 'pixelated', display: 'block', transition: SUAVE }} />
+}
+
 /* El proyector lista hasta el 10.º; del 11.º para abajo, en el Resumen del
    curso. Era hasta el 15.º en letra chica; en grande, los últimos puestos
    quedarían demasiado expuestos frente al curso (9-oct-2026). */
@@ -1463,7 +1490,7 @@ const PODIUM_LIST = 10
    el 3.º, después al 2.º y al final al 1.º, como un foco de escenario. Se
    mide dónde quedó cada bloque y se calcula el ángulo; el giro es una
    transición de CSS. */
-function Podium({ ranking, mvp, stage, onAgain, onReport }) {
+export function Podium({ ranking, mvp, stage, onAgain, onReport, conPersonajes }) {
   const t = useT()
   const shown = { 1: stage.first, 2: stage.second, 3: stage.third }
   const compacto = stage.rest
@@ -1529,7 +1556,13 @@ function Podium({ ranking, mvp, stage, onAgain, onReport }) {
             </div>
           )}
         </div>
-        {/* El bloque: tapa en perspectiva y frente con el número en relieve. */}
+        {/* En modo individual: el pedestal de laureles con el personaje que eligió, celebrando (como en el celular). */}
+        {conPersonajes ? (
+          <div ref={(el) => { bloques.current[place] = el }} className="flex justify-center w-full" aria-hidden="true">
+            <PodioPixel place={place} heroId={p?.hero} visible={!!shown[place] && !!p} ancho={ANCHO_PIXEL[compacto ? 'compacto' : 'grande'][place]} />
+          </div>
+        ) : (
+        /* El bloque: tapa en perspectiva y frente con el número en relieve. */
         <div className="w-full" aria-hidden={waiting ? 'true' : undefined}>
           <div style={{ height: compacto ? '0.9rem' : 'clamp(1rem, 2.6vh, 1.6rem)', background: style.tapa, clipPath: 'polygon(6% 0, 94% 0, 100% 100%, 0 100%)', transition: SUAVE }} />
           <div ref={(el) => { bloques.current[place] = el }} className={`grid place-items-center ${champion && shown[1] ? 'animate-glow' : ''}`}
@@ -1543,6 +1576,7 @@ function Podium({ ranking, mvp, stage, onAgain, onReport }) {
             </span>
           </div>
         </div>
+        )}
       </div>
     )
   }

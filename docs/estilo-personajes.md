@@ -47,6 +47,7 @@ Rampas de luz a sombra (cada una corre el matiz: la luz tira a amarillo y la som
 - **Arma tirada en el suelo:** `armaSuelta` usa la paleta del personaje y, si existe, `HD_POR_ID[id].armaSuelta` (lo usan Uchis y Xitin).
 - **Efectos de las escenas** (humo, chispas, confeti, rayos): `src/game/pear36.js` cambia cada `fillStyle` al color Pear36 más parecido antes de pintar, así que las transparencias se mezclan ya con colores de la paleta. Un color con tinte nunca cae en un gris. `fondo()` marca el lienzo con `CRUDO` para dejar el bosque como está.
 - **Nunca uses dígitos como letras nuevas de paleta:** las escenas agregan las letras 1–5, 8 y 9 (mermelada, etc.). Las letras nuevas usan vocales con tilde (Á, É, Í…).
+- **En los celulares las escenas se repiten completas** (victoria cada 6 s, la de Uzu cada 8,2 s, podio cada 8 s) y parten desde el principio cuando el alumno vuelve a encender la pantalla: quien no estaba mirando entiende igual qué pasó.
 - **Rendimiento:** convertir los colores al pintar hace que una escena tarde unos 2,5 ms por cuadro (antes eran ~1,5 ms). Hay que probar en un celular antiguo cuando se agreguen efectos pesados.
 
 ## Decisiones por personaje
@@ -71,7 +72,9 @@ Rampas de luz a sombra (cada una corre el matiz: la luz tira a amarillo y la som
 
 ## Podio (celular)
 
-Pedestal de metal (oro FFE478/F2A65E, plata FFFFEB/C2C2D1, bronce FFB570/E36956) con la cara de arriba iluminada y una **placa oscura** al frente. Dentro, una **corona de laureles** del metal del puesto (dos ramas en arco, abiertas arriba, cruzadas abajo) y el **número grande** de trazo de 2 px con contorno. El pedestal baja hasta el borde inferior de la escena, así la placa tiene espacio sin subir al personaje (que necesita espacio arriba para celebrar). Es `pedestal()` en heroes.js; se exporta como `pedestalPodio` para usarlo también en el proyector.
+Pedestal de metal (oro FFE478/F2A65E, plata FFFFEB/C2C2D1, bronce FFB570/E36956) con la cara de arriba iluminada y una **placa oscura** al frente. Dentro, una **corona de laureles** del metal del puesto (dos ramas en óvalo, abiertas arriba y cruzadas abajo; la derecha es el espejo exacto de la izquierda) y el **número** de 6 × 8 con trazo de 2 px y contorno, simétrico y centrado con la placa (el centro cae entre dos píxeles: se calcula con el doble del centro, `eje2`). El pedestal baja hasta el borde inferior de la escena, así la placa tiene espacio sin subir al personaje (que necesita espacio arriba para celebrar). Es `pedestal()` en heroes.js; se exporta como `pedestalPodio` para usarlo también en el proyector.
+
+**En el proyector** (modo individual), los 3 primeros aparecen con el personaje que eligieron, celebrando sobre este mismo pedestal (`podioProyector` en heroes.js, `PodioPixel` en Host.jsx). Mientras un puesto no se revela, su pedestal muestra "?". La celebración parte cuando se revela. Del 4.º al 10.º solo van los nombres, para no exponer a nadie. En modo equipos se mantienen los bloques 3D de siempre, y un alumno sin personaje tiene solo el pedestal.
 
 ## Vista 3/4: dónde va el centro
 

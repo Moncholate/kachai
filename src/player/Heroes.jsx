@@ -13,16 +13,18 @@ export const claseDe = (hero, idioma) => (idioma === 'en' ? CLASE_EN[hero.id] : 
 
 const PIXEL = { imageRendering: 'pixelated' }
 
-/* Lienzo animado: llama a dibujar(g, ms desde que apareció) en cada cuadro. */
+/* Lienzo animado: llama a dibujar(g, ms desde que apareció) en cada cuadro. Si el alumno vuelve a encender la
+   pantalla (o vuelve a la pestaña), la escena parte de nuevo desde el principio, para que entienda qué pasó. */
 function Lienzo({ dibujar, ancho = 112, alto = 76, label, className }) {
   const ref = useRef(null)
   useEffect(() => {
     const g = ref.current.getContext('2d')
-    const inicio = performance.now()
-    let id
+    let inicio = performance.now(), id
     const cuadro = (now) => { dibujar(g, now - inicio); id = requestAnimationFrame(cuadro) }
     id = requestAnimationFrame(cuadro)
-    return () => cancelAnimationFrame(id)
+    const alVolver = () => { if (document.visibilityState === 'visible') inicio = performance.now() }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => { cancelAnimationFrame(id); document.removeEventListener('visibilitychange', alVolver) }
   }, [dibujar])
   return <canvas ref={ref} width={ancho} height={alto} aria-label={label} style={PIXEL} className={className} />
 }

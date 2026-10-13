@@ -530,7 +530,7 @@ function mascotasHuyen(g, rival, xb, dy, Tm, t) {
 /* Ganar: un solo ataque y después el ganador celebra. Cada uno vence a su manera. */
 function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
   const largo = yo.id === "uzu" ? 2200 : 0;   // escenas más largas: la repetición empieza más tarde
-  const Tm = reduce ? 3000 + largo : t < 6000 + largo ? t : 3400 + largo + (t % 2600);   // tras la primera vez, solo se repite la celebración
+  const Tm = reduce ? 3000 + largo : t % (6000 + largo);   // se repite completa: quien no estaba mirando ve en la vuelta siguiente qué pasó
   const tA = Math.min(Tm, 1699), golpeado = Tm >= 900;
   const shake = !reduce && Tm >= 900 && Tm < 1050;
   g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g);
@@ -902,33 +902,36 @@ function escenaGana2(g, t, [a1, a2], [b1, b2]) {
 /* Pedestal con corona de laureles: metal del puesto (oro, plata, bronce en Pear36), placa oscura al frente y,
    dentro, la corona y el número grande. Llega hasta el borde de abajo, así la placa tiene espacio sin subir al personaje. */
 const METAL_PUESTO = [null, ["#FFE478", "#F2A65E", "#BA6156", "#8C3F5D"], ["#FFFFEB", "#C2C2D1", "#7E7E8F", "#606070"], ["#FFB570", "#E36956", "#964253", "#57294B"]];
-const NUMERO_PUESTO = {   // dígitos gruesos (trazo de 2 px), 7 × 9
-  1: ["..##...", ".###...", "####...", "..##...", "..##...", "..##...", "..##...", "..##...", "######."],
-  2: [".#####.", "##...##", ".....##", "....##.", "...##..", "..##...", ".##....", "##.....", "#######"],
-  3: [".#####.", "##...##", ".....##", ".....##", "..####.", ".....##", ".....##", "##...##", ".#####."],
+const NUMERO_PUESTO = {   // dígitos gruesos (trazo de 2 px), 6 × 8 y simétricos (el 1 queda al centro)
+  1: ["..##..", ".###..", "..##..", "..##..", "..##..", "..##..", "..##..", ".####."],
+  2: [".####.", "##..##", "....##", "...##.", "..##..", ".##...", "##....", "######"],
+  3: [".####.", "##..##", "....##", "..###.", "....##", "....##", "##..##", ".####."],
 };
+const INCOGNITA = [".####.", "##..##", "....##", "...##.", "..##..", "......", "..##..", "..##.."];   // "?" mientras no se revela el puesto
 const pixel = (g, x, y, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
-/* Corona de laureles: dos ramas en arco, abiertas arriba y cruzadas abajo, con hojas de a pares que se achican hacia la punta. */
-function laureles(g, cx, cy, r, [luz, base, sombra]) {
-  for (const lado of [-1, 1]) {
-    for (let k = 0; k <= 26; k++) { const a = (90 + lado * (12 + k * 5.6)) * Math.PI / 180; pixel(g, cx + Math.cos(a) * r, cy + Math.sin(a) * r, sombra); }   // la rama
-    for (let k = 1; k <= 8; k++) {
-      const a = (90 + lado * (18 + k * 17)) * Math.PI / 180, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-      const tx = -Math.sin(a) * lado, ty = Math.cos(a) * lado, largo = k < 6 ? 3 : 2;   // hacia la punta de la rama
-      for (const [o, col] of [[1, luz], [-1, base]]) {   // hoja de afuera (clara) y de adentro
-        const nx = Math.cos(a) * o, ny = Math.sin(a) * o;
-        for (let i = 1; i <= largo; i++) {
-          const hx = x + (nx * 0.8 + tx * 0.7) * i, hy = y + (ny * 0.8 + ty * 0.7) * i;
-          pixel(g, hx, hy, i === largo ? luz : col);
-          if (i < largo) pixel(g, hx + tx * 0.9, hy + ty * 0.9, col);   // hoja de 2 px de grosor
-        }
+/* Corona de laureles: dos ramas en óvalo (más ancho que alto, para dejarle aire al número), abiertas arriba y
+   cruzadas abajo, con hojas de a pares que se achican hacia la punta. Se dibuja la rama izquierda y la derecha es
+   su espejo exacto respecto de eje2 / 2 (así queda centrada aunque el centro caiga entre dos píxeles). */
+function laureles(g, eje2, cy, rx, ry, [luz, base, sombra]) {
+  const cx = eje2 / 2, par = (x, y, c) => { const xi = Math.round(x), yi = Math.round(y); pixel(g, xi, yi, c); pixel(g, eje2 - xi, yi, c); };
+  for (let k = 0; k <= 26; k++) { const a = (90 + 12 + k * 5.6) * Math.PI / 180; par(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry, sombra); }   // la rama
+  for (let k = 1; k <= 8; k++) {
+    const a = (90 + 18 + k * 17) * Math.PI / 180, x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry;
+    const tx = Math.sin(a), ty = -Math.cos(a), largo = k < 6 ? 3 : 2;   // hacia la punta de la rama
+    for (const [o, col] of [[1, luz], [-1, base]]) {   // hoja de afuera (clara) y de adentro
+      const nx = Math.cos(a) * o, ny = Math.sin(a) * o;
+      const l = o > 0 ? largo : largo - 1;   // las hojas de adentro, más cortas: le dejan aire al número
+      for (let i = 1; i <= l; i++) {
+        const hx = x + (nx * 0.8 + tx * 0.7) * i, hy = y + (ny * 0.8 + ty * 0.7) * i;
+        par(hx, hy, i === l ? luz : col);
+        if (i < l) par(hx + tx * 0.9, hy + ty * 0.9, col);   // hoja de 2 px de grosor
       }
     }
-    pixel(g, cx + lado * 2, cy + r + 1, sombra); pixel(g, cx + lado * 3, cy + r + 2, sombra);   // los tallos que se cruzan abajo
   }
+  par(cx - 2, cy + ry + 1, sombra); par(cx - 3, cy + ry + 2, sombra);   // los tallos que se cruzan abajo
 }
 /* Dibuja el pedestal del puesto y devuelve la altura donde se para el personaje. */
-function pedestal(g, puesto) {
+function pedestal(g, puesto, oculto = false) {
   const tope = [0, 52, 55, 58][puesto], alto = 76 - tope, [luz, base, sombra, prof] = METAL_PUESTO[puesto], ancho = 38, bx = W / 2 - 19, by = tope;
   g.fillStyle = K; g.fillRect(bx - 1, by - 3, ancho + 2, alto + 3);
   g.fillStyle = luz; g.fillRect(bx + 1, by - 2, ancho - 2, 2);   // cara de arriba
@@ -936,11 +939,11 @@ function pedestal(g, puesto) {
   g.fillStyle = sombra; g.fillRect(bx + ancho - 2, by, 2, alto); g.fillStyle = prof; g.fillRect(bx, by + alto - 2, ancho, 2);
   const px0 = bx + 4, py0 = by + 2, pw = ancho - 8, ph = alto - 4;   // la placa oscura
   g.fillStyle = prof; g.fillRect(px0 - 1, py0 - 1, pw + 2, ph + 2); g.fillStyle = "#322947"; g.fillRect(px0, py0, pw, ph); g.fillStyle = "#473B78"; g.fillRect(px0, py0, pw, 1);
-  const cx = W / 2, cy = py0 + Math.floor(ph / 2), r = Math.min(9, Math.floor(ph / 2) - 1);
-  laureles(g, cx, cy, r, [luz, base, sombra]);
-  const f = NUMERO_PUESTO[puesto], on = (i, j) => f[j] && f[j][i] === "#", nx = cx - 3, ny = cy - 4;   // el número, con contorno
-  for (let j = -1; j <= 9; j++) for (let i = -1; i <= 7; i++) if (!on(i, j) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => on(i + a, j + b))) pixel(g, nx + i, ny + j, K);
-  for (let j = 0; j < 9; j++) for (let i = 0; i < 7; i++) if (on(i, j)) pixel(g, nx + i, ny + j, j < 2 ? "#FFFFEB" : luz);
+  const eje2 = 2 * bx + ancho - 1, cy = py0 + Math.floor(ph / 2), ry = Math.min(9, Math.floor(ph / 2) - 1), rx = 11;   // eje2: el doble del centro de la placa
+  laureles(g, eje2, cy, rx, ry, [luz, base, sombra]);
+  const f = oculto ? INCOGNITA : NUMERO_PUESTO[puesto], on = (i, j) => f[j] && f[j][i] === "#", nx = (eje2 - 5) / 2, ny = cy - 4;   // el número (6 de ancho) centrado, con contorno
+  for (let j = -1; j <= 8; j++) for (let i = -1; i <= 6; i++) if (!on(i, j) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => on(i + a, j + b))) pixel(g, nx + i, ny + j, K);
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 6; i++) if (on(i, j)) pixel(g, nx + i, ny + j, j < 2 ? "#FFFFEB" : luz);
   return by - 2;
 }
 function confeti(g, t) {
@@ -952,16 +955,23 @@ function confeti(g, t) {
 }
 /* Quien quedó en el podio: celebra a su manera sobre su escalón y cae confeti. */
 function escenaPodio(g, t, c, puesto) {
-  const Tm = reduce ? 2000 : t;
+  const vuelta = reduce ? t : t % 8000;   // la celebración se repite completa (algunas son una secuencia que termina)
   fondo(g);
-  const by = pedestal(g, puesto);
+  podioSinFondo(g, vuelta, c, puesto);
+  if ((reduce ? 2000 : vuelta) > 400) confeti(g, t);
+}
+/* El pedestal y el personaje celebrando, sin el bosque: el proyector lo pinta sobre su escenario oscuro.
+   Sin personaje (c = null), solo el pedestal; oculto: el puesto todavía no se revela (lleva "?"). */
+function podioSinFondo(g, t, c, puesto, oculto = false) {
+  const Tm = reduce ? 2000 : t;
+  const by = pedestal(g, puesto, oculto);
+  if (!c) return;
   const x = Math.round(W / 2 - HD_OX - 15), y = by - (HD_OY + 39);
   g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(W / 2 - 7, by - 1, 14, 1);
   const p = { ...hdPose(c.hd, "victoria", Tm), enPodio: true };
   if (c.hd.proyectilAtras) c.hd.proyectilAtras(g, x, y, p);   // lo que pasa por detrás del personaje (el águila de Patroclus)
   hdDibujar(g, x, y, c.hd, p);
   if (c.hd.proyectil) c.hd.proyectil(g, x, y, p);
-  if (Tm > 400) confeti(g, t);
 }
 /* Quien no quedó en el podio: aplaude y da saltitos. */
 function escenaAplauso(g, t, c) {
@@ -996,8 +1006,8 @@ function pintarRetrato(g, c, lado, t = 0) {
 
 /* Las escenas se pintan con los efectos en Pear36 (los personajes ya traen su paleta; el fondo queda igual). */
 const enPear36 = (escena) => (g, ...resto) => escena(lienzoPear36(g), ...resto)
-const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato].map(enPear36)
-export { T as HEROES, pedestal as pedestalPodio, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
+const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP, podioSinFondoP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato, podioSinFondo].map(enPear36)
+export { T as HEROES, pedestal as pedestalPodio, podioSinFondoP as podioProyector, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
 export const heroOf = (id) => T.find((c) => c.id === id) || null
 /* Para quien todavía no eligió: uno fijo según su id, así no cambia entre pantallas. */
 export function heroFor(id, chosen) {
