@@ -139,6 +139,7 @@ const ACENTO = {
 const MANCHADA = 'conic-gradient(#FFFFEB 0 40%, #F2A65E 0 70%, #43434F 0 100%)'
 function HeroColors({ hero, colores, onChange }) {
   const t = useT(), en = t.idioma === 'en' ? 1 : 0
+  const [abierto, setAbierto] = useState(false)   // cerrado: ocupaba mucho, y solo lo abre quien quiere personalizar
   const titulo = (m) => m === 'piel' ? (['cupe', 'agattita'].includes(hero.id) ? t('pelaje') : t('piel'))
     : m === 'pelo' ? (hero.id === 'july' ? t('barba') : t('pelo')) : m === 'ropa' ? t('ropa') : ACENTO[hero.id][en]
   const elige = (m, op) => { const c = { ...colores }; if (op) c[m] = op; else delete c[m]; onChange(c); vibrar(15) }
@@ -155,8 +156,12 @@ function HeroColors({ hero, colores, onChange }) {
   }
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3 flex flex-col gap-2 text-left">
-      <div className="flex items-center gap-2">
-        <h4 className="flex-1 font-black text-slate-900">{t('personaliza')}</h4>
+      <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto} className="flex items-center gap-2 font-black text-slate-900 text-left">
+        <span className="flex-1">{t('personaliza')}</span>
+        <span aria-hidden="true" className={`text-slate-500 transition ${abierto ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {abierto && <>
+      <div className="flex items-center gap-2 justify-end">
         <button type="button" onClick={() => { onChange(coloresAlAzar(hero.id)); vibrar(30) }} className="rounded-full border-2 border-violet-300 text-violet-700 font-bold text-sm px-3 py-1">🎲 {t('alAzar')}</button>
         <button type="button" onClick={() => { onChange({}); vibrar(15) }} className="rounded-full border-2 border-slate-300 text-slate-600 font-bold text-sm px-3 py-1">↺ {t('original')}</button>
       </div>
@@ -166,6 +171,7 @@ function HeroColors({ hero, colores, onChange }) {
           <div className="flex flex-wrap gap-1.5">{[null, ...ops.filter((op) => colorMuestra(hero, m, op) !== colorMuestra(hero, m, null))].map((op) => circulo(m, op))}</div>   {/* sin repetir el color original */}
         </div>
       ))}
+      </>}
     </div>
   )
 }
