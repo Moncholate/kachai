@@ -42,6 +42,14 @@ html, body {
   to { filter: drop-shadow(0 0 10px rgba(250, 204, 21, 1)); }
 }
 
+/* Selector de personaje: la cara que se acaba de tocar da un saltito (se ve que el toque funcionó). */
+.kachai-saltito { animation: kachai-saltito 0.35s ease-out; }
+@keyframes kachai-saltito {
+  35% { transform: translateY(-6px) scale(1.08); }
+  70% { transform: translateY(0) scale(0.97); }
+}
+@media (prefers-reduced-motion: reduce) { .kachai-saltito { animation: none; } }
+
 /* ── Modo oscuro ───────────────────────────────────────────────────────────
    `data-theme="dark"` en <html> (ver tema.jsx), como en el resto de la
    suite, y, debajo, la versión oscura de cada

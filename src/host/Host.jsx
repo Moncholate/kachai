@@ -609,6 +609,7 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
           <p className="text-slate-500 break-all text-xs">{joinUrl.replace(/^https?:\/\//, '')}</p>
           <p className="text-slate-500 text-sm mt-1">{t('pinJuego')}</p>
           <p className="text-[2.75rem] leading-none font-black tracking-[.15em] text-slate-900">{pin}</p>
+          <p className="text-sm font-bold text-violet-700 mt-2">{t('eligenEnCelular')}</p>
         </section>
 
         <section className="rounded-3xl bg-white border border-slate-200 p-4">

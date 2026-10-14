@@ -192,13 +192,13 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         <>
           <TeamLobby profile={profile} pid={pid} meta={meta} teams={teams} players={players}
             onPick={(team) => store.update(`${base}/players/${pid}`, { team })} />
-          <HeroPicker value={me.id} onPick={pickHero} />
+          <HeroPicker value={me.id} onPick={pickHero} alAzar={!profile.hero} />
         </>
       )
       : (
         <Message emoji="✅" title={t('estasDentro', profile.name)}>
           {t('miraPantallaEmpieza')}
-          <HeroPicker value={me.id} onPick={pickHero} />
+          <HeroPicker value={me.id} onPick={pickHero} alAzar={!profile.hero} />
         </Message>
       )
     body = lastGame
