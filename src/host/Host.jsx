@@ -23,6 +23,7 @@ import {
 import confetti from 'canvas-confetti'
 import { heroOf, podioProyector } from '../game/heroes.js'
 import { conRacha, nivelRacha } from '../game/racha.js'
+import { personaliza } from '../game/personaliza.js'
 import { IDIOMA_POR_DEFECTO, ProveedorIdioma, SelectorIdioma, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
 import { BotonTema, useTema } from '../tema.jsx'
 
@@ -1039,7 +1040,7 @@ function activityLabel(set) {
 function individualRanking(players, scores) {
   return Object.entries(scores)
     .filter(([id]) => players[id])
-    .map(([id, s]) => ({ id, name: players[id].name, ...(players[id].hero ? { hero: players[id].hero } : {}), ...s }))
+    .map(([id, s]) => ({ id, name: players[id].name, ...(players[id].hero ? { hero: players[id].hero } : {}), ...(players[id].colores ? { colores: players[id].colores } : {}), ...s }))
     .sort((a, b) => b.total - a.total)
 }
 
@@ -1457,10 +1458,10 @@ const ANCHO_PIXEL = {
 }
 /* Un puesto del podio en pixel art: el pedestal de laureles y, al revelarse, el personaje que eligió el alumno
    celebrando a su manera (la celebración parte cuando se revela). Sin personaje, solo el pedestal. */
-function PodioPixel({ place, heroId, streak, visible, ancho }) {
+function PodioPixel({ place, heroId, colores, streak, visible, ancho }) {
   const ref = useRef(null)
   useEffect(() => {
-    const g = ref.current.getContext('2d'), hero = visible && heroId ? conRacha(heroOf(heroId), streak) : null   // con su distintivo de racha
+    const g = ref.current.getContext('2d'), hero = visible && heroId ? conRacha(personaliza(heroOf(heroId), colores), streak) : null   // con sus colores y su distintivo de racha
     const tmp = document.createElement('canvas'); tmp.width = 112; tmp.height = 76
     const tg = tmp.getContext('2d'), inicio = performance.now()
     let id
@@ -1472,7 +1473,7 @@ function PodioPixel({ place, heroId, streak, visible, ancho }) {
     }
     id = requestAnimationFrame(cuadro)
     return () => cancelAnimationFrame(id)
-  }, [place, heroId, nivelRacha(streak), visible])
+  }, [place, heroId, JSON.stringify(colores || {}), nivelRacha(streak), visible])
   return <canvas ref={ref} width={56} height={76} style={{ width: ancho, height: 'auto', imageRendering: 'pixelated', display: 'block', transition: SUAVE }} />
 }
 
@@ -1561,7 +1562,7 @@ export function Podium({ ranking, mvp, stage, onAgain, onReport, conPersonajes }
         {/* En modo individual: el pedestal de laureles con el personaje que eligió, celebrando (como en el celular). */}
         {conPersonajes ? (
           <div ref={(el) => { bloques.current[place] = el }} className="flex justify-center w-full" aria-hidden="true">
-            <PodioPixel place={place} heroId={p?.hero} streak={p?.streak} visible={!!shown[place] && !!p} ancho={ANCHO_PIXEL[compacto ? 'compacto' : 'grande'][place]} />
+            <PodioPixel place={place} heroId={p?.hero} colores={p?.colores} streak={p?.streak} visible={!!shown[place] && !!p} ancho={ANCHO_PIXEL[compacto ? 'compacto' : 'grande'][place]} />
           </div>
         ) : (
         /* El bloque: tapa en perspectiva y frente con el número en relieve. */

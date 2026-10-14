@@ -17,7 +17,7 @@ const conRachaHechos = new Map()   // siempre el mismo objeto por personaje y ni
 export function conRacha(hero, streak) {
   const n = nivelRacha(streak)
   if (!n || !hero) return hero
-  const clave = hero.id + '|' + n
+  const clave = (hero.variante || hero.id) + '|' + n   // con sus colores personalizados (game/personaliza.js)
   if (!conRachaHechos.has(clave)) conRachaHechos.set(clave, { ...hero, hd: { ...hero.hd, racha: n } })
   return conRachaHechos.get(clave)
 }

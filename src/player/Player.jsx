@@ -10,6 +10,7 @@ import { ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, nombreEquipo, trad
 import { useTema } from '../tema.jsx'
 import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
+import { personaliza } from '../game/personaliza.js'
 import { escenarioDe } from '../game/fondos.js'
 import { HeroApplause, HeroBadge, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
 
@@ -26,6 +27,13 @@ const HERO_KEY = 'kachai-heroe'
 const savedHero = {
   get() { try { return localStorage.getItem(HERO_KEY) } catch { return null } },
   set(v) { try { localStorage.setItem(HERO_KEY, v) } catch { /* sin storage */ } },
+}
+/* Y los colores de cada personaje (cada uno tiene sus propias opciones): { idPersonaje: { piel, pelo, ropa, acento } }. */
+const COLORES_KEY = 'kachai-colores'
+const savedColores = {
+  todos() { try { return JSON.parse(localStorage.getItem(COLORES_KEY)) || {} } catch { return {} } },
+  get(id) { const c = id && this.todos()[id]; return c && Object.keys(c).length ? c : null },
+  set(id, c) { try { localStorage.setItem(COLORES_KEY, JSON.stringify({ ...this.todos(), [id]: c })) } catch { /* sin storage */ } },
 }
 const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 
@@ -93,8 +101,8 @@ function JoinForm({ store, initialPin, notice, onJoined, onIdioma }) {
         pid = same[0]
       } else {
         pid = randomId()
-        const hero = savedHero.get()
-        await store.set(`rooms/${p}/players/${pid}`, { name: n, joinedAt: store.stamp(), ...(hero ? { hero } : {}) })
+        const hero = savedHero.get(), colores = savedColores.get(hero)
+        await store.set(`rooms/${p}/players/${pid}`, { name: n, joinedAt: store.stamp(), ...(hero ? { hero } : {}), ...(colores ? { colores } : {}) })
       }
       saved.set(pidKey(p), pid)
       onJoined({ pin: p, pid })
@@ -178,9 +186,10 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   const escenario = escenarioDe(state)   // los duelos se pelean en el escenario de la canción de esta pregunta
   const secretScore = lastQuestion || (state.phase === 'end' && !podiumStage(state.startedAt, now).rest)
 
-  const me = heroFor(pid, profile.hero)
+  const me = personaliza(heroFor(pid, profile.hero), profile.colores)   // con sus colores (game/personaliza.js)
   const enEscena = conRacha(me, score?.streak)   // en duelos, podio y aplauso, con su distintivo de racha (game/racha.js)
-  const pickHero = (id) => { savedHero.set(id); store.update(`${base}/players/${pid}`, { hero: id }) }
+  const pickHero = (id) => { savedHero.set(id); store.update(`${base}/players/${pid}`, { hero: id, colores: savedColores.get(id) }) }   // cada personaje recuerda sus colores
+  const pickColores = (colores) => { savedColores.set(me.id, colores); store.update(`${base}/players/${pid}`, { colores: Object.keys(colores).length ? colores : null }) }
   const stage = state.phase === 'end' ? podiumStage(state.startedAt, now) : null
 
   const myTeam = teamMode && teams[profile.team] ? { id: profile.team, ...teams[profile.team] } : null
@@ -194,13 +203,13 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         <>
           <TeamLobby profile={profile} pid={pid} meta={meta} teams={teams} players={players}
             onPick={(team) => store.update(`${base}/players/${pid}`, { team })} />
-          <HeroPicker value={me.id} onPick={pickHero} alAzar={!profile.hero} />
+          <HeroPicker value={me.id} heroe={me} onPick={pickHero} alAzar={!profile.hero} colores={profile.colores || {}} onColores={pickColores} />
         </>
       )
       : (
         <Message emoji="✅" title={t('estasDentro', profile.name)}>
           {t('miraPantallaEmpieza')}
-          <HeroPicker value={me.id} onPick={pickHero} alAzar={!profile.hero} />
+          <HeroPicker value={me.id} heroe={me} onPick={pickHero} alAzar={!profile.hero} colores={profile.colores || {}} onColores={pickColores} />
         </Message>
       )
     body = lastGame
@@ -368,9 +377,9 @@ function HeroDuelScene({ board, pid, me, escenario }) {
   const passed = overtakes.find((o) => o.who.id === pid)
   const lost = overtakes.find((o) => o.over.id === pid)
   const duel = board?.personal?.[pid]
-  if (passed) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(passed.over.id, passed.over.hero), passed.over.streak)} won escenario={escenario} /></div>
-  if (lost) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(lost.who.id, lost.who.hero), lost.who.streak)} lost escenario={escenario} /></div>
-  if (duel) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(duel.rival, duel.rivalHero), duel.rivalStreak)} escenario={escenario} /></div>
+  if (passed) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(passed.over.id, passed.over.hero), passed.over.colores), passed.over.streak)} won escenario={escenario} /></div>
+  if (lost) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(lost.who.id, lost.who.hero), lost.who.colores), lost.who.streak)} lost escenario={escenario} /></div>
+  if (duel) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(duel.rival, duel.rivalHero), duel.rivalColores), duel.rivalStreak)} escenario={escenario} /></div>
   return null
 }
 
@@ -383,7 +392,7 @@ function HeroTeamDuelScene({ board, team, pid, me, players, scores, round = 0, e
   const duel = board?.personal?.[team]
   const rivalTeam = passed ? passed.over.id : duel ? duel.rivalId : lost ? lost.who.id : null
   if (!rivalTeam) return null
-  const heroDe = (id) => conRacha(heroFor(id, players[id]?.hero), scores[id]?.streak)
+  const heroDe = (id) => conRacha(personaliza(heroFor(id, players[id]?.hero), players[id]?.colores), scores[id]?.streak)
   const mates = membersOf(team, players).filter((id) => id !== pid).sort()
   const rivals = membersOf(rivalTeam, players).sort()
   if (!rivals.length) return null

@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato, pintarRetratoRacha } from '../game/heroes.js'
 import { useT } from '../i18n.jsx'
+import { alAzar as coloresAlAzar, colorMuestra, materialesDe } from '../game/personaliza.js'
 
 const CLASE_EN = {
   latte: 'Trickster', agattita: 'Druid', malala: 'Witch', malia: 'Chef', kenny: 'Bard',
@@ -51,7 +52,7 @@ const espejo = (dibujar) => (g, t) => { g.save(); g.translate(g.canvas.width, 0)
 export function HeroDuel({ me, rival, won, lost, escenario }) {
   const a = [].concat(me), b = [].concat(rival)
   const dos = a.length > 1 && b.length > 1
-  const clave = [...a, ...b].map((h) => h.id + (h.hd.racha || '')).join('|')   // con su nivel de racha (game/racha.js)
+  const clave = [...a, ...b].map((h) => (h.variante || h.id) + (h.hd.racha || '')).join('|')   // con sus colores y su nivel de racha
   const o = { escenario }
   /* Los golpes (ver heroes.js): en el duelo cada uno ataca a los 900 ms de su turno (3,4 s por vuelta);
      al ganar, un solo golpe a los 900 ms (la escena dura 6 s; la de Uzu, 8,2). */
@@ -121,6 +122,54 @@ export function HeroBadge({ hero }) {
   return <canvas ref={ref} width={RETRATO} height={RETRATO} style={PIXEL} aria-hidden="true" className="w-10 h-10 shrink-0 rounded-xl fondo-retrato" />
 }
 
+/* "Personaliza": círculos de color para la piel (o pelaje), el pelo (o barba), la ropa y un acento, con "Al azar" y
+   "Original". El primer círculo de cada fila es el color de siempre. La ficha de arriba muestra el resultado. */
+const NOMBRE_COLOR = {
+  rosada: ['Rosada clara', 'Light pink'], durazno: ['Durazno', 'Peach'], tostada: ['Tostada', 'Tan'], rojiza: ['Café rojiza', 'Reddish brown'], oscura: ['Oscura', 'Dark'],
+  negro: ['Negro', 'Black'], cafeOscuro: ['Café oscuro', 'Dark brown'], cafeClaro: ['Café claro', 'Light brown'], rubio: ['Rubio', 'Blond'], pelirrojo: ['Pelirrojo', 'Red'],
+  blanco: ['Blanco', 'White'], rosado: ['Rosado', 'Pink'], turquesa: ['Turquesa', 'Turquoise'], naranjo: ['Naranjo', 'Orange'], crema: ['Crema', 'Cream'],
+  manchada: ['Manchada', 'Spotted'], cafe: ['Café', 'Brown'], gris: ['Gris', 'Gray'], amarillo: ['Amarillo', 'Yellow'], rojo: ['Rojo', 'Red'], vino: ['Vino', 'Burgundy'],
+  mostaza: ['Mostaza', 'Mustard'], verde: ['Verde', 'Green'], verdeBosque: ['Verde bosque', 'Forest green'], azul: ['Azul', 'Blue'], celeste: ['Celeste', 'Sky blue'], morado: ['Morado', 'Purple'],
+}
+const ACENTO = {
+  jelic: ['Detalles', 'Details'], latte: ['Capa', 'Cape'], malala: ['Blusa', 'Blouse'], malia: ['Blusa', 'Blouse'], kenny: ['Bufanda', 'Scarf'], tivan: ['Pantalón', 'Pants'],
+  patroclus: ['Pañoleta', 'Neckerchief'], uchis: ['Capa', 'Cape'], janet: ['Escamas', 'Scales'], july: ['Pantalón', 'Pants'], edith: ['Bordados', 'Trim'], xitin: ['Faja', 'Sash'],
+  agattita: ['Short', 'Shorts'], cupe: ['Capa', 'Cape'], uzu: ['Pantalón', 'Pants'],
+}
+const MANCHADA = 'conic-gradient(#FFFFEB 0 40%, #F2A65E 0 70%, #43434F 0 100%)'
+function HeroColors({ hero, colores, onChange }) {
+  const t = useT(), en = t.idioma === 'en' ? 1 : 0
+  const titulo = (m) => m === 'piel' ? (['cupe', 'agattita'].includes(hero.id) ? t('pelaje') : t('piel'))
+    : m === 'pelo' ? (hero.id === 'july' ? t('barba') : t('pelo')) : m === 'ropa' ? t('ropa') : ACENTO[hero.id][en]
+  const elige = (m, op) => { const c = { ...colores }; if (op) c[m] = op; else delete c[m]; onChange(c); vibrar(15) }
+  const circulo = (m, op) => {
+    const col = colorMuestra(hero, m, op), activo = (colores[m] || null) === op
+    const nombre = op ? NOMBRE_COLOR[op]?.[en] || op : t('original')
+    return (
+      <button key={op || 'original'} type="button" onClick={() => elige(m, op)} aria-pressed={activo} aria-label={`${titulo(m)}: ${nombre}`} title={nombre}
+        className={`relative w-8 h-8 shrink-0 rounded-full border-2 transition active:scale-90 ${activo ? 'border-amber-400 ring-2 ring-amber-400' : 'border-slate-300'}`}
+        style={{ background: col === 'manchada' ? MANCHADA : col }}>
+        {!op && <span aria-hidden="true" className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-slate-300 text-[9px] font-black grid place-items-center text-slate-600">↺</span>}
+      </button>
+    )
+  }
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 flex flex-col gap-2 text-left">
+      <div className="flex items-center gap-2">
+        <h4 className="flex-1 font-black text-slate-900">{t('personaliza')}</h4>
+        <button type="button" onClick={() => { onChange(coloresAlAzar(hero.id)); vibrar(30) }} className="rounded-full border-2 border-violet-300 text-violet-700 font-bold text-sm px-3 py-1">🎲 {t('alAzar')}</button>
+        <button type="button" onClick={() => { onChange({}); vibrar(15) }} className="rounded-full border-2 border-slate-300 text-slate-600 font-bold text-sm px-3 py-1">↺ {t('original')}</button>
+      </div>
+      {materialesDe(hero.id).map(([m, ops]) => (
+        <div key={m} className="flex items-center gap-2">
+          <span className="w-20 shrink-0 text-sm font-bold text-slate-600">{titulo(m)}</span>
+          <div className="flex flex-wrap gap-1.5">{[null, ...ops.filter((op) => colorMuestra(hero, m, op) !== colorMuestra(hero, m, null))].map((op) => circulo(m, op))}</div>   {/* sin repetir el color original */}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* En el selector van por orden alfabético (HEROES conserva su orden original). */
 const EN_ORDEN = [...HEROES].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 
@@ -128,7 +177,7 @@ const EN_ORDEN = [...HEROES].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es
    Los alumnos no entendían que bastaba con tocar: ya aparecía uno marcado (se reparte al azar) y al tocar solo
    cambiaba un borde. Ahora la instrucción lo dice, la ficha avisa si fue al azar, y al tocar la cara salta,
    lleva un ✓, la ficha dice "¡Listo!" y el celular vibra. alAzar: todavía no eligió (el suyo fue repartido). */
-export function HeroPicker({ value, onPick, alAzar }) {
+export function HeroPicker({ value, heroe, onPick, alAzar, colores = {}, onColores }) {
   const t = useT()
   const [recien, setRecien] = useState(null)   // la cara que tocó en esta pantalla (para el saltito y el "¡Listo!")
   const elegido = HEROES.find((h) => h.id === value)
@@ -142,7 +191,7 @@ export function HeroPicker({ value, onPick, alAzar }) {
       </div>
       {elegido && (
         <div className="flex items-center gap-3 rounded-2xl bg-indigo-950 text-white p-3 text-left">
-          <EnGuardia hero={elegido} />
+          <EnGuardia hero={heroe && heroe.id === value ? heroe : elegido} />
           <div className="min-w-0">
             <b key={aviso} role="status" className={`block ${recien === value ? 'text-emerald-300' : 'text-amber-300'}`}>{aviso}</b>
             <span className="block text-sm text-indigo-200">{claseDe(elegido, t.idioma)}</span>
@@ -150,6 +199,7 @@ export function HeroPicker({ value, onPick, alAzar }) {
           </div>
         </div>
       )}
+      {elegido && onColores && <HeroColors hero={elegido} colores={colores} onChange={onColores} />}
       <div className="grid grid-cols-5 gap-2">
         {EN_ORDEN.map((h) => (
           <button key={h.id} type="button" onClick={() => tocar(h.id)} aria-pressed={h.id === value} aria-label={h.nombre}

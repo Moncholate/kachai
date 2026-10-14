@@ -54,4 +54,12 @@ describe('duelos', () => {
     expect(board.personal.b).toMatchObject({ rivalId: 'a', rivalStreak: 4 })
     expect(board.personal.a).toMatchObject({ rivalId: 'b', rivalStreak: 8 })
   })
+
+  it('lleva los colores elegidos de cada uno, para dibujar al rival con sus colores', () => {
+    const now = [{ ...r('a', 1000, 300), colores: { pelo: 'rubio' } }, { ...r('b', 900, 0) }]
+    const board = buildBoard(now, previousTotals(now), false)
+    expect(board.overtakes[0].who.colores).toEqual({ pelo: 'rubio' })
+    expect(board.overtakes[0].over.colores).toBeUndefined()
+    expect(board.personal.b.rivalColores).toEqual({ pelo: 'rubio' })
+  })
 })

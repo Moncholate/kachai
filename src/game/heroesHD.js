@@ -2536,12 +2536,16 @@ const aguilaVuela = (g, cx, cy, t, izq = false) => {
    de velocidad), se detiene mareado con estrellitas sobre la cabeza y termina riéndose a carcajadas. */
 {
   const GIRA = 1900, MAREO = 3100;
-  const risa = (() => {   // ojos cerrados de risa, boca bien abierta
-    const filas = HD_JULY34.cuerpo.map((f) => [...f]), pon = (y, x, k) => { filas[y][x] = k; };
-    pon(7, 11, "S"); pon(7, 15, "S"); pon(8, 10, "K"); pon(8, 14, "K");
-    pon(11, 11, "K"); pon(11, 12, "9"); pon(11, 13, "9"); pon(11, 14, "K"); pon(12, 12, "K"); pon(12, 13, "K");
-    return filas.map((f) => f.join(""));
-  })();
+  const risas = new WeakMap();
+  const risaDe = (cuerpo) => {   // ojos cerrados de risa, boca bien abierta, sobre el dibujo que tenga (el final, con barba)
+    if (!risas.has(cuerpo)) {
+      const filas = cuerpo.map((f) => [...f]), pon = (y, x, k) => { filas[y][x] = k; };
+      pon(7, 11, "S"); pon(7, 15, "S"); pon(8, 10, "K"); pon(8, 14, "K");
+      pon(11, 11, "K"); pon(11, 12, "9"); pon(11, 13, "9"); pon(11, 14, "K"); pon(12, 12, "K"); pon(12, 13, "K");
+      risas.set(cuerpo, filas.map((f) => f.join("")));
+    }
+    return risas.get(cuerpo);
+  };
   HD_JULY34.retoque = (p, c) => {
     if (!p.enPodio) return null;
     const T = Math.max(0, p.t || 0), base = { ...c, retoque: undefined, manoDinamica: undefined, codoDinamico: undefined, brazoAtras: undefined };
@@ -2555,7 +2559,7 @@ const aguilaVuela = (g, cx, cy, t, izq = false) => {
       return { c: base, p: { ...p, fase: "guardia", mano: c.manos.guardia, voltea: false, bob: 0, agacha: 1, inclina: tambalea } };
     }
     const sacude = Math.floor(T / 90) % 2;   // carcajadas: se sacude entero, con las manos en la panza
-    return { c: { ...base, cuerpo: risa, pal: { ...c.pal, 9: "#9B1428" }, brazoCerca: { ...c.brazoCerca, poses: { guardia: [[5, 7], [0, 5]] } } },
+    return { c: { ...base, cuerpo: risaDe(c.cuerpo), pal: { ...c.pal, 9: "#9B1428" }, brazoCerca: { ...c.brazoCerca, poses: { guardia: [[5, 7], [0, 5]] } } },
       p: { ...p, fase: "guardia", mano: [21, 26], voltea: false, bob: -sacude, agacha: 0, inclina: 0 } };
   };
   const proyJuly = HD_JULY34.proyectil;
@@ -2955,11 +2959,14 @@ HEROES_34.forEach((par) => { if (par[0] === HD_PATROCLUS) par[1].pal = { ...par[
     "#94603A": "#BA6156", "#8E2A20": "#B0305C", "#9A6A3A": "#BA6156", "#5A4A40": "#5E315B", "#3A2A20": "#3E2347", "#6E4824": "#8C3F5D",
     "#5E6673": "#606070", "#9AA3B0": "#C2C2D1", "#D9DEE6": "#C2C2D1", "#9B1428": "#964253", "#C8C8D0": "#C2C2D1", "#E8B830": "#FFE478",
   };
+  /* El brillo de los ojos con letra propia (Ó): con la barba (W) se oscurecía al cambiarle el color. La barba baja
+     por los costados en patillas hasta el mentón: sola en el mentón, de un color oscuro, parecía una mancha. */
+  HD_JULY34.pal = { ...HD_JULY34.pal, "Ó": "#FFFFEB" };
   HD_JULY34.cuerpo = [
     ".........KKKKKK", ".......KKSZZSSsKK", "......KSZZSSSSSSsK", ".....KSZSSSSSSSSSsK",
-    ".....KSSSSSSSSSSSSK", ".....KSSSSSSSSSSSSsK", ".....KSSSSWWWSWWWSSK", "....KSKSSSSWSSSWSSSK",
-    "....KsKSSSSKSSSKSSSK", ".....KSSSSSSSSsSSSSK", ".....KSSSSSWWWWWSSSK", ".....KSSSWWWKKWWWSSK",
-    "......KSSWWWWWWWSSK", ".......KKSWWWWWSKK", "..........KSSSSK", "........KKAASSAaKK",
+    ".....KSSSSSSSSSSSSK", ".....KSSSSSSSSSSSSsK", ".....KSSSSWWWSWWWSSK", "....KSKSSSSÓSSSÓSSSK",
+    "....KsKWSSSKSSSKSSSK", ".....KWWSSSSSSsSSSWK", ".....KWWSSSWWWWWSSWK", ".....KWWWWWWKKWWWWWK",
+    "......KWWWWWWWWWWWK", ".......KKWWWWWWWKK", "..........KSSSSK", "........KKAASSAaKK",
     "......KSSSSaGAAAAGaK", "......KSSSSaAAAAAAaK", "......KsSSSalAAAAAaK", "......KsSSalAAAAAAaK",
     "......KsSaAlAAAaaAaK", "......KsaAAlAAAaAaaK", "......KBBBBBBBGBBBBK", "......KPMMMlAAAAmmaK",
     "......KPahAlAAAAmAmK", "......KPahAlAaaAmAmK", "......KPahAlAAAAAAaK", "......KPaAAlAAAAAAaK",

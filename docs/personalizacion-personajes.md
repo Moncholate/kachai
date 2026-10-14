@@ -2,6 +2,16 @@
 
 Borrador del 14 de octubre de 2026. Nada de esto está implementado todavía.
 
+## Cómo quedó (14 de octubre)
+
+- Código en `src/game/personaliza.js`: rampas de Pear36 y, por personaje, las partes exactas de cada material (letras del dibujo, brazo y pierna). No se cambia un color en todo el personaje (el café de la piel de Jelic también es el de su búho).
+- Materiales: **piel** (5 tonos, con "Oscura") o pelaje, **pelo** (con cejas y barba; 8 colores, con rosado y turquesa), **ropa** (original + 4 por personaje) y **acento** (original + 3).
+- El pelo nunca queda del color de la piel ni repite sus propios tonos (los rulos de Edith).
+- July: el brillo de los ojos tiene letra propia y la barba baja en patillas hasta el mentón.
+- En el celular, bajo la ficha del personaje: "Personaliza tus colores" con círculos, "Al azar" y "Original". Cada personaje recuerda sus colores en el celular. La elección se guarda con el alumno en la sala y viaja en el tablero de duelos, así el rival y el proyector lo dibujan igual.
+- Con racha de 8 el personaje se vuelve todo dorado y no se notan sus colores.
+- Lámina de revisión: `previa-personaliza.html`.
+
 ## Idea base
 
 El alumno elige uno de los 15 personajes y después ajusta **unos pocos colores**. No se dibuja nada nuevo: los colores de cada personaje están separados por letra (`pal` en `heroesHD.js`), así que personalizar es cambiar esas letras por otras rampas de Pear36. Ya lo hicimos una vez: el cambio de piel entre Jelic y Patroclus fue cambiar solo `z`, `S` y `s`.

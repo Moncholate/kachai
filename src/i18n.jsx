@@ -378,6 +378,14 @@ export const TEXTOS = {
   csvEnunciado: { es: 'Enunciado', en: 'Prompt' },
   csvRespuesta: { es: 'Respuesta correcta', en: 'Correct answer' },
   csvResultado: { es: 'Resultado del curso', en: 'Class result' },
+  personaliza: { es: '🎨 Personaliza tus colores', en: '🎨 Customize your colors' },
+  alAzar: { es: 'Al azar', en: 'Random' },
+  original: { es: 'Original', en: 'Original' },
+  piel: { es: 'Piel', en: 'Skin' },
+  pelaje: { es: 'Pelaje', en: 'Fur' },
+  pelo: { es: 'Pelo', en: 'Hair' },
+  barba: { es: 'Barba', en: 'Beard' },
+  ropa: { es: 'Ropa', en: 'Clothes' },
 }
 
 const IdiomaCtx = createContext(IDIOMA_POR_DEFECTO)

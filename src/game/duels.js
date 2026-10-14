@@ -12,8 +12,8 @@ export const MAX_DUELS = 2 // en el proyector, para no llenar la pantalla de VS
 export const BOARD_SIZE = 10 // el proyector muestra el top 10
 
 /* hero: el personaje que eligió (game/heroes.js), para dibujar el duelo en su celular.
-   streak: su racha, para dibujarle el distintivo (game/racha.js). */
-const row = (r) => ({ id: r.id, name: r.name, total: r.total, ...(r.hero ? { hero: r.hero } : {}), ...(r.streak ? { streak: r.streak } : {}) })
+   streak: su racha, para dibujarle el distintivo (game/racha.js). colores: los de su personaje (game/personaliza.js). */
+const row = (r) => ({ id: r.id, name: r.name, total: r.total, ...(r.hero ? { hero: r.hero } : {}), ...(r.streak ? { streak: r.streak } : {}), ...(r.colores ? { colores: r.colores } : {}) })
 
 /* Los duelos más cerrados, sin que un mismo puesto esté en dos, en orden de tabla. */
 /* `reach` = lo que se puede ganar en la próxima pregunta: con el 2X activado,
@@ -49,8 +49,8 @@ export function personalDuels(ranking, reach = DUEL_GAP) {
   ranking.forEach((me, i) => {
     const ahead = ranking[i - 1]
     const behind = ranking[i + 1]
-    if (ahead && ahead.total > 0 && ahead.total - me.total < reach) out[me.id] = { rival: ahead.name, gap: ahead.total - me.total, ahead: true, rivalId: ahead.id, ...(ahead.hero ? { rivalHero: ahead.hero } : {}), ...(ahead.streak ? { rivalStreak: ahead.streak } : {}) }
-    else if (behind && me.total > 0 && me.total - behind.total < reach) out[me.id] = { rival: behind.name, gap: me.total - behind.total, ahead: false, rivalId: behind.id, ...(behind.hero ? { rivalHero: behind.hero } : {}), ...(behind.streak ? { rivalStreak: behind.streak } : {}) }
+    if (ahead && ahead.total > 0 && ahead.total - me.total < reach) out[me.id] = { rival: ahead.name, gap: ahead.total - me.total, ahead: true, rivalId: ahead.id, ...(ahead.hero ? { rivalHero: ahead.hero } : {}), ...(ahead.streak ? { rivalStreak: ahead.streak } : {}), ...(ahead.colores ? { rivalColores: ahead.colores } : {}) }
+    else if (behind && me.total > 0 && me.total - behind.total < reach) out[me.id] = { rival: behind.name, gap: me.total - behind.total, ahead: false, rivalId: behind.id, ...(behind.hero ? { rivalHero: behind.hero } : {}), ...(behind.streak ? { rivalStreak: behind.streak } : {}), ...(behind.colores ? { rivalColores: behind.colores } : {}) }
   })
   return out
 }
