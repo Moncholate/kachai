@@ -33,27 +33,29 @@ const ESCENA = 'w-full rounded-2xl border-4 border-slate-900'
 
 /* Duelo del ranking: chocan; si ganaste (adelantaste a tu rival), lo desarmas.
    lost: te adelantaron, se ve la victoria del rival en espejo (tú sigues a la izquierda).
-   me y rival son un personaje, o dos (modo equipos: dos contra dos). */
+   me y rival son un personaje, o dos (modo equipos: dos contra dos).
+   escenario: el de la canción de esta pregunta (ver game/fondos.js). */
 const espejo = (dibujar) => (g, t) => { g.save(); g.translate(g.canvas.width, 0); g.scale(-1, 1); dibujar(g, t); g.restore() }
-export function HeroDuel({ me, rival, won, lost }) {
+export function HeroDuel({ me, rival, won, lost, escenario }) {
   const a = [].concat(me), b = [].concat(rival)
   const dos = a.length > 1 && b.length > 1
   const clave = [...a, ...b].map((h) => h.id).join('|')
+  const o = { escenario }
   const dibujar = useMemo(() => (dos
-    ? (won ? (g, t) => escenaGana2(g, t, a, b) : lost ? espejo((g, t) => escenaGana2(g, t, b, a)) : (g, t) => escenaDuelo2(g, t, a, b))
-    : (won ? (g, t) => escenaGana(g, t, a[0], b[0]) : lost ? espejo((g, t) => escenaGana(g, t, b[0], a[0])) : (g, t) => escenaDuelo(g, t, a[0], b[0]))), [clave, dos, won, lost])
+    ? (won ? (g, t) => escenaGana2(g, t, a, b, o) : lost ? espejo((g, t) => escenaGana2(g, t, b, a, o)) : (g, t) => escenaDuelo2(g, t, a, b, o))
+    : (won ? (g, t) => escenaGana(g, t, a[0], b[0], o) : lost ? espejo((g, t) => escenaGana(g, t, b[0], a[0], o)) : (g, t) => escenaDuelo(g, t, a[0], b[0], o))), [clave, dos, won, lost, escenario])
   return <Lienzo dibujar={dibujar} label={`${a.map((h) => h.nombre).join(' + ')} vs ${b.map((h) => h.nombre).join(' + ')}`} className={ESCENA} />
 }
 
 /* Podio: salta al salir su nombre, levanta el arma y cae confeti. */
-export function HeroPodium({ me, place }) {
-  const dibujar = useMemo(() => (g, t) => escenaPodio(g, t, me, place), [me, place])
+export function HeroPodium({ me, place, escenario }) {
+  const dibujar = useMemo(() => (g, t) => escenaPodio(g, t, me, place, { escenario }), [me, place, escenario])
   return <Lienzo dibujar={dibujar} label={me.nombre} className={ESCENA} />
 }
 
 /* Quien no quedó en el podio: aplaude. */
-export function HeroApplause({ me }) {
-  const dibujar = useMemo(() => (g, t) => escenaAplauso(g, t, me), [me])
+export function HeroApplause({ me, escenario }) {
+  const dibujar = useMemo(() => (g, t) => escenaAplauso(g, t, me, { escenario }), [me, escenario])
   return <Lienzo dibujar={dibujar} label={me.nombre} className={ESCENA} />
 }
 

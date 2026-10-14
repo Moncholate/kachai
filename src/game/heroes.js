@@ -21,6 +21,7 @@
    ========================================================================== */
 import { HEROES as CLASICOS } from './heroesClasicos.js'
 import { CRUDO, lienzoPear36 } from './pear36.js'
+import { pintarEscenario } from './fondos.js'
 import { HD_POR_ID, HD_BASE_POR_ID, hdColor, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
 
 const K = HDK
@@ -30,67 +31,10 @@ const T = CLASICOS.map(({ id, nombre, clase, desc, frase }) => ({ id, nombre, cl
 
 /* ======================= ESCENARIO ======================= */
 const W = 112, SUELO = 62, YB = SUELO - (HD_OY + 39);
-/* Selva del árbol gigante (inspirada en la portada de Secret of Mana). Se pinta una vez
-   en un lienzo aparte; en cada cuadro solo se copia y se agregan los ibis que vuelan. */
-let FONDO = null;
-function pintarFondo() {
-  const c = document.createElement("canvas"); c.width = W; c.height = 76;
-  const g = c.getContext("2d");
-  let semilla = 7; const rnd = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
-  const p = (x, y, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
-  // fondo de selva, de oscuro a menos oscuro
-  ["#16301C", "#1B3A20", "#204424", "#264E28", "#2C582C"].forEach((col, i) => { g.fillStyle = col; g.fillRect(0, i * 11, W, 11); });
-  // follaje lejano en puntitos
-  for (let i = 0; i < 700; i++) { const x = rnd() * W, y = rnd() * 55; p(x, y, ["#3E6A30", "#5A8A3A", "#7FA84A", "#A8C25A"][Math.floor(rnd() * 4 * (1 - y / 80))]); }
-  // el árbol gigante: tronco cubierto de musgo que se ensancha en raíces
-  for (let y = 0; y < 56; y++) {
-    const ancho = 13 + Math.max(0, y - 28) * 1.5, cx = 56 + Math.sin(y / 7) * 2;
-    for (let x = Math.round(cx - ancho); x <= Math.round(cx + ancho); x++) { const k = (x * 3 + y * 7) % 11; p(x, y, k < 2 ? "#3E6428" : k < 4 ? "#86A848" : "#5E8A3A"); }
-  }
-  for (let i = 0; i < 14; i++) { const x = 45 + rnd() * 22, y0 = rnd() * 20, L = 20 + rnd() * 20; for (let y = y0; y < y0 + L; y++) p(x + Math.sin(y / 5), y, "#3A5E26"); }
-  for (let i = 0; i < 140; i++) { const y = rnd() * 56, a = 13 + Math.max(0, y - 28) * 1.5; p(56 + (rnd() * 2 - 1) * a, y, "#C2D66A"); }
-  // musgo que cuelga desde arriba
-  for (let i = 0; i < 24; i++) { const x = rnd() * W, L = 5 + rnd() * 20; for (let y = 0; y < L; y++) p(x, y, y % 3 ? "#8DB04A" : "#B5CC5E"); }
-  // rosetas turquesa a la izquierda
-  const roseta = (cx, cy, r) => { for (let a = 0; a < 16; a++) { const an = a / 16 * Math.PI * 2; for (let k = 2; k <= r; k++) p(cx + Math.cos(an) * k, cy + Math.sin(an) * k * 0.8, k === r ? "#7AD0B8" : "#3FA08A"); } p(cx, cy, "#2A7A68"); };
-  roseta(14, 20, 6); roseta(23, 30, 5); roseta(8, 34, 5);
-  // palmera en abanico a la derecha
-  for (let a = 0; a < 15; a++) { const an = Math.PI * (1.05 + a / 14 * 0.9); for (let k = 4; k < 30; k++) p(97 + Math.cos(an) * k, 50 + Math.sin(an) * k, k % 4 ? "#4E8A3E" : "#6FAE52"); }
-  for (let y = 46; y < 56; y++) p(97, y, "#3A5E26");
-  // la selva queda un poco más oscura, para que resalten los que pelean
-  g.fillStyle = "rgba(8, 20, 10, .32)"; g.fillRect(0, 0, W, 53);
-  // agua quieta detrás de los que pelean
-  g.fillStyle = "#1E4448"; g.fillRect(0, 53, W, 4);
-  for (let x = 0; x < W; x += 5) p(x + (x % 3), 54, "#3E7478");
-  // suelo de musgo
-  g.fillStyle = "#3E7A34"; g.fillRect(0, 57, W, 19);
-  for (let i = 0; i < 170; i++) p(rnd() * W, 57 + rnd() * 19, rnd() < 0.5 ? "#5FA046" : "#2E5E28");
-  for (let x = 0; x < W; x += 2) { const h = 1 + Math.floor(rnd() * 3); for (let y = 0; y < h; y++) p(x, 57 - y, "#6FB04E"); }
-  // estanque al frente, con flores rosadas
-  g.fillStyle = "#1F3F45"; g.fillRect(0, 70, W, 6);
-  for (let x = 2; x < W; x += 7) p(x + (x % 4), 71, "#3E7478");
-  for (let i = 0; i < 9; i++) { const x = rnd() * W; p(x, 72, "#F28C8C"); p(x + 1, 72, "#4E8A3E"); }
-  // helechos en las esquinas de adelante
-  const helecho = (bx, by, s) => { for (let b = 0; b < 5; b++) { const an = -Math.PI / 2 + s * (b * 0.32 - 0.5); for (let k = 0; k < 13 - b; k++) { const x = bx + Math.cos(an) * k, y = by + Math.sin(an) * k; p(x, y, "#5FAE4A"); if (k % 2) p(x + s, y, "#3E8A3A"); } } };
-  helecho(3, 76, 1); helecho(109, 76, -1);
-  return c;
-}
-function aves(g) {
-  const t = performance.now() / 1000;
-  [0, 1].forEach((i) => {
-    const x = Math.round(((t * 9 + i * 55) % (W + 24)) - 12), y = Math.round(9 + i * 8 + Math.sin(t * 2 + i) * 2), ala = Math.floor(t * 6 + i * 3) % 2;
-    g.fillStyle = "#F06A4A"; g.fillRect(x, y, 4, 1); g.fillRect(x + 4, y - 1, 1, 1);
-    g.fillStyle = "#2A1A1A"; g.fillRect(x + 5, y - 1, 2, 1);
-    g.fillStyle = "#FF9A7A";
-    if (ala) { g.fillRect(x + 1, y - 1, 2, 1); g.fillRect(x, y - 2, 2, 1); } else { g.fillRect(x + 1, y + 1, 2, 1); g.fillRect(x, y + 2, 2, 1); }
-    g.fillStyle = "#F06A4A"; g.fillRect(x - 1, y, 1, 1);
-  });
-}
-function fondo(g) {
-  const antes = g[CRUDO]; g[CRUDO] = true;   // el bosque y sus aves conservan sus colores (no pasan a Pear36)
-  if (!FONDO) FONDO = pintarFondo();
-  g.drawImage(FONDO, 0, 0);
-  aves(g);
+/* El escenario (ver fondos.js): uno por tema musical, pintado en Apollo. No pasa a Pear36. */
+function fondo(g, t, escenario) {
+  const antes = g[CRUDO]; g[CRUDO] = true;   // el escenario conserva sus colores (no pasa a Pear36)
+  pintarEscenario(g, escenario, reduce ? 0 : t);
   g[CRUDO] = antes;
 }
 const sombra = (g, cx, dy = 0) => { g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(cx - 7, SUELO + dy + 1, 14, 2); g.fillRect(cx - 5, SUELO + dy + 3, 10, 1); };
@@ -147,11 +91,11 @@ const poseAtaque = (c, tt, t) => {
 };
 
 /* Duelo: primero ataca uno y después el otro; nadie gana todavía. */
-function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
+function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenario } = {}) {
   const Tm = t % 3400, tA = Tm, tB = Tm - 1500;
   const golpe = (tt) => tt >= 900 && tt < 1050;
   const shake = !reduce && (golpe(tA) || golpe(tB));
-  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g);
+  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g, t, escenario);
   const xa = 2 + dx + paso(yo.hd, tA), xb = 2 + dx + paso(rival.hd, tB);
   sombra(g, centroX(xa, false), dy); sombra(g, centroX(xb, true), dy);
   figura(g, rival.hd, poseAtaque(rival.hd, tB, t + 300), xb, dy, true);
@@ -536,12 +480,12 @@ function mascotasHuyen(g, rival, xb, dy, Tm, t) {
   }
 }
 /* Ganar: un solo ataque y después el ganador celebra. Cada uno vence a su manera. */
-function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
+function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenario } = {}) {
   const largo = yo.id === "uzu" ? 2200 : 0;   // escenas más largas: la repetición empieza más tarde
   const Tm = reduce ? 3000 + largo : t % (6000 + largo);   // se repite completa: quien no estaba mirando ve en la vuelta siguiente qué pasó
   const tA = Math.min(Tm, 1699), golpeado = Tm >= 900;
   const shake = !reduce && Tm >= 900 && Tm < 1050;
-  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g);
+  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g, t, escenario);
   const xb = 2 + dx, xa = 2 + dx + paso(yo.hd, tA);
   const cR = centroX(xb, true), cabezaY = YB + dy + HD_OY;
   const quien = yo.id;
@@ -899,13 +843,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0 } = {}) {
 
 /* Modo equipos: dos contra dos. La pareja de atrás pelea un poco más arriba y desfasada. */
 const ATRAS = -8, ADENTRO = 14
-function escenaDuelo2(g, t, [a1, a2], [b1, b2]) {
-  fondo(g)
+function escenaDuelo2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
+  fondo(g, t, escenario)
   escenaDuelo(g, t + 220, a2, b2, { conFondo: false, dy: ATRAS, dx: ADENTRO })
   escenaDuelo(g, t, a1, b1, { conFondo: false })
 }
-function escenaGana2(g, t, [a1, a2], [b1, b2]) {
-  fondo(g)
+function escenaGana2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
+  fondo(g, t, escenario)
   escenaGana(g, Math.max(0, t - 160), a2, b2, { conFondo: false, dy: ATRAS, dx: ADENTRO })
   escenaGana(g, t, a1, b1, { conFondo: false })
 }
@@ -966,13 +910,13 @@ function confeti(g, t) {
   }
 }
 /* Quien quedó en el podio: celebra a su manera sobre su escalón y cae confeti. */
-function escenaPodio(g, t, c, puesto) {
+function escenaPodio(g, t, c, puesto, { escenario } = {}) {
   const vuelta = reduce ? t : t % 8000;   // la celebración se repite completa (algunas son una secuencia que termina)
-  fondo(g);
+  fondo(g, t, escenario);
   podioSinFondo(g, vuelta, c, puesto);
   if ((reduce ? 2000 : vuelta) > 400) confeti(g, t);
 }
-/* El pedestal y el personaje celebrando, sin el bosque: el proyector lo pinta sobre su escenario oscuro.
+/* El pedestal y el personaje celebrando, sin escenario: el proyector lo pinta sobre su escenario oscuro.
    Sin personaje (c = null), solo el pedestal; oculto: el puesto todavía no se revela (lleva "?"). */
 function podioSinFondo(g, t, c, puesto, oculto = false) {
   const Tm = reduce ? 2000 : t;
@@ -986,9 +930,9 @@ function podioSinFondo(g, t, c, puesto, oculto = false) {
   if (c.hd.proyectil) c.hd.proyectil(g, x, y, p);
 }
 /* Quien no quedó en el podio: aplaude y da saltitos. */
-function escenaAplauso(g, t, c) {
+function escenaAplauso(g, t, c, { escenario } = {}) {
   const Tm = reduce ? 0 : t;
-  fondo(g);
+  fondo(g, t, escenario);
   const junta = Math.floor(Tm / 180) % 2 === 1, salto = Math.floor(Tm / 360) % 4 === 1 ? 2 : 0;
   const hd = c.hd, [sx, sy] = hd.hombro;
   const aplaude = { ...hd, arma: undefined, armaDetras: undefined, proyectil: undefined, forma: undefined, codos: undefined, codoDinamico: undefined, manoDinamica: undefined,

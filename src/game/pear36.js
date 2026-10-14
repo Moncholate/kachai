@@ -1,7 +1,7 @@
 /* Paleta Pear36 (lospec.com/palette-list/pear36) para los efectos de las escenas: humo, chispas, confeti,
    rayos, mermelada... Cada color se cambia por el más parecido de Pear36 antes de pintarlo (así las
    transparencias se mezclan ya con colores de la paleta). Los personajes traen su propia tabla (c.mapa en
-   heroesHD.js); el fondo del bosque no pasa por aquí. */
+   heroesHD.js); los escenarios (fondos.js) no pasan por aquí. */
 const PEAR36 = ['5E315B', '8C3F5D', 'BA6156', 'F2A65E', 'FFE478', 'CFFF70', '8FDE5D', '3CA370', '3D6E70', '323E4F', '322947', '473B78',
   '4B5BAB', '4DA6FF', '66FFE3', 'FFFFEB', 'C2C2D1', '7E7E8F', '606070', '43434F', '272736', '3E2347', '57294B', '964253', 'E36956', 'FFB570',
   'FF9166', 'EB564B', 'B0305C', '73275C', '422445', '5A265E', '80366B', 'BD4882', 'FF6B97', 'FFB5B5']
@@ -52,7 +52,7 @@ export function estiloPear36(v) {
 }
 
 /* El lienzo de una escena con los colores pasados a Pear36 al elegirlos (fillStyle). Se marca una sola vez;
-   con g[CRUDO] = true (el fondo del bosque) los colores quedan como vienen. */
+   con g[CRUDO] = true (los escenarios) los colores quedan como vienen. */
 export const CRUDO = Symbol('crudo')
 const MARCADO = Symbol('pear36')
 const descriptor = (o) => { for (let p = Object.getPrototypeOf(o); p; p = Object.getPrototypeOf(p)) { const d = Object.getOwnPropertyDescriptor(p, 'fillStyle'); if (d) return d } return null }
