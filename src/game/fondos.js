@@ -237,7 +237,6 @@ function pintarBosqueNuevo() {
   }
   arbol(true); arbol(false)
   // copas: racimos de hojas arriba, más tupidos a los lados, con luz desde arriba
-  for (let y = 0; y < 3; y++) for (let x = 46; x < 72; x++) p(x, y, (x + y) % 3 ? AP.az[5] : G[9])
   for (let i = 0; i < 22; i++) {
     const cx = rnd() * W, cy = rnd() * 9 - 1, r = 4 + rnd() * 5
     if (cx > 44 && cx < 72 && rnd() < 0.7) continue
