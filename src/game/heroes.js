@@ -22,7 +22,8 @@
 import { HEROES as CLASICOS } from './heroesClasicos.js'
 import { CRUDO, lienzoPear36 } from './pear36.js'
 import { pintarEscenario } from './fondos.js'
-import { HD_POR_ID, HD_BASE_POR_ID, hdColor, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
+import { oscurece, pintaEfecto, pintaPersonaje } from './racha.js'
+import { HD_POR_ID, HD_BASE_POR_ID, hdColor, notaMusical, hdDibujar, hdPose, HD_OX, HD_OY, HDK, aguilaVuela, conCollarUzu, gataCalico, gataGordita, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, collarOso, COLLAR_OSO } from './heroesHD.js'
 
 const K = HDK
 
@@ -66,8 +67,7 @@ function figura(g, c, p, x, dy, espejo) {
   x = Math.round(x); dy = Math.round(dy);   // en píxeles enteros: a mitad de píxel se ve borroso
   g.save();
   if (espejo) { g.translate(W, 0); g.scale(-1, 1); }
-  hdDibujar(g, x, YB + dy, c, p);
-  if (c.proyectil) c.proyectil(g, x, YB + dy, p);
+  pintaPersonaje(g, c, p, x, YB + dy);   // con su distintivo de racha, si tiene (racha.js)
   g.restore();
 }
 const centroX = (x, espejo) => (espejo ? W - (x + HD_OX + 15) : x + HD_OX + 15);
@@ -95,7 +95,7 @@ function escenaDuelo(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenar
   const Tm = t % 3400, tA = Tm, tB = Tm - 1500;
   const golpe = (tt) => tt >= 900 && tt < 1050;
   const shake = !reduce && (golpe(tA) || golpe(tB));
-  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g, t, escenario);
+  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) { fondo(g, t, escenario); oscurece(g, yo, rival); }
   const xa = 2 + dx + paso(yo.hd, tA), xb = 2 + dx + paso(rival.hd, tB);
   sombra(g, centroX(xa, false), dy); sombra(g, centroX(xb, true), dy);
   figura(g, rival.hd, poseAtaque(rival.hd, tB, t + 300), xb, dy, true);
@@ -149,7 +149,11 @@ function encandilado(c) {
 }
 /* El arma del rival dibujada suelta, centrada en (x, y) y girada en cuartos de vuelta (así el pixel art sigue nítido). */
 const armasSueltas = new Map()
+/* La racha del rival mientras se dibuja su parte de la escena: su arma sigue brillando al volar y en el suelo
+   (si no, con racha de 3 el distintivo desaparecía al desarmarlo). */
+let rachaRival = 0, tRival = 0;
 function armaSuelta(g, id, x, y, cuartos = 0) {
+  if (rachaRival) { const n = rachaRival; rachaRival = 0; try { pintaEfecto(g, n, tRival, (gg) => armaSuelta(gg, id, x, y, cuartos)); } finally { rachaRival = n; } return; }
   const base = HD_BASE_POR_ID[id]; if (!base) return;
   if (!armasSueltas.has(id)) {
     const c = document.createElement("canvas"); c.width = c.height = 56; const cg = c.getContext("2d");
@@ -321,27 +325,29 @@ const pufNinja = (g, cx, cy, k, sombra = false) => {   // sombra: humo oscuro, d
 };
 /* Onda expansiva de July: un bulto de tierra y pasto que corre por el suelo hasta x, con piedritas que saltan,
    y deja grietas detrás desde x0. */
-const ondaSuelo = (g, x0, x, suelo, t, alfa = 1) => {
+/* fuerza (el nivel de racha de July, 0 a 3): el bulto crece y saltan más rocas. */
+const ondaSuelo = (g, x0, x, suelo, t, alfa = 1, fuerza = 0) => {
   g.globalAlpha = alfa;
   for (let gx = Math.round(x0); gx < x - 3; gx += 1) {   // grieta en zigzag
     const yy = suelo + 1 + ((gx * 7) % 3 === 0 ? 1 : 0);
     g.fillStyle = "#2A1A10"; g.fillRect(gx, yy, 1, 1);
     if (gx % 5 === 0) g.fillRect(gx, yy + 1, 1, 1);
   }
-  const alto = 9;
+  const alto = 9 + fuerza * 2;
   for (let i = 0; i < 4; i++) {   // estela de polvo detrás del bulto
     const px = x - 10 - i * 5, r = 3 - i * 0.5; g.globalAlpha = alfa * (0.6 - i * 0.12); g.fillStyle = "#D6CFC0";
     for (let yy = -r; yy <= r; yy++) { const w = Math.sqrt(Math.max(0, r * r - yy * yy)); g.fillRect(Math.round(px - w), Math.round(suelo - 3 + yy - Math.sin(t / 150 + i)), Math.round(2 * w) + 1, 1); }
   }
   g.globalAlpha = alfa;
-  for (let dx = -9; dx <= 4; dx++) {   // el bulto de tierra que avanza, con el pasto encima
-    const h = Math.round(alto * Math.max(0, 1 - Math.abs(dx + 2) / 7)); if (h <= 0) continue;
+  for (let dx = -9 - fuerza; dx <= 4 + fuerza; dx++) {   // el bulto de tierra que avanza, con el pasto encima
+    const h = Math.round(alto * Math.max(0, 1 - Math.abs(dx + 2) / (7 + fuerza))); if (h <= 0) continue;
     g.fillStyle = "#1A1020"; g.fillRect(Math.round(x + dx), suelo - h, 1, 1);
     g.fillStyle = dx % 3 ? "#7A5232" : "#5A3A22"; g.fillRect(Math.round(x + dx), suelo - h + 1, 1, h);
     g.fillStyle = "#5FA046"; g.fillRect(Math.round(x + dx), suelo - h + 1, 1, 1);
   }
-  for (let i = 0; i < 6; i++) {   // rocas que saltan del bulto
-    const k = ((t / 350 + i / 6) % 1), px = Math.round(x - 6 + i * 2 - k * 6 * (i % 2 ? 1 : -0.4)), py = Math.round(suelo - 8 - Math.sin(Math.PI * k) * 10);
+  const rocas = 6 + fuerza * 3;
+  for (let i = 0; i < rocas; i++) {   // rocas que saltan del bulto (más altas con más racha)
+    const k = ((t / 350 + i / rocas) % 1), px = Math.round(x - 6 + (i % 7) * 2 - k * (6 + fuerza * 2) * (i % 2 ? 1 : -0.4)), py = Math.round(suelo - 8 - fuerza - Math.sin(Math.PI * k) * (10 + fuerza * 3));
     g.fillStyle = "#1A1020"; g.fillRect(px - 1, py - 1, 4, 4);
     g.fillStyle = i % 2 ? "#8A6446" : "#A8A29E"; g.fillRect(px, py, 2, 2);
   }
@@ -356,12 +362,21 @@ const nubeTormenta = (g, cx, cy, escala, t) => {
   });
   if (Math.floor(t / 160) % 5 === 0) { g.fillStyle = "#C4B5FD"; g.fillRect(Math.round(cx - 4 * escala), Math.round(cy), 3, 1); }   // relampaguea por dentro
 };
-const rayoEdith = (g, x0, y0, x1, y1, k) => {
+/* fuerza (el nivel de racha de Edith, 0 a 3): le salen ramas y salpica más chispas al caer. El grosor no cambia: engordado
+   se veía tosco (como la flecha de Janet, la racha se nota en el borde de luz de 1 px, ver pintaEfecto). */
+const rayoEdith = (g, x0, y0, x1, y1, k, fuerza = 0) => {
   const pasos = 6, pts = [[x0, y0]];
   for (let i = 1; i < pasos; i++) pts.push([x0 + (x1 - x0) * i / pasos + (i % 2 ? 3 : -3), y0 + (y1 - y0) * i / pasos]);
   pts.push([x1, y1]);
-  [[3, "rgba(124,58,237,.8)"], [1, "#F5F3FF"]].forEach(([gr, col]) => { g.fillStyle = col; for (let i = 1; i < pts.length; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i]; const n = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay))); for (let j = 0; j <= n; j++) g.fillRect(Math.round(ax + (bx - ax) * j / n) - (gr >> 1), Math.round(ay + (by - ay) * j / n) - (gr >> 1), gr, gr); } });
-  for (let i = 0; i < 6; i++) { const a = Math.PI + i * Math.PI / 5, r = 2 + k * 6; g.fillStyle = i % 2 ? "#FFFFFF" : "#C4B5FD"; g.fillRect(Math.round(x1 + Math.cos(a) * r), Math.round(y1 + Math.sin(a) * r * 0.6), 1, 1); }   // chispas en el suelo
+  const linea = (a, b, gr) => { const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]))); for (let j = 0; j <= n; j++) g.fillRect(Math.round(a[0] + (b[0] - a[0]) * j / n) - (gr >> 1), Math.round(a[1] + (b[1] - a[1]) * j / n) - (gr >> 1), gr, gr); };
+  const ramas = fuerza >= 2 ? [[2, -1], [4, 1]].concat(fuerza >= 3 ? [[1, 1], [3, -1]] : []) : [];   // [desde qué quiebre, hacia qué lado]
+  [[3, "rgba(124,58,237,.8)"], [1, "#F5F3FF"]].forEach(([gr, col]) => {
+    g.fillStyle = col;
+    for (let i = 1; i < pts.length; i++) linea(pts[i - 1], pts[i], gr);
+    ramas.forEach(([i, lado]) => { const [ax, ay] = pts[i]; linea([ax, ay], [ax + lado * 7, ay + 6], Math.max(1, gr - 2)); });
+  });
+  const n = 6 + fuerza * 3;
+  for (let i = 0; i < n; i++) { const a = Math.PI + i * Math.PI / (n - 1), r = 2 + k * (6 + fuerza * 2); g.fillStyle = i % 2 ? "#FFFFFF" : "#C4B5FD"; g.fillRect(Math.round(x1 + Math.cos(a) * r), Math.round(y1 + Math.sin(a) * r * 0.6), 1, 1); }   // chispas en el suelo
 };
 /* Dónde está el rival que corre entre los rayos (centro en pantalla) y hacia dónde corre (-1 izquierda, 1 derecha). */
 const TRAMO_EDITH = 650, INICIO_EDITH = 1400;   // el primer rayo cae con calma, cuando la nube ya creció
@@ -485,14 +500,16 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
   const Tm = reduce ? 3000 + largo : t % (6000 + largo);   // se repite completa: quien no estaba mirando ve en la vuelta siguiente qué pasó
   const tA = Math.min(Tm, 1699), golpeado = Tm >= 900;
   const shake = !reduce && Tm >= 900 && Tm < 1050;
-  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) fondo(g, t, escenario);
+  g.save(); g.translate(shake ? (Math.floor(Tm / 40) % 2 ? 1 : -1) : 0, 0); if (conFondo) { fondo(g, t, escenario); oscurece(g, yo, rival); }
   const xb = 2 + dx, xa = 2 + dx + paso(yo.hd, tA);
   const cR = centroX(xb, true), cabezaY = YB + dy + HD_OY;
   const quien = yo.id;
 
   /* --- el rival --- */
   const huyen = golpeado && (rival.id === "malala" || rival.id === "patroclus");   // sus mascotas salen arrancando
-  if (huyen) rival.hd.huyenMascotas = true;
+  if (huyen) HD_POR_ID[rival.id].huyenMascotas = true;   // en el diseño original: es el que leen sus mascotas (rival.hd puede ser una copia con racha)
+  const rachaYo = yo.hd.racha || 0;   // lo que lanza el ganador (flecha, rayo, onda) lleva su racha
+  rachaRival = rival.hd.racha || 0; tRival = t;
   try {
   if (!golpeado) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
   else if (quien === "malala") {   // ¡sapo!
@@ -630,7 +647,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
     }
   } else if (quien === "july") {   // la onda del martillazo llega por el suelo, lo hace saltar y lo deja tambaleando sin arma
     const xIni = 2 + dx + HD_OX + 32, llega = 1350, xOnda = lerp(xIni, cR - 6, (Tm - 950) / (llega - 950));
-    if (Tm >= 950 && Tm < 2000) ondaSuelo(g, xIni, Tm < llega ? xOnda : cR - 6, SUELO + dy, t, Tm < 1600 ? 1 : 1 - (Tm - 1600) / 400);
+    if (Tm >= 950 && Tm < 2000) pintaEfecto(g, rachaYo, t, (gg) => ondaSuelo(gg, xIni, Tm < llega ? xOnda : cR - 6, SUELO + dy, t, Tm < 1600 ? 1 : 1 - (Tm - 1600) / 400, rachaYo));
     if (Tm < llega) { sombra(g, cR, dy); figura(g, rival.hd, hdPose(rival.hd, "guardia", t), xb, dy, true); }
     else {
       const k = Math.min(1, (Tm - llega) / 450), vuelo = Math.round(Math.sin(Math.PI * k) * 9), r = rendido(rival.hd, llevaCollar(rival) ? false : undefined);
@@ -655,7 +672,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
     if (Tm >= 600) {   // la nube aparece y sigue al rival con un poco de atraso, apurándose
       const escala = Math.min(1, (Tm - 600) / 700), nubeY = YB + dy + HD_OY - 10, nx = nubeEdithX(Tm, cR);
       nubeTormenta(g, nx, nubeY, escala, t);
-      if (c.n >= 0 && c.u < 0.3) rayoEdith(g, nx, nubeY + 4, c.rayoX, SUELO + dy, c.u / 0.3);   // cae derecho, a un lado del rival, y le corta el paso
+      if (c.n >= 0 && c.u < 0.3) pintaEfecto(g, rachaYo, t, (gg) => rayoEdith(gg, nx, nubeY + 4, c.rayoX, SUELO + dy, c.u / 0.3, rachaYo), { soloAura: true });   // cae derecho, a un lado del rival, y le corta el paso
     }
   } else if (quien === "uzu") {   // Uzu se pone berserk: el rival huye corriendo fuera de la pantalla y suelta el arma
     const Tu = Tm / LENTO_UZU;   // toda la escena de Uzu va más lenta, para que se aprecie
@@ -679,14 +696,14 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
     else { const r = rendido(rival.hd, xitinR ? false : undefined); sombra(g, cR, dy); figura(g, r, hdPose(r, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, Tm < 1700); }
     const tramo = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, b[0] - a[0], b[1] - a[1]];
     if (Tm >= 900 && Tm < 1050) {   // rebota: polvito en el suelo y sube hacia el arma
-      const [x, y, ux, uy] = tramo(suelo, mano, (Tm - 900) / 150); flechaTramo(g, x, y, ux, uy, 0, LARGO_FLECHA);
+      const [x, y, ux, uy] = tramo(suelo, mano, (Tm - 900) / 150); pintaEfecto(g, rachaYo, t, (gg) => flechaTramo(gg, x, y, ux, uy, 0, LARGO_FLECHA));
       const k = (Tm - 900) / 150; g.fillStyle = `rgba(214,207,192,${1 - k})`; g.fillRect(suelo[0] - 3 - Math.round(k * 3), suelo[1] - 1, 3, 1); g.fillRect(suelo[0] + 2 + Math.round(k * 3), suelo[1] - 1, 3, 1);
     }
     if (Tm >= 1050) {   // con el arma ensartada al medio: la cola detrás, el arma, la punta delante
       const k = Math.min(1, (Tm - 1050) / 350), [x, y, ux, uy] = tramo(mano, clavo, k), L = Math.hypot(ux, uy) || 1, mx = x - ux / L * 6, my = y - uy / L * 6;
-      flechaTramo(g, x, y, ux, uy, 7, LARGO_FLECHA);
+      pintaEfecto(g, rachaYo, t, (gg) => flechaTramo(gg, x, y, ux, uy, 7, LARGO_FLECHA));
       if (xitinR) collarEntero(g, mx, my); else armaSuelta(g, rival.id, mx, my);
-      flechaTramo(g, x, y, ux, uy, 0, 6);
+      pintaEfecto(g, rachaYo, t, (gg) => flechaTramo(gg, x, y, ux, uy, 0, 6));
       if (k >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, clavo[1] - 6, 1, 12); }
     } else if (!enMano) {}
   } else if (quien === "agattita") {   // atrapado por enredaderas y con flor; las enredaderas le arrancan el arma (o el collar de Xitin)
@@ -707,13 +724,13 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
       const ax = lerp(manoX, W - 9, q), ay = lerp(manoY - 6, cabezaY - 6, q);
       if (xitinR) collarEntero(g, ax, ay);   // se lleva el collar colgando de la flecha
       else armaSuelta(g, rival.id, ax, ay);
-      flechaJanet(g, Math.round(ax - 10), Math.round(ay), 18);
+      pintaEfecto(g, rachaYo, t, (gg) => flechaJanet(gg, Math.round(ax - 10), Math.round(ay), 18));
       if (q >= 1) { g.fillStyle = "#3E2A1A"; g.fillRect(W - 1, ay - 8, 1, 16); }
     } else if (!xitinR) armaVuela(g, rival, xb, dy, Tm);
     else collarCae(g, xb, dy, Tm, 900);
   }
 
-  } finally { if (huyen) rival.hd.huyenMascotas = false; }
+  } finally { if (huyen) HD_POR_ID[rival.id].huyenMascotas = false; rachaRival = 0; }
   if (huyen) mascotasHuyen(g, rival, xb, dy, Tm, t);
 
   /* --- el ganador: ataca una vez y después celebra --- */
@@ -743,7 +760,7 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
     }
   } else if (quien === "kenny" && Tm >= 1700) {   // sigue con la serenata: rasguea el laúd y las notas vuelan hacia el rival
     sombra(g, centroX(xa, false), dy); figura(g, yo.hd, hdPose(yo.hd, "guardia", t), xa, dy, false);
-    const nota = (nx, ny, col) => { g.fillStyle = K; g.fillRect(nx - 1, ny - 5, 5, 8); g.fillStyle = col; g.fillRect(nx, ny, 2, 2); g.fillRect(nx + 1, ny - 4, 1, 5); g.fillRect(nx + 2, ny - 4, 1, 1); };
+    const nota = (nx, ny, col) => notaMusical(g, [[nx, ny, 2, 2], [nx + 1, ny - 4, 1, 5], [nx + 2, ny - 4, 1, 1]], col);
     for (let i = 0; i < 3; i++) {
       const k = ((t / 1600 + i / 3) % 1), nx = Math.round(xa + HD_OX + 26 + k * 40), ny = Math.round(YB + dy + HD_OY + 20 - Math.sin(k * Math.PI) * 8 - i * 2);
       if (k < 0.9) nota(nx, ny, ["#FBBF24", "#F472B6", "#7DD3FC"][i]);
@@ -814,12 +831,12 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
     sombra(g, centroX(xj, false), dy); figura(g, c, p, xj, dy, false);
     if (apunta && tensa) {   // la flecha tensada, apuntando en diagonal hacia el suelo
       const ox = xj + HD_OX + 1, oy = YB + dy + HD_OY + 2, cuerda = [ox + 18, oy + 22], punta = [ox + ARCO_ABAJO[0] + 4, oy + ARCO_ABAJO[1] + 3];
-      flechaTramo(g, punta[0], punta[1], punta[0] - cuerda[0], punta[1] - cuerda[1], 0, Math.round(Math.hypot(punta[0] - cuerda[0], punta[1] - cuerda[1])));
+      pintaEfecto(g, rachaYo, t, (gg) => flechaTramo(gg, punta[0], punta[1], punta[0] - cuerda[0], punta[1] - cuerda[1], 0, Math.round(Math.hypot(punta[0] - cuerda[0], punta[1] - cuerda[1]))));
     }
     if (Tm >= 760 && Tm < 900) {   // la flecha baja hacia el suelo, frente al rival (después rebota)
       const [hx, hy] = rival.hd.manos.guardia, manoX = W - (xb + HD_OX + hx), arco = arcoJanet(xj, dy);
       const suelo = [Math.round((arco[0] + manoX) / 2) - 4, SUELO + dy - 1], k = (Tm - 760) / 140;
-      flechaTramo(g, arco[0] + (suelo[0] - arco[0]) * k, arco[1] + (suelo[1] - arco[1]) * k, suelo[0] - arco[0], suelo[1] - arco[1], 0, LARGO_FLECHA);
+      pintaEfecto(g, rachaYo, t, (gg) => flechaTramo(gg, arco[0] + (suelo[0] - arco[0]) * k, arco[1] + (suelo[1] - arco[1]) * k, suelo[0] - arco[0], suelo[1] - arco[1], 0, LARGO_FLECHA));
     }
   } else if (quien === "malia" && Tm < 1700) {   // en vez de lanzar la mermelada, le acerca el cucharón a la boca
     const p = hdPose(yo.hd, "ataque", tA), alza = ["golpe", "choque", "sigue"].includes(p.fase) ? 5 : 0;
@@ -846,12 +863,12 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
    el agua, el muro o los arbustos del fondo. */
 const ATRAS = -8, ADENTRO = 14, ABAJO = 4
 function escenaDuelo2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
-  fondo(g, t, escenario)
+  fondo(g, t, escenario); oscurece(g, a1, a2, b1, b2)
   escenaDuelo(g, t + 220, a2, b2, { conFondo: false, dy: ATRAS + ABAJO, dx: ADENTRO })
   escenaDuelo(g, t, a1, b1, { conFondo: false, dy: ABAJO })
 }
 function escenaGana2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
-  fondo(g, t, escenario)
+  fondo(g, t, escenario); oscurece(g, a1, a2, b1, b2)
   escenaGana(g, Math.max(0, t - 160), a2, b2, { conFondo: false, dy: ATRAS + ABAJO, dx: ADENTRO })
   escenaGana(g, t, a1, b1, { conFondo: false, dy: ABAJO })
 }
@@ -914,7 +931,7 @@ function confeti(g, t) {
 /* Quien quedó en el podio: celebra a su manera sobre su escalón y cae confeti. */
 function escenaPodio(g, t, c, puesto, { escenario } = {}) {
   const vuelta = reduce ? t : t % 8000;   // la celebración se repite completa (algunas son una secuencia que termina)
-  fondo(g, t, escenario);
+  fondo(g, t, escenario); oscurece(g, c);
   podioSinFondo(g, vuelta, c, puesto);
   if ((reduce ? 2000 : vuelta) > 400) confeti(g, t);
 }
@@ -928,13 +945,12 @@ function podioSinFondo(g, t, c, puesto, oculto = false) {
   g.fillStyle = "rgba(10,25,12,.45)"; g.fillRect(W / 2 - 7, by - 1, 14, 1);
   const p = { ...hdPose(c.hd, "victoria", Tm), enPodio: true };
   if (c.hd.proyectilAtras) c.hd.proyectilAtras(g, x, y, p);   // lo que pasa por detrás del personaje (el águila de Patroclus)
-  hdDibujar(g, x, y, c.hd, p);
-  if (c.hd.proyectil) c.hd.proyectil(g, x, y, p);
+  pintaPersonaje(g, c.hd, p, x, y);
 }
 /* Quien no quedó en el podio: aplaude y da saltitos. */
 function escenaAplauso(g, t, c, { escenario } = {}) {
   const Tm = reduce ? 0 : t;
-  fondo(g, t, escenario);
+  fondo(g, t, escenario); oscurece(g, c);
   const junta = Math.floor(Tm / 180) % 2 === 1, salto = Math.floor(Tm / 360) % 4 === 1 ? 2 : 0;
   const hd = c.hd, [sx, sy] = hd.hombro;
   const aplaude = { ...hd, arma: undefined, armaDetras: undefined, proyectil: undefined, forma: undefined, codos: undefined, codoDinamico: undefined, manoDinamica: undefined,
@@ -942,7 +958,7 @@ function escenaAplauso(g, t, c, { escenario } = {}) {
   if (hd.brazoCerca) { const [nx, ny] = hd.brazoCerca.hombro; aplaude.brazoCerca = { ...hd.brazoCerca, poses: {}, encima: false, todas: [[sx - nx + (junta ? 1 : -2), sy - ny + 3], [2, 6]] }; }
   const x = Math.round(W / 2 - HD_OX - 15);
   sombra(g, W / 2);
-  hdDibujar(g, x, YB - salto, aplaude, hdPose(aplaude, "guardia", Tm));
+  pintaPersonaje(g, aplaude, { ...hdPose(aplaude, "guardia", Tm), t: Tm }, x, YB - salto);
   if (junta) { const hx = x + HD_OX + sx + 3, hy = YB - salto + HD_OY + sy; g.fillStyle = "#FFFFFF"; g.fillRect(hx + 3, hy - 3, 1, 2); g.fillRect(hx + 4, hy, 2, 1); g.fillRect(hx + 3, hy + 3, 1, 2); g.fillRect(hx - 1, hy - 4, 1, 2); }
 }
 

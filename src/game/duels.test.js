@@ -46,4 +46,12 @@ describe('duelos', () => {
     expect(buildBoard(ranking, null, true, 1000).finalDuel.gap).toBe(700)
     expect(buildBoard(ranking, null, true, 1000).personal.b).toEqual({ rival: 'A', rivalId: 'a', gap: 700, ahead: true })
   })
+
+  it('lleva la racha de cada uno, para dibujarle el distintivo en el celular del otro', () => {
+    const now = [{ ...r('a', 1000, 300), streak: 4 }, { ...r('b', 900, 0), streak: 8 }]   // antes: b 900, a 700 (en duelo); ahora a adelanta
+    const board = buildBoard(now, previousTotals(now), false)
+    expect(board.overtakes[0]).toMatchObject({ who: { id: 'a', streak: 4 }, over: { id: 'b', streak: 8 } })
+    expect(board.personal.b).toMatchObject({ rivalId: 'a', rivalStreak: 4 })
+    expect(board.personal.a).toMatchObject({ rivalId: 'b', rivalStreak: 8 })
+  })
 })

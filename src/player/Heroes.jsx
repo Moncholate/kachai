@@ -51,7 +51,7 @@ const espejo = (dibujar) => (g, t) => { g.save(); g.translate(g.canvas.width, 0)
 export function HeroDuel({ me, rival, won, lost, escenario }) {
   const a = [].concat(me), b = [].concat(rival)
   const dos = a.length > 1 && b.length > 1
-  const clave = [...a, ...b].map((h) => h.id).join('|')
+  const clave = [...a, ...b].map((h) => h.id + (h.hd.racha || '')).join('|')   // con su nivel de racha (game/racha.js)
   const o = { escenario }
   /* Los golpes (ver heroes.js): en el duelo cada uno ataca a los 900 ms de su turno (3,4 s por vuelta);
      al ganar, un solo golpe a los 900 ms (la escena dura 6 s; la de Uzu, 8,2). */

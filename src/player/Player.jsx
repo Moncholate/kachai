@@ -9,6 +9,7 @@ import { Button, CHOICE_STYLES, Center, ChoiceLetter, Logo, PART_KEYS, Prompt, R
 import { ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
 import { useTema } from '../tema.jsx'
 import { heroFor } from '../game/heroes.js'
+import { conRacha } from '../game/racha.js'
 import { escenarioDe } from '../game/fondos.js'
 import { HeroApplause, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
 
@@ -178,6 +179,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   const secretScore = lastQuestion || (state.phase === 'end' && !podiumStage(state.startedAt, now).rest)
 
   const me = heroFor(pid, profile.hero)
+  const enEscena = conRacha(me, score?.streak)   // en duelos, podio y aplauso, con su distintivo de racha (game/racha.js)
   const pickHero = (id) => { savedHero.set(id); store.update(`${base}/players/${pid}`, { hero: id }) }
   const stage = state.phase === 'end' ? podiumStage(state.startedAt, now) : null
 
@@ -247,7 +249,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   } else if (state.phase === 'leaderboard' && myTeam) {
     body = (
       <Message emoji={myTeam.emoji} title={myTeamPlace ? t('tuEquipoEs', myTeamPlace) : t('ranking')}>
-        <HeroTeamDuelScene board={state.board} team={myTeam.id} pid={pid} me={me} players={players} round={state.qIndex} escenario={escenario} />
+        <HeroTeamDuelScene board={state.board} team={myTeam.id} pid={pid} me={enEscena} players={players} scores={scores} round={state.qIndex} escenario={escenario} />
         {t('puntosEquipo', myTeam.name, teamRank[myTeamPlace - 1]?.total ?? 0)}
         <span className="block mt-1 text-sm">{t('tuPuntaje', score?.total ?? 0)}</span>
         <DuelNote board={state.board} id={myTeam.id} team />
@@ -257,7 +259,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   } else if (state.phase === 'leaderboard') {
     body = (
       <Message emoji="📊" title={score?.rank ? t('vasNumero', score.rank) : t('ranking')}>
-        <HeroDuelScene board={state.board} pid={pid} me={me} escenario={escenario} />
+        <HeroDuelScene board={state.board} pid={pid} me={enEscena} escenario={escenario} />
         {t('puntos', score?.total ?? 0)}
         <DuelNote board={state.board} id={pid} />
         {state.nextDouble && <DoubleBadge text={t('dobleProxima')} />}
@@ -270,21 +272,21 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         <EndTabs review={state.review} history={score?.history}>
           {myTeam
             ? <TeamFinalPosition team={myTeam} place={myTeamPlace} total={teamRank[myTeamPlace - 1]?.total ?? 0}
-                mvp={mvpOf(players, scores)?.id === pid} hero={me} escenario={escenario} />
-            : <FinalPosition score={score} hero={me} escenario={escenario} />}
+                mvp={mvpOf(players, scores)?.id === pid} hero={enEscena} escenario={escenario} />
+            : <FinalPosition score={score} hero={enEscena} escenario={escenario} />}
         </EndTabs>
       )
       : (myTeam ? myTeamPlace : score?.rank) <= 3 && stage[['first', 'second', 'third'][(myTeam ? myTeamPlace : score.rank) - 1]]
         ? (
           <Message title={myTeam ? t('equipoQuedoPuesto', myTeamPlace) : t('quedastePuesto', score.rank)}>
-            <HeroPodium key="podio" me={me} place={myTeam ? myTeamPlace : score.rank} escenario={escenario} />
+            <HeroPodium key="podio" me={enEscena} place={myTeam ? myTeamPlace : score.rank} escenario={escenario} />
             <i className="block mt-3">{me.nombre}: “{me.frase}”</i>
           </Message>
         )
         : stage.third
           ? (
             <Message title={t('aplaudeGanadores')}>
-              <HeroApplause me={me} escenario={escenario} />
+              <HeroApplause me={enEscena} escenario={escenario} />
             </Message>
           )
           : <Message emoji="👀" title={t('miraPantalla')}>{t('revelandoPodio')}</Message>
@@ -365,22 +367,22 @@ function HeroDuelScene({ board, pid, me, escenario }) {
   const passed = overtakes.find((o) => o.who.id === pid)
   const lost = overtakes.find((o) => o.over.id === pid)
   const duel = board?.personal?.[pid]
-  if (passed) return <div className="mb-3"><HeroDuel me={me} rival={heroFor(passed.over.id, passed.over.hero)} won escenario={escenario} /></div>
-  if (lost) return <div className="mb-3"><HeroDuel me={me} rival={heroFor(lost.who.id, lost.who.hero)} lost escenario={escenario} /></div>
-  if (duel) return <div className="mb-3"><HeroDuel me={me} rival={heroFor(duel.rival, duel.rivalHero)} escenario={escenario} /></div>
+  if (passed) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(passed.over.id, passed.over.hero), passed.over.streak)} won escenario={escenario} /></div>
+  if (lost) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(lost.who.id, lost.who.hero), lost.who.streak)} lost escenario={escenario} /></div>
+  if (duel) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(heroFor(duel.rival, duel.rivalHero), duel.rivalStreak)} escenario={escenario} /></div>
   return null
 }
 
 /* Modo equipos: dos contra dos. Siempre apareces tú; tu compañero y la pareja
    rival van rotando entre los integrantes, una vez por pregunta. */
-function HeroTeamDuelScene({ board, team, pid, me, players, round = 0, escenario }) {
+function HeroTeamDuelScene({ board, team, pid, me, players, scores, round = 0, escenario }) {
   const overtakes = board?.overtakes ? Object.values(board.overtakes) : []
   const passed = overtakes.find((o) => o.who.id === team)
   const lost = overtakes.find((o) => o.over.id === team)
   const duel = board?.personal?.[team]
   const rivalTeam = passed ? passed.over.id : duel ? duel.rivalId : lost ? lost.who.id : null
   if (!rivalTeam) return null
-  const heroDe = (id) => heroFor(id, players[id]?.hero)
+  const heroDe = (id) => conRacha(heroFor(id, players[id]?.hero), scores[id]?.streak)
   const mates = membersOf(team, players).filter((id) => id !== pid).sort()
   const rivals = membersOf(rivalTeam, players).sort()
   if (!rivals.length) return null

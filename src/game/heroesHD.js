@@ -25,6 +25,17 @@ function hdContorno(px, pts, color) {
 }
 const hdFilas = (px, filas, pal) => Object.entries(filas).forEach(([f, txt]) => [...txt].forEach((k, c) => { if (k === "K") px(c, +f, HDK); else if (pal[k]) px(c, +f, typeof pal[k] === "function" ? pal[k](c, +f) : pal[k]); }));   // un color puede ser una función (cuadrillé)
 
+/* Nota musical flotante (Kenny): su color con un contorno oscuro de 1 px que sigue su forma, sin caja detrás,
+   para que se lea en cualquier escenario (la amarilla se perdía en el trigo de la pradera). rects: [x, y, ancho, alto]. */
+function notaMusical(g, rects, col) {
+  const pts = new Set();
+  rects.forEach(([x, y, w, h]) => { for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) pts.add((x + i) + "," + (y + j)); });
+  g.fillStyle = HDK;
+  pts.forEach((k) => { const [x, y] = k.split(",").map(Number); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (!pts.has((x + a) + "," + (y + b))) g.fillRect(x + a, y + b, 1, 1); }); });
+  g.fillStyle = col;
+  pts.forEach((k) => { const [x, y] = k.split(",").map(Number); g.fillRect(x, y, 1, 1); });
+}
+
 /* Brazo en dos tramos (hombro → codo → mano). col: { luz, base, sombra, mano, codo } */
 function hdBrazo(px, hombro, mano, col, grueso = 3, codoFijo, codoAfuera) {
   const [sx, sy] = hombro, [hx, hy] = mano;
@@ -495,7 +506,7 @@ const HD_KENNY = (() => {
     proyectil: (g, x, y, p) => {
       if (p.fase !== "golpe" && p.fase !== "choque") return;
       const k = p.fase === "golpe" ? p.k : 1;
-      const nota = (nx, ny, col) => { g.fillStyle = HDK; g.fillRect(nx - 1, ny - 7, 6, 10); g.fillStyle = col; g.fillRect(nx, ny, 3, 2); g.fillRect(nx + 2, ny - 6, 1, 7); g.fillRect(nx + 3, ny - 6, 1, 2); };
+      const nota = (nx, ny, col) => notaMusical(g, [[nx, ny, 3, 2], [nx + 2, ny - 6, 1, 7], [nx + 3, ny - 6, 1, 2]], col);
       nota(Math.round(x + HD_OX + 34 + k * 28), y + HD_OY + 20, "#FBBF24");
       nota(Math.round(x + HD_OX + 26 + k * 28), y + HD_OY + 15, "#F472B6");
     },
@@ -991,7 +1002,7 @@ const HD_XITIN = (() => {
       if (p.fase === "vuelve" && T < 1580) puf(g, cx, cy, 2 - Math.floor((T - 1400) / 60));
       if (p.fase === "choque" || p.fase === "sigue") {
         const n = p.fase === "choque" ? Math.min(3, Math.floor(p.k * 6)) : 3;
-        for (let i = 0; i < n; i++) for (let j = 0; j < 9; j++) { g.fillStyle = j > 6 ? "#FFFFFF" : "#F2EEE0"; g.fillRect(x + 52 + i * 3 + j, y + HD_OY + 14 + j, 1, 1); }
+        for (let i = 0; i < n; i++) for (let j = 0; j < 9; j++) { g.fillStyle = j > 6 ? "#FFFFFF" : "#F2EEE0"; g.fillRect(x + HD_OX + 35 + i * 3 + j, y + HD_OY + 14 + j, 1, 1); }   // justo delante de la garra (la pata llega a x + HD_OX + 34 en el choque)
       }
     },
     choque: [46, 26],
@@ -2289,7 +2300,7 @@ HD_UZU34.cuerpo = HD_UZU34.cuerpo.map((f, i) => (i === 8 ? ".............K..K..K
   HD_KENNY34.proyectil = (g, x, y, p) => {
     if (!p.enPodio) return proyKenny(g, x, y, p);
     const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY, f = Math.floor(T / 130);
-    const nota = (nx, ny, col) => { g.fillStyle = HDK; g.fillRect(nx - 1, ny - 5, 5, 8); g.fillStyle = col; g.fillRect(nx, ny, 2, 2); g.fillRect(nx + 1, ny - 4, 1, 5); g.fillRect(nx + 2, ny - 4, 1, 1); };
+    const nota = (nx, ny, col) => notaMusical(g, [[nx, ny, 2, 2], [nx + 1, ny - 4, 1, 5], [nx + 2, ny - 4, 1, 1]], col);
     for (let i = 0; i < 3; i++) {   // notas disparadas desde el laúd hacia los costados, lejos de su cara
       const k = mod(T / 1100 + i / 3, 1), dir = [-1, 1, -1][i], nx = Math.round(ox + (dir < 0 ? 6 : 26) + dir * k * 14), ny = Math.round(oy + 28 - k * 18 + (p.bob || 0) - i * 3);
       if (k < 0.85) nota(nx, ny, ["#FBBF24", "#F472B6", "#7DD3FC", "#A3E635"][i]);
@@ -2689,7 +2700,8 @@ const aguilaVuela = (g, cx, cy, t, izq = false) => {
 const COLLAR_UZU = { 21: [11, "WtVWtWVtW"], 22: [15, "WV"], 23: [15, "V"] };
 const conCollarUzu = (cuerpo) => cuerpo.map((f, i) => (COLLAR_UZU[i] ? [...f].map((k, x) => { const [x0, txt] = COLLAR_UZU[i]; return x >= x0 && x < x0 + txt.length ? txt[x - x0] : k; }).join("") : f));
 HD_UZU34.cuerpo = conCollarUzu(HD_UZU34.cuerpo.map((f, i) => (i === 26 ? "..........KtTTTTTTtTK" : i === 27 ? "..........KKKKKKKKKKK" : f)));
-/* Xitin en el podio: se transforma (con destellos y corazones) en un osito kawaii de cabeza grande, orejitas rosadas,
+/* Xitin en el podio: igual que al atacar, carga maná en la mano libre, se lo lanza a la gema del báculo y la gema
+   estalla; entonces se transforma (con destellos y corazones) en un osito kawaii de cabeza grande, orejitas rosadas,
    ojos con brillo y un mechón platinado, y celebra dando saltitos y saludando con las patitas. */
 {
   const OSITO = { ...HD_XITIN_NUEVA2, cuerpo: [
@@ -2738,10 +2750,11 @@ HD_UZU34.cuerpo = conCollarUzu(HD_UZU34.cuerpo.map((f, i) => (i === 26 ? "......
     sinPiernas: true, capa: undefined, pelo: undefined, falda: undefined, forma: undefined, arma: undefined, armaDetras: undefined, proyectil: undefined, retoque: undefined, top: 0, bajar: 0,
     brazo: { luz: "#B8865A", base: "#9A6A3E", sombra: "#6E4626", mano: "#EBD2AE", manoLuz: "#F6E4C8" }, brazoGrueso: 3,
     hombro: [22, 30], brazoCerca: { hombro: [8, 30] }, manos: { guardia: [25, 34], sube: [26, 27], alto: [27, 24] }, codos: undefined, codoDinamico: undefined, manoDinamica: undefined };
-  const CAMBIA = 700;
+  const CARGA = 1100, NUBE = 1000, CAMBIA = NUBE + 300;   // la carga (como en el ataque), la nube de destellos y el cambio a osito
   HD_XITIN_NUEVA2.retoque = (p, c) => {
     if (!p.enPodio) return null;
     const T = Math.max(0, p.t || 0);
+    if (T < CARGA && T < CAMBIA) return { c, p: { ...p, fase: "impulso", k: T / CARGA, mano: c.manos.impulso || c.manos.guardia, bob: 0, agacha: 0 } };   // la secuencia del arma de Xitin (k de 0 a 1)
     if (T < CAMBIA) return null;
     const saluda = Math.floor(T / 260) % 2, fase = saluda ? "alto" : "sube";
     return { c: { ...OSITO, brazoCerca: { hombro: [8, 30], poses: { sube: [[-4, -3], [-3, 0]], alto: [[-5, -6], [-4, -2]] } } }, p: { ...p, fase, mano: OSITO.manos[fase], bob: saluda ? -2 : 0, agacha: 0, inclina: 0 } };
@@ -2751,9 +2764,9 @@ HD_UZU34.cuerpo = conCollarUzu(HD_UZU34.cuerpo.map((f, i) => (i === 26 ? "......
   HD_XITIN_NUEVA2.proyectil = (g, x, y, p) => {
     if (!p.enPodio) return proyX && proyX(g, x, y, p);
     const T = Math.max(0, p.t || 0), ox = x + HD_OX, oy = y + HD_OY;
-    if (T < 450) return proyX && proyX(g, x, y, p);
-    if (T < 1050) {   // la transformación: una nube de destellos y corazones rosados
-      const k = (T - 450) / 600, r = 4 + Math.sin(Math.PI * k) * 14;
+    if (T < NUBE) return;   // todavía carga el maná (lo dibuja su arma)
+    if (T < NUBE + 600) {   // la transformación: una nube de destellos y corazones rosados
+      const k = (T - NUBE) / 600, r = 4 + Math.sin(Math.PI * k) * 14;
       g.globalAlpha = Math.sin(Math.PI * k) * 0.85; g.fillStyle = "#FBCFE8";
       for (let yy = -r; yy <= r; yy++) { const w = Math.sqrt(Math.max(0, r * r - yy * yy)); g.fillRect(Math.round(ox + 15 - w), Math.round(oy + 22 + yy), Math.round(2 * w) + 1, 1); }
       g.globalAlpha = 1;
@@ -3272,4 +3285,4 @@ const baculoXitin = (px, hx, hy, brilla = false) => {
 }
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
-export { HDK, hdColor, armaCupe, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
+export { HDK, hdColor, notaMusical, armaCupe, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
