@@ -841,17 +841,19 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
   g.restore();
 }
 
-/* Modo equipos: dos contra dos. La pareja de atrás pelea un poco más arriba y desfasada. */
-const ATRAS = -8, ADENTRO = 14
+/* Modo equipos: dos contra dos. La pareja de atrás pelea un poco más arriba y desfasada. Las dos parejas bajan
+   ABAJO px: así la de atrás pisa el suelo de todos los escenarios (empieza en y = 57) y no queda flotando sobre
+   el agua, el muro o los arbustos del fondo. */
+const ATRAS = -8, ADENTRO = 14, ABAJO = 4
 function escenaDuelo2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
   fondo(g, t, escenario)
-  escenaDuelo(g, t + 220, a2, b2, { conFondo: false, dy: ATRAS, dx: ADENTRO })
-  escenaDuelo(g, t, a1, b1, { conFondo: false })
+  escenaDuelo(g, t + 220, a2, b2, { conFondo: false, dy: ATRAS + ABAJO, dx: ADENTRO })
+  escenaDuelo(g, t, a1, b1, { conFondo: false, dy: ABAJO })
 }
 function escenaGana2(g, t, [a1, a2], [b1, b2], { escenario } = {}) {
   fondo(g, t, escenario)
-  escenaGana(g, Math.max(0, t - 160), a2, b2, { conFondo: false, dy: ATRAS, dx: ADENTRO })
-  escenaGana(g, t, a1, b1, { conFondo: false })
+  escenaGana(g, Math.max(0, t - 160), a2, b2, { conFondo: false, dy: ATRAS + ABAJO, dx: ADENTRO })
+  escenaGana(g, t, a1, b1, { conFondo: false, dy: ABAJO })
 }
 
 /* ======================= PODIO ======================= */
