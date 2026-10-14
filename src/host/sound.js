@@ -10,7 +10,7 @@
 
 const TRACKS = {
   lobby: { file: 'lobby.ogg', loop: true },
-  answering: { file: 'answering.ogg', loop: true }, // Tick Tack Minigame
+  answering: { file: 'answering.ogg', loop: true, loopStart: 2.0739 }, // Tick Tack Minigame
   answering2: { file: 'answering-2.ogg', loop: true, loopStart: 29.3447 }, // Clockwork Groove
   answering3: { file: 'answering-3.ogg', loop: true, loopStart: 4.2658 }, // Village Quest
   answering4: { file: 'answering-4.ogg', loop: true, loopStart: 77.874, level: 1.23 }, // Ticking Pulse (la intro ya dura más que una pregunta)
