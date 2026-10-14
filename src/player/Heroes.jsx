@@ -2,7 +2,7 @@
    duelo del ranking y el podio. El celular no suena (el sonido es del
    proyector), pero vibra en los golpes y al elegir personaje. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato } from '../game/heroes.js'
+import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato, pintarRetratoRacha } from '../game/heroes.js'
 import { useT } from '../i18n.jsx'
 
 const CLASE_EN = {
@@ -96,7 +96,29 @@ function EnGuardia({ hero }) {
     g.clearRect(0, 0, LADO, LADO)
     centrado(g, hero, t)
   }, [hero])
-  return <Lienzo dibujar={dibujar} ancho={LADO} alto={LADO} label={hero.nombre} className="w-24 shrink-0" />
+  return <Lienzo dibujar={dibujar} ancho={LADO} alto={LADO} label={hero.nombre} className="w-24 shrink-0 rounded-xl fondo-retrato" />
+}
+
+/* Retrato en el encabezado, junto al nombre y el puntaje: de la cabeza a la cintura, con su distintivo de racha
+   (game/racha.js). Sin racha, quieto (no gasta nada); con racha, el aura y el brillo se animan a ~12 cuadros por
+   segundo, que alcanza para el pixel art y cuida los celulares antiguos. */
+const RETRATO = 40
+export function HeroBadge({ hero }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const g = ref.current.getContext('2d')
+    const dibuja = (t) => { g.clearRect(0, 0, RETRATO, RETRATO); pintarRetratoRacha(g, hero, RETRATO, t) }
+    if (!hero.hd.racha || quieto) { dibuja(0); return }
+    const inicio = performance.now()
+    let antes = -Infinity, id
+    const cuadro = (now) => {
+      if (now - antes >= 80) { antes = now; dibuja(now - inicio) }
+      id = requestAnimationFrame(cuadro)
+    }
+    id = requestAnimationFrame(cuadro)
+    return () => cancelAnimationFrame(id)
+  }, [hero])
+  return <canvas ref={ref} width={RETRATO} height={RETRATO} style={PIXEL} aria-hidden="true" className="w-10 h-10 shrink-0 rounded-xl fondo-retrato" />
 }
 
 /* En el selector van por orden alfabético (HEROES conserva su orden original). */
@@ -131,7 +153,7 @@ export function HeroPicker({ value, onPick, alAzar }) {
       <div className="grid grid-cols-5 gap-2">
         {EN_ORDEN.map((h) => (
           <button key={h.id} type="button" onClick={() => tocar(h.id)} aria-pressed={h.id === value} aria-label={h.nombre}
-            className={`relative aspect-square rounded-xl border-2 p-0.5 bg-indigo-950 transition active:scale-95 ${h.id === value ? 'border-amber-400 ring-2 ring-amber-400' : 'border-indigo-800'}`}>
+            className={`relative aspect-square rounded-xl border-2 p-0.5 fondo-retrato transition active:scale-95 ${h.id === value ? 'border-amber-400 ring-2 ring-amber-400' : 'border-sky-300'}`}>
             <span key={recien === h.id ? 'salta' : 'quieto'} className={`block w-full h-full ${recien === h.id ? 'kachai-saltito' : ''}`}><Cara hero={h} /></span>
             {h.id === value && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-indigo-950 text-xs font-black grid place-items-center shadow">✓</span>}
           </button>

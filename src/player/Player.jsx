@@ -11,7 +11,7 @@ import { useTema } from '../tema.jsx'
 import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
 import { escenarioDe } from '../game/fondos.js'
-import { HeroApplause, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
+import { HeroApplause, HeroBadge, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
 
 /* sessionStorage y no localStorage: cada pestaña es un jugador distinto (útil
    para probar), y recargar la página conserva al mismo jugador. Si el celular
@@ -298,6 +298,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         <Logo className="text-xl" />
         <span className="flex-1 min-w-0 flex items-center justify-end gap-2">
           {myTeam && <span title={myTeam.name} className="text-xl shrink-0">{myTeam.emoji}</span>}
+          <HeroBadge hero={enEscena} />
           <StreakName name={profile.name} streak={score?.streak} className="font-bold truncate" />
           <StreakBadge streak={score?.streak} className="text-sm shrink-0" />
         </span>

@@ -1,4 +1,5 @@
 import { STREAK_MIN, splitWh } from './game/logic.js'
+import { nivelRacha } from './game/racha.js'
 import { useT } from './i18n.jsx'
 
 /* Colores de rol del Grammar Hub (design-tokens): sujeto azul, verbo rojo grave,
@@ -116,21 +117,30 @@ export function TimerBar({ start, ms, now, className = '' }) {
   )
 }
 
+/* Ícono y color de cada nivel de racha, a juego con el distintivo del personaje (game/racha.js):
+   3–4 fuego (el arma brilla), 5–7 ki dorado, 8 o más ultra instinto. */
+const RACHA = [null,
+  ['🔥', 'bg-orange-100 text-orange-700 border-orange-300', 'streak-fire'],
+  ['✨', 'bg-amber-100 text-amber-700 border-amber-300', 'streak-ki'],
+  ['💠', 'bg-sky-100 text-sky-800 border-sky-300', 'streak-ultra'],
+]
+
 /* 🔥 N junto al nombre mientras dure una racha de STREAK_MIN o más. */
 export function StreakBadge({ streak, className = '' }) {
   const t = useT()
   if (!(streak >= STREAK_MIN)) return null
+  const [icono, colores] = RACHA[nivelRacha(streak)]
   return (
     <span title={t('seguidasTitulo', streak)}
-      className={`inline-flex items-center gap-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300 font-black px-2 leading-tight tabular-nums ${className}`}>
-      {streak >= 5 ? "⭐" : "🔥"} {streak}
+      className={`inline-flex items-center gap-0.5 rounded-full border font-black px-2 leading-tight tabular-nums ${colores} ${className}`}>
+      {icono} {streak}
     </span>
   )
 }
 
-/* Nombre en racha: 3–4 seguidas, fuego; 5 o más, "modo estrella" (ver index.css). */
+/* Nombre en racha: fuego, ki dorado o ultra instinto (ver index.css). */
 export function StreakName({ name, streak, className = '' }) {
-  const look = streak >= 5 ? 'streak-star' : streak >= STREAK_MIN ? 'streak-fire' : ''
+  const look = RACHA[nivelRacha(streak)]?.[2] || ''
   return <span className={`${look} ${className}`}>{name}</span>
 }
 

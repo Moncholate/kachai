@@ -978,10 +978,32 @@ function pintarRetrato(g, c, lado, t = 0) {
   g.drawImage(tmp, r.x, r.y, r.w, r.h, Math.round((lado - r.w * esc) / 2), Math.round((lado - r.h * esc) / 2), Math.round(r.w * esc), Math.round(r.h * esc));
 }
 
+/* Retrato del encabezado del celular: de la cabeza a la cintura (así se ve el arma), con su distintivo de racha
+   (y, cuando existan, sus colores personalizados: va todo en c.hd). Se dibuja en un lienzo del tamaño de las
+   escenas (los lienzos de trabajo de la racha no se rehacen) y se recorta un cuadrado de `lado` px, con aire arriba
+   para las llamas del aura. */
+const RX = 40, RY = 20, cimas = new Map();
+let lienzoRetrato = null;
+function pintarRetratoRacha(g, c, lado = 40, t = 0) {
+  if (!lienzoRetrato) { lienzoRetrato = document.createElement("canvas"); lienzoRetrato.width = W; lienzoRetrato.height = 76; }
+  const tg = lienzoPear36(lienzoRetrato.getContext("2d", { willReadFrequently: true }));
+  if (!cimas.has(c.id)) {   // dónde empieza la cabeza y dónde está el centro, sin racha
+    tg.clearRect(0, 0, W, 76); hdDibujar(tg, RX, RY, HD_POR_ID[c.id] || c.hd, hdPose(c.hd, "guardia", 0));
+    const d = tg.getImageData(0, 0, W, 76).data; let x0 = W, x1 = 0, y0 = 76;
+    for (let yy = 0; yy < 76; yy++) for (let xx = 0; xx < W; xx++) if (d[(yy * W + xx) * 4 + 3]) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); }
+    cimas.set(c.id, { cx: Math.round((x0 + x1) / 2), y0 });
+  }
+  tg.clearRect(0, 0, W, 76);
+  pintaPersonaje(tg, c.hd, { ...hdPose(c.hd, "guardia", t), t }, RX, RY);
+  const { cx, y0 } = cimas.get(c.id);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(lienzoRetrato, cx - Math.floor(lado / 2), y0 - 5, lado, lado, 0, 0, lado, lado);
+}
+
 /* Las escenas se pintan con los efectos en Pear36 (los personajes ya traen su paleta; el fondo queda igual). */
 const enPear36 = (escena) => (g, ...resto) => escena(lienzoPear36(g), ...resto)
-const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP, podioSinFondoP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato, podioSinFondo].map(enPear36)
-export { T as HEROES, pedestal as pedestalPodio, podioSinFondoP as podioProyector, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato }
+const [escenaDueloP, escenaGanaP, escenaDuelo2P, escenaGana2P, escenaPodioP, escenaAplausoP, pintarRetratoP, podioSinFondoP, pintarRetratoRachaP] = [escenaDuelo, escenaGana, escenaDuelo2, escenaGana2, escenaPodio, escenaAplauso, pintarRetrato, podioSinFondo, pintarRetratoRacha].map(enPear36)
+export { T as HEROES, pedestal as pedestalPodio, podioSinFondoP as podioProyector, escenaDueloP as escenaDuelo, escenaGanaP as escenaGana, escenaDuelo2P as escenaDuelo2, escenaGana2P as escenaGana2, escenaPodioP as escenaPodio, escenaAplausoP as escenaAplauso, pintarRetratoP as pintarRetrato, pintarRetratoRachaP as pintarRetratoRacha }
 export const heroOf = (id) => T.find((c) => c.id === id) || null
 /* Para quien todavía no eligió: uno fijo según su id, así no cambia entre pantallas. */
 export function heroFor(id, chosen) {

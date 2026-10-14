@@ -97,7 +97,9 @@ export function pintaPersonaje(g, c, p, x, y) {
     return
   }
   const W = g.canvas.width, H = g.canvas.height, N = W * H, nivel = c.racha
-  const t = reduce ? 0 : p.t || 0
+  /* El reloj del aura es el de verdad, no el de la pose: hay escenas que dejan la pose quieta (Edith flotando
+     mientras invoca la tormenta) y el aura se congelaba. */
+  const t = reduce ? 0 : typeof performance !== 'undefined' ? performance.now() : p.t || 0
   const K = rgb((c.contorno || HDK).toUpperCase())
   const malalaEmbiste = c.id === 'malala' && EMBISTE.includes(p.fase)
   const A = lienzo('cuerpo', W, H, true)

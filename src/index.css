@@ -18,8 +18,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Nombres en racha (ver StreakName en ui.jsx). Fuego: resplandor que titila.
-   Estrella: arcoíris que corre por las letras, con brillo dorado. */
+/* Nombres en racha (ver StreakName en ui.jsx), a juego con el distintivo del personaje. Fuego: resplandor que
+   titila. Ki dorado: un brillo dorado que corre por las letras. Ultra instinto: blanco, turquesa y azul con resplandor azul. */
 .streak-fire {
   color: #c2410c;
   animation: kachai-flicker 0.8s ease-in-out infinite alternate;
@@ -28,19 +28,34 @@ html, body {
   from { text-shadow: 0 0 4px rgba(251, 146, 60, 0.8), 0 -2px 8px rgba(239, 68, 68, 0.55); }
   to { text-shadow: 0 0 10px rgba(251, 191, 36, 1), 0 -4px 16px rgba(239, 68, 68, 0.85); }
 }
-.streak-star {
-  background: linear-gradient(90deg, #f43f5e, #f59e0b, #facc15, #22c55e, #3b82f6, #a855f7, #f43f5e);
+.streak-ki, .streak-ultra {
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: kachai-rainbow 1.2s linear infinite, kachai-starglow 0.6s ease-in-out infinite alternate;
+}
+.streak-ki {
+  background-image: linear-gradient(90deg, #b45309, #f59e0b, #fde68a, #f59e0b, #b45309, #f59e0b, #b45309);
+  animation: kachai-rainbow 1.6s linear infinite, kachai-starglow 0.6s ease-in-out infinite alternate;
+}
+.streak-ultra {
+  background-image: linear-gradient(90deg, #1d4ed8, #38bdf8, #a5f3fc, #38bdf8, #1d4ed8, #38bdf8, #1d4ed8);
+  animation: kachai-rainbow 1.2s linear infinite, kachai-ultraglow 0.5s ease-in-out infinite alternate;
 }
 @keyframes kachai-rainbow { to { background-position: 300% 0; } }
 @keyframes kachai-starglow {
   from { filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.6)); }
   to { filter: drop-shadow(0 0 10px rgba(250, 204, 21, 1)); }
 }
+@keyframes kachai-ultraglow {
+  from { filter: drop-shadow(0 0 3px rgba(102, 255, 227, 0.6)); }
+  to { filter: drop-shadow(0 0 10px rgba(77, 166, 255, 1)); }
+}
+
+/* Fondo de los retratos de personaje (selector y encabezado del celular): un cielo claro. Sobre el morado
+   oscuro de antes se perdían las siluetas oscuras (Malala, Edith, Kenny) y se perderían los colores oscuros
+   que elijan al personalizar; sobre el cielo se leen las oscuras, las claras (Cupe) y las auras de racha. */
+.fondo-retrato { background: linear-gradient(#d7e6f5, #b9cfe6); }
 
 /* Selector de personaje: la cara que se acaba de tocar da un saltito (se ve que el toque funcionó). */
 .kachai-saltito { animation: kachai-saltito 0.35s ease-out; }
@@ -138,6 +153,7 @@ html, body {
 :root[data-theme="dark"] .bg-sky-50 { background-color: #0f2533; }
 :root[data-theme="dark"] .bg-sky-100 { background-color: #12304a; }
 :root[data-theme="dark"] .text-sky-800 { color: #bae6fd; }
+:root[data-theme="dark"] .border-sky-300 { border-color: #1e5a80; }
 
 :root[data-theme="dark"] .text-pink-700 { color: #f9a8d4; }
 
