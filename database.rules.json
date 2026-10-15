@@ -19,6 +19,12 @@
           }
         },
         "online": { ".write": true },
+        "bonus": {
+          ".write": true,
+          "hits": {
+            "$pid": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 500" }
+          }
+        },
         "scores": { ".write": true },
         "answers": {
           ".write": "!newData.exists()",

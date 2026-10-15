@@ -27,6 +27,16 @@ export const SFX = {
   'times-up': ["Time's up.wav", 750, 60, -15],
   streak: ['Streak.wav', 900, 120, -16],
   double: ['2X.wav', 2450, 650, -14, 200], // golpe del 2X: arranca a los 0,2 s y se apaga hacia los 2,6 s
+  /* Ronda bonus: celulares (pop, tiro, traba, recarga) y proyector (Lexicón) */
+  'bonus-pop1': ['Bonus pop 1.wav', 170, 40, -16],
+  'bonus-pop2': ['Bonus pop 2.wav', 280, 60, -16],
+  'bonus-shot': ['Bonus shot.wav', 700, 150, -17],
+  'bonus-jam': ['Bonus jam.wav', 1000, 200, -17],
+  'bonus-reload': ['Bonus reload.wav', 1450, 120, -19],
+  'lexicon-page': ['Lexicon page.wav', 800, 100, -16],
+  'lexicon-hoot': ['Lexicon hoot.wav', 700, 100, -15],
+  'lexicon-goal': ['Lexicon goal.wav', 1100, 150, -15],
+  'lexicon-surrender': ['Lexicon surrender.wav', 4500, 350, -15],
 }
 
 const only = process.argv[2]
@@ -35,7 +45,12 @@ for (const [name, [file, ms, fade, lufs, skip = 0]] of Object.entries(SFX)) {
   const cut = ['-af', `atrim=${skip / 1000}:${(skip + ms) / 1000},asetpts=PTS-STARTPTS,afade=t=out:st=${(ms - fade) / 1000}:d=${fade / 1000}`]
   // volumen del tramo recortado (el último "I:" de ebur128 es el integrado)
   const meter = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', `${SRC}/${file}`, ...cut.slice(0, 1), `${cut[1]},ebur128`, '-f', 'null', '-'])
-  const measured = Number([...meter.stderr.toString().matchAll(/I:\s+(-?[\d.]+) LUFS/g)].at(-1)[1])
+  let measured = Number([...meter.stderr.toString().matchAll(/I:\s+(-?[\d.]+) LUFS/g)].at(-1)[1])
+  /* Menos de 400 ms (los pops): ebur128 no alcanza a medir (−70). Se usa el volumen medio del tramo. */
+  if (measured < -60) {
+    const vd = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', `${SRC}/${file}`, '-af', `${cut[1].split(',afade')[0]},volumedetect`, '-f', 'null', '-'])
+    measured = Number(vd.stderr.toString().match(/mean_volume:\s+(-?[\d.]+)/)[1]) - 2
+  }
   const gain = lufs - measured
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', `${SRC}/${file}`,
     '-af', `${cut[1]},volume=${gain.toFixed(2)}dB,alimiter=limit=0.89:level=false`,

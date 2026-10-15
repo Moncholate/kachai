@@ -22,6 +22,7 @@ const TRACKS = {
      Los dos de la última pregunta van ~1,5 dB más arriba, a propósito: medidos
      iguales, en la sala se oían más bajos (bronces y guitarra sostenidos pegan
      menos que los golpes secos del chiptune), y la final merece sobresalir. */
+  bonus: { file: 'bonus.ogg', loop: true }, // Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s)
   final: { file: 'final.ogg', loop: true, loopStart: 26.4896, level: 1.26 }, // Final Question
   final2: { file: 'final-2.ogg', loop: true, loopStart: 36.6668, level: 1.22 }, // Final Sprint (las dos final: solo en la última pregunta)
   /* La fanfarria del campeón es música (se detiene con fundido al salir del podio),
@@ -58,6 +59,8 @@ const EFFECTS = {
   join: 'join.ogg', // alguien entró a la sala
   streak: 'streak.ogg', // 🔥 alguien llegó a 3 seguidas, o a 5, 10…
   double: 'double.ogg', // ⚡ el profesor activó el 2X
+  /* Ronda bonus: Lexicón, en el proyector (los de los celulares los carga bonusJuego.js) */
+  lexiconPage: 'lexicon-page.ogg', lexiconHoot: 'lexicon-hoot.ogg', lexiconGoal: 'lexicon-goal.ogg', lexiconSurrender: 'lexicon-surrender.ogg',
 }
 const MUSIC_LEVEL = 0.8 // deja aire a los efectos por encima de la música
 const DUCKED_LEVEL = 0.25 // últimos segundos: la música se aparta para que se oigan los tics

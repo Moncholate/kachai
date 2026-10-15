@@ -16,12 +16,14 @@ import {
 } from '../game/library.js'
 import { PODIUM_SOUNDS, podiumStage } from '../game/podium.js'
 import { BOARD_SIZE, DUEL_GAP, buildBoard, previousTotals } from '../game/duels.js'
+import { BONUS_SEG, BONUS_INTRO_SEG, BONUS_FINAL_SEG, preguntaDelBonus, multiplicadores, metaDelCurso, puntosBonus, categoriasPara } from '../game/bonus.js'
+import BonusProyector from './BonusProyector.jsx'
 import {
   MAX_TEAMS, TEAM_MAX, TEAM_MIN, makeTeams, membersOf, mvpOf, presetOf, shuffleIntoTeams, smallestTeam,
   streaksOf, suggestTeamCount, teamIdsOf, teamRanking,
 } from '../game/teams.js'
 import confetti from 'canvas-confetti'
-import { heroOf, podioProyector } from '../game/heroes.js'
+import { heroFor, heroOf, podioProyector } from '../game/heroes.js'
 import { conRacha, nivelRacha } from '../game/racha.js'
 import { personaliza } from '../game/personaliza.js'
 import { IDIOMA_POR_DEFECTO, ProveedorIdioma, SelectorIdioma, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
@@ -102,6 +104,7 @@ function HostRoom({ store, pin, tema }) {
   const players = useValue(store, `${base}/players`) || {}
   const online = useValue(store, `${base}/online`) || {}
   const scores = useValue(store, `${base}/scores`) || {}
+  const bonusHits = useValue(store, state?.phase === 'bonus' ? `${base}/bonus/hits` : null) || {}
   const inGame = state?.qIndex != null && state.phase !== 'lobby'
   const answers = useValue(store, inGame ? `${base}/answers/${state.qIndex}` : null) || {}
   /* Cada 100 ms y no 200: en el podio cada puesto tiene que aparecer junto con el
@@ -213,7 +216,39 @@ function HostRoom({ store, pin, tema }) {
   const showPodium = () => store.update(`${base}/state`, {
     phase: 'end', startedAt: store.now(), review: played.map(reviewQuestion),
   })
-  const next = () => (isLast ? showPodium() : goQuestion(state.qIndex + 1, state.round, {}, state.order ?? null, Boolean(beforeLast && state.nextDouble)))
+  const next = () => (isLast ? showPodium()
+    : tocaBonus ? store.update(`${base}/state`, { phase: 'bonus', etapa: 'elegir', bonusHecho: true })
+    : goQuestion(state.qIndex + 1, state.round, {}, state.order ?? null, Boolean(beforeLast && state.nextDouble)))
+  /* Ronda bonus (game/bonus.js): aparece sola tras el ranking de la pregunta del medio, una vez por juego. */
+  const tocaBonus = state?.phase === 'leaderboard' && !state.practice && !state.bonusHecho && state.qIndex === preguntaDelBonus(set?.questions.length)
+  const elegirBonus = (categoria) => {
+    /* Los que aún no tienen puntaje (llegaron tarde) cuentan como los últimos */
+    const conPuntaje = individualRanking(players, scores).map((r) => r.id)
+    const orden = [...conPuntaje, ...Object.keys(players).filter((id) => !conPuntaje.includes(id))]
+    store.update(base, {
+      bonus: null,
+      'state/etapa': 'juego', 'state/categoria': categoria, 'state/startedAt': store.now(),
+      'state/mult': multiplicadores(orden), 'state/meta': metaDelCurso(progress.active.length || orden.length),
+    })
+  }
+  const saltarBonus = () => goQuestion(state.qIndex + 1, state.round, {}, state.order ?? null, false)
+  /* Al terminar: 50 puntos por burbuja × el bonus oculto de cada uno, y vuelve el ranking (con los
+     adelantamientos que provocó la ronda). Luego "Siguiente" sigue con la pregunta que venía. */
+  async function aplicarBonus() {
+    const hits = (await store.get(`${base}/bonus/hits`)) || {}
+    const nextScores = {}
+    for (const id of Object.keys(players)) {
+      const s0 = scores[id] || {}, aciertos = Number(hits[id]) || 0, mult = state.mult?.[id] || 1
+      const gain = puntosBonus(aciertos, mult)
+      nextScores[id] = { ...s0, total: (s0.total || 0) + gain, gain, bonus: { aciertos, mult, gain } }
+    }
+    Object.entries(nextScores).sort((a, b) => b[1].total - a[1].total).forEach(([, sc], i) => { sc.rank = i + 1 })
+    const ahora = teamMode ? teamRanking(teams, players, nextScores) : individualRanking(players, nextScores)
+    await store.update(base, {
+      scores: nextScores,
+      state: { ...state, phase: 'leaderboard', etapa: null, nextDouble: false, board: buildBoard(ahora, previousTotals(ahora), beforeLast) },
+    })
+  }
   const backToLobby = () => {
     if (set) setLastReport({ report: buildReport(played, players, scores, (k) => t(`wh_${k}`)), title: activityLabel(set) })
     setReportOpen(false)
@@ -288,11 +323,17 @@ function HostRoom({ store, pin, tema }) {
      cuando respondieron todos los conectados). Cada fase dispara una sola vez. */
   useEffect(() => {
     if (!state || !meta || typeof state.startedAt !== 'number') return
-    const key = `${state.round}-${state.qIndex}-${state.phase}`
+    const key = `${state.round}-${state.qIndex}-${state.phase}-${state.etapa || ''}`   // etapa: las de la ronda bonus
     if (fired.current === key) return
     if (state.phase === 'reading' && now >= state.startedAt + meta.readSec * 1000) {
       fired.current = key
       startAnswering()
+    } else if (state.phase === 'bonus' && state.etapa === 'juego' && now >= state.startedAt + (BONUS_INTRO_SEG + BONUS_SEG) * 1000 + GRACE_MS) {
+      fired.current = key
+      store.update(`${base}/state`, { etapa: 'final', finalAt: now })
+    } else if (state.phase === 'bonus' && state.etapa === 'final' && now >= (state.finalAt || 0) + BONUS_FINAL_SEG * 1000) {
+      fired.current = key
+      aplicarBonus()
     } else if (state.phase === 'answering') {
       const timeUp = now >= state.startedAt + meta.answerSec * 1000 + GRACE_MS
       if (timeUp || progress.everyone) {
@@ -309,6 +350,7 @@ function HostRoom({ store, pin, tema }) {
   /* La última pregunta tiene su tema propio (Final Question o Final Sprint, según el juego), haya 2X o no. */
   const track = state?.phase === 'end' ? null
     : state?.phase === 'answering' && isLast ? finalTrack(state?.round)
+    : state?.phase === 'bonus' && state.etapa === 'juego' ? 'bonus'
     : ({ lobby: 'lobby', answering: answeringTrack(state?.round, state?.qIndex) }[state?.phase] ?? null)
   useEffect(() => { getSound().play(track) }, [track])
   useEffect(() => () => { getSound().play(null) }, [])
@@ -523,6 +565,11 @@ function HostRoom({ store, pin, tema }) {
         {state.phase === 'reveal' && state.solution && (
           <Reveal state={state} isLast={isLast} ranking={ranking} image={current?.image}
             onNext={state.practice ? startForReal : isLast ? showPodium : showRanking} />
+        )}
+
+        {state.phase === 'bonus' && (
+          <BonusProyector state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
+            heroes={Object.fromEntries(Object.entries(players).map(([id, p]) => [id, heroFor(id, p.hero).id]))} />
         )}
 
         {state.phase === 'leaderboard' && (

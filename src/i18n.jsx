@@ -301,6 +301,32 @@ export const TEXTOS = {
   resumenCurso: { es: '📊 Resumen del curso', en: '📊 Class summary' },
   jugarOtraVez: { es: 'Jugar otra vez', en: 'Play again' },
 
+  // ── Ronda bonus (Lexicón) ─────────────────────────────────────────────
+  rondaBonus: { es: '¡Ronda bonus!', en: 'Bonus round!' },
+  bonusAparecio: { es: 'Lexicón apareció', en: 'Lexicón is here' },
+  bonusElegir: { es: 'Elige la categoría de palabras', en: 'Choose the word category' },
+  bonusEligiendo: { es: 'Tu profe está eligiendo la categoría…', en: 'Your teacher is choosing the category…' },
+  bonusMira: { es: 'Prepárate: vas a reventar burbujas con tu ballesta', en: 'Get ready: you’ll pop bubbles with your crossbow' },
+  bonusReglas: {
+    es: 'Toca las burbujas correctas para dispararles. Tienes <b>5 dardos</b>: si aciertas, el dardo vuelve; si te equivocas o disparas al aire, lo pierdes. Una palabra incorrecta traba tu ballesta 1,5 segundos.',
+    en: 'Tap the right bubbles to shoot them. You have <b>5 darts</b>: a hit gives the dart back; a miss or a wrong word loses it. A wrong word jams your crossbow for 1.5 seconds.',
+  },
+  bonusRecargar: { es: 'Recargar', en: 'Reload' },
+  bonusRacha: { es: 'racha', en: 'streak' },
+  bonusTraba: { es: 'Pierdes el dardo y tu ballesta se traba.', en: 'You lose the dart and your crossbow jams.' },
+  bonusTerminada: { es: 'Ronda bonus terminada', en: 'Bonus round over' },
+  bonusReventaste: { es: (n) => `Reventaste <b>${n}</b> burbujas correctas`, en: (n) => `You popped <b>${n}</b> right bubbles` },
+  bonusMejorRacha: { es: (n) => `Mejor racha: <b>${n}</b>`, en: (n) => `Best streak: <b>${n}</b>` },
+  bonusMeta: { es: (n) => `Meta ${n}`, en: (n) => `Goal ${n}` },
+  bonusRindio: { es: '¡Lexicón se rindió!', en: 'Lexicón gives up!' },
+  bonusParcial: { es: (n) => `¡Lograron ${n} de 3 metas!`, en: (n) => `You reached ${n} of 3 goals!` },
+  bonusBurbujas: { es: (n) => `${n} burbujas reventadas`, en: (n) => `${n} bubbles popped` },
+  bonusSumando: { es: 'Sumando los puntos…', en: 'Adding up the points…' },
+  bonusNuevas: { es: 'Vocabulario de esta unidad', en: 'Vocabulary from this unit' },
+  bonusAntes: { es: 'Repaso de antes', en: 'Review from earlier' },
+  bonusMas: { es: 'Más categorías', en: 'More categories' },
+  bonusSaltar: { es: 'Saltar la ronda bonus', en: 'Skip the bonus round' },
+
   // ── Editor de actividades ─────────────────────────────────────────────
   ponleTitulo: { es: 'Ponle un título a la actividad.', en: 'Give the activity a title.' },
   noSeGuardo: { es: (m) => `No se pudo guardar: ${m}`, en: (m) => `Could not save: ${m}` },

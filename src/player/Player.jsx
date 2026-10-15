@@ -7,6 +7,7 @@ import { TEAM_MAX, membersOf, mvpOf, presetOf, teamIdsOf, teamRanking } from '..
 import confetti from 'canvas-confetti'
 import { Button, CHOICE_STYLES, Center, ChoiceLetter, Logo, PART_KEYS, Prompt, ROLES, RoleTag, StreakBadge, StreakName, TimerBar, choiceCols } from '../ui.jsx'
 import { ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
+import BonusCelular from './BonusCelular.jsx'
 import { useTema } from '../tema.jsx'
 import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
@@ -195,6 +196,9 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   const myTeam = teamMode && teams[profile.team] ? { id: profile.team, ...teams[profile.team] } : null
   const teamRank = teamMode ? teamRanking(teams, players, scores) : []
   const myTeamPlace = myTeam ? teamRank.findIndex((tm) => tm.id === myTeam.id) + 1 : 0
+
+  /* Ronda bonus: el juego ocupa toda la pantalla (ver BonusCelular.jsx) */
+  if (state.phase === 'bonus') return <BonusCelular store={store} base={base} pid={pid} state={state} heroe={me} />
 
   let body
   if (state.phase === 'lobby') {
