@@ -22,7 +22,7 @@ const TRACKS = {
      Los dos de la última pregunta van ~1,5 dB más arriba, a propósito: medidos
      iguales, en la sala se oían más bajos (bronces y guitarra sostenidos pegan
      menos que los golpes secos del chiptune), y la final merece sobresalir. */
-  bonus: { file: 'bonus.ogg', loop: true }, // Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s)
+  bonus: { file: 'bonus.ogg', loop: true, level: 1.25 }, // Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s). Mide −14,9 LUFS como los demás, pero en la sala se oía más baja (los sintetizadores burbujeantes pegan menos): +2 dB, como los temas de la última pregunta
   final: { file: 'final.ogg', loop: true, loopStart: 26.4896, level: 1.26 }, // Final Question
   final2: { file: 'final-2.ogg', loop: true, loopStart: 36.6668, level: 1.22 }, // Final Sprint (las dos final: solo en la última pregunta)
   /* La fanfarria del campeón es música (se detiene con fundido al salir del podio),
@@ -205,6 +205,14 @@ function createSoundEngine() {
     /* Baja la música (sin detenerla) mientras dura la cuenta regresiva. */
     duck(on) {
       music.gain.setTargetAtTime(on ? DUCKED_LEVEL : MUSIC_LEVEL, ctx.currentTime, 0.15)
+    },
+    /* Silencia la música (sin detenerla) por ms y la devuelve con un fundido: el remate de Lexicón al rendirse
+       suena solo, y la ronda sigue con su música mientras a los celulares les queda tiempo. */
+    silencia(ms) {
+      const t = ctx.currentTime, g = music.gain
+      g.cancelScheduledValues(t)
+      g.setTargetAtTime(0, t, 0.08)
+      g.setTargetAtTime(MUSIC_LEVEL, t + ms / 1000, 0.6)
     },
     /* Alguien entró a la sala. */
     join() {
