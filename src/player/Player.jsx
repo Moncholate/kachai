@@ -127,7 +127,7 @@ function JoinForm({ store, initialPin, notice, onJoined, onIdioma }) {
             className="w-full min-w-0 rounded-xl border-2 border-slate-200 px-4 py-3 text-center text-2xl font-black tracking-widest focus:border-[#0F6FD6] outline-none" />
         )}
         {initialPin && <p className="text-center text-slate-500">{t('pin')} <b className="text-slate-900 tracking-widest">{initialPin}</b></p>}
-        <input maxLength={16} placeholder={t('tuNombre')} value={name} autoComplete="off"
+        <input maxLength={20} placeholder={t('tuNombre')} value={name} autoComplete="off"
           onChange={(e) => setName(e.target.value)}
           className="w-full min-w-0 rounded-xl border-2 border-slate-200 px-4 py-3 text-center text-xl font-bold focus:border-[#0F6FD6] outline-none" />
         {error && <p className="text-rose-600 text-sm font-bold text-center">{error}</p>}

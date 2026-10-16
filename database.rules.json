@@ -15,7 +15,7 @@
         "players": {
           "$pid": {
             ".write": true,
-            ".validate": "!newData.exists() || (newData.child('name').isString() && newData.child('name').val().length <= 16)"
+            ".validate": "!newData.exists() || (newData.child('name').isString() && newData.child('name').val().length <= 20)"
           }
         },
         "online": { ".write": true },
