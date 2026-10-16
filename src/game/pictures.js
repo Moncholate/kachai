@@ -32,10 +32,26 @@ const PS_VS_PC = pictures('Present simple vs continuous', 'ps-vs-pc',
   [10, 'Olivia ___ for her exam at this moment.', 'is studying', 'studies', 'study'],
 )
 
-/* Curso → [EA1, EA2]. Va donde el KC "present continuous vs simple" está en la hoja de ruta. */
+/* Solo presente continuo. En las fotos con dos personas cada una lleva su nombre
+   escrito y la oración pregunta por una sola: el nombre decide la respuesta.
+   Vocabulario de Elemental I (nada de knit, kick…). */
+const PRESENT_CONTINUOUS = pictures('Present continuous', 'present-continuous',
+  [1, 'Mateo ___ his bike in the park right now.', 'is riding', 'rides', 'are riding'],
+  [3, 'Lucia ___ a song at this moment.', 'is singing', 'sings', 'are singing'],
+  [6, 'Sofia ___ in the pool at the moment.', 'is swimming', 'is swiming', 'swims'],
+  [5, 'Andres ___ football at the moment.', 'is playing', 'plays', 'are playing'],
+  [2, 'Camila ___ a picture at the moment.', 'is painting', 'paints', 'is paint'],
+  [8, 'Javiera ___ a photo of Tomas at this moment.', 'is taking', 'takes', 'are taking'],
+  [4, 'Rosa ___ dinner right now.', 'is cooking', 'cooks', 'are cooking'],
+  [7, 'Mr. Gomez ___ on the board right now.', 'is writing', 'is writeing', 'writes'],
+  [9, 'Joaquin ___ a sandwich now.', 'is making', 'is makeing', 'makes'],
+  [10, 'Ignacio ___ to a friend on the phone today.', 'is talking', 'talks', 'are talking'],
+)
+
+/* Curso → [EA1, EA2]. Va donde el KC "present continuous" (y "vs simple") está en la hoja de ruta. */
 export const PICTURES = {
-  basico2: [[PS_VS_PC], []],
-  basicoInt: [[], [PS_VS_PC]],
-  elemental1: [[], [PS_VS_PC]],
-  elementalInt: [[PS_VS_PC], []],
+  basico2: [[PRESENT_CONTINUOUS, PS_VS_PC], []],
+  basicoInt: [[], [PRESENT_CONTINUOUS, PS_VS_PC]],
+  elemental1: [[], [PRESENT_CONTINUOUS, PS_VS_PC]],
+  elementalInt: [[PRESENT_CONTINUOUS, PS_VS_PC], []],
 }
