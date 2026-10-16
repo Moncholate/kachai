@@ -3,6 +3,7 @@
    proyector), pero vibra en los golpes y al elegir personaje. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato, pintarRetratoRacha } from '../game/heroes.js'
+import { pintaMomento } from '../game/companero.js'
 import { useT } from '../i18n.jsx'
 import { alAzar as coloresAlAzar, colorMuestra, materialesDe } from '../game/personaliza.js'
 import { Icon } from '../icons.jsx'
@@ -65,6 +66,23 @@ export function HeroDuel({ me, rival, won, lost, escenario }) {
     ? (won ? (g, t) => escenaGana2(g, t, a, b, o) : lost ? espejo((g, t) => escenaGana2(g, t, b, a, o)) : (g, t) => escenaDuelo2(g, t, a, b, o))
     : (won ? (g, t) => escenaGana(g, t, a[0], b[0], o) : lost ? espejo((g, t) => escenaGana(g, t, b[0], a[0], o)) : (g, t) => escenaDuelo(g, t, a[0], b[0], o))), [clave, dos, won, lost, escenario])
   return <Lienzo dibujar={dibujar} golpes={golpes} label={`${a.map((h) => h.nombre).join(' + ')} vs ${b.map((h) => h.nombre).join(' + ')}`} className={ESCENA} />
+}
+
+/* El compañero: tras cada pregunta, el personaje reacciona bajo el veredicto (ver game/companero.js).
+   momento: 'esperando' | 'correcta' | 'sube' | 'parcial' | 'incorrecta' | 'sinRespuesta'. me: con sus colores, sin
+   racha (la escena le pone el distintivo que corresponda); racha: la de ahora. Se recortan arriba y abajo filas
+   vacías del escenario (queda 112 × 62) para que no ocupe tanto. */
+const ARRIBA = 8, ALTO_COMPANERO = 62
+export function HeroCompanion({ me, momento, racha = 0, escenario }) {
+  const dibujar = useMemo(() => {
+    const lienzo = document.createElement('canvas'); lienzo.width = 112; lienzo.height = 76
+    const tg = lienzo.getContext('2d', { willReadFrequently: true })
+    return (g, t) => {
+      pintaMomento(tg, momento, t, me, racha, escenario)
+      g.clearRect(0, 0, 112, ALTO_COMPANERO); g.drawImage(lienzo, 0, ARRIBA, 112, ALTO_COMPANERO, 0, 0, 112, ALTO_COMPANERO)
+    }
+  }, [me, momento, racha, escenario])
+  return <Lienzo dibujar={dibujar} alto={ALTO_COMPANERO} label={me.nombre} className={ESCENA} />
 }
 
 /* Podio: salta al salir su nombre, levanta el arma y cae confeti. */

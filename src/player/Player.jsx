@@ -14,7 +14,8 @@ import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
 import { personaliza } from '../game/personaliza.js'
 import { escenarioDe } from '../game/fondos.js'
-import { HeroApplause, HeroBadge, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
+import { HeroApplause, HeroBadge, HeroCompanion, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
+import { momentoDe } from '../game/companero.js'
 
 /* sessionStorage y no localStorage: cada pestaña es un jugador distinto (útil
    para probar), y recargar la página conserva al mismo jugador. Si el celular
@@ -238,6 +239,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         <Message icon="check" tone="bg-blue-100 text-[#0F6FD6]" title={t('respuestaEnviada')}>
           <MyChoices answer={myAnswer} options={state.question.options} />
           <span className="block mt-3">{t('esperaOtros')}</span>
+          <div className="mt-4"><HeroCompanion me={me} momento="esperando" racha={score?.streak || 0} escenario={escenario} /></div>
         </Message>
       )
     } else if (timeUp) {
@@ -257,9 +259,15 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
       )
     }
   } else if (state.phase === 'reveal' && state.solution) {
-    body = state.question.kind === 'choice'
-      ? <ChoiceResult question={state.question} solution={state.solution} answer={myAnswer} score={score} secret={secretScore} practice={state.practice} />
-      : <Result solution={state.solution} answer={myAnswer} score={score} secret={secretScore} practice={state.practice} />
+    /* Bajo el veredicto, el compañero reacciona (game/companero.js): el veredicto sigue siendo lo primero. */
+    body = (
+      <>
+        {state.question.kind === 'choice'
+          ? <ChoiceResult question={state.question} solution={state.solution} answer={myAnswer} score={score} secret={secretScore} practice={state.practice} />
+          : <Result solution={state.solution} answer={myAnswer} score={score} secret={secretScore} practice={state.practice} />}
+        <div className="mt-4"><HeroCompanion me={me} momento={momentoDe(estadoDe(state.question, myAnswer, score), score?.streak || 0)} racha={score?.streak || 0} escenario={escenario} /></div>
+      </>
+    )
   } else if (state.phase === 'leaderboard' && myTeam) {
     body = (
       <Message emoji={myTeam.emoji} title={myTeamPlace ? t('tuEquipoEs', myTeamPlace) : t('ranking')}>
@@ -753,6 +761,14 @@ function ChoiceForm({ question, timer, onSubmit }) {
       </div>
     </div>
   )
+}
+
+/* El estado del veredicto (como lo calculan ChoiceResult y Result): 'right' | 'partial' | 'wrong' | 'none'. */
+function estadoDe(question, answer, score) {
+  if (!answer) return 'none'
+  if (question.kind === 'choice') return score?.parts?.[0] ? 'right' : 'wrong'
+  const hits = (score?.parts || []).filter(Boolean).length
+  return hits === 3 ? 'right' : hits ? 'partial' : 'wrong'
 }
 
 /* Resultado en opción múltiple. En clase los alumnos se guiaban por el color de
