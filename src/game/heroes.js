@@ -521,11 +521,18 @@ function escenaGana(g, t, yo, rival, { conFondo = true, dy = 0, dx = 0, escenari
       sombra(g, sx + 5, dy); sapoMalala(g, sx, SUELO + dy - 8 - alto, t);
       if (Tm < 1400) pufVerde(g, cR, cabezaY + 22, 0.5 + (Tm - 1150) / 500);
     }
-  } else if (quien === "xitin") {   // el oso ruge y el rival huye corriendo
-    const huye = Math.max(0, (Tm - 1500) / 900);
+  } else if (quien === "xitin") {   // el oso ruge y el rival huye corriendo... hasta el borde, donde se queda escondido temblando
+    /* Antes salía de la pantalla y la escena quedaba sin rival (en 2 contra 2, su equipo con uno solo): ahora corre
+       RETIRO px, se da vuelta y se queda a la orilla con las manos arriba, sudando, a medio salir del cuadro. */
+    const RETIRO = 13, huye = Math.max(0, (Tm - 1500) / 600);
     if (huye <= 0) { sombra(g, cR, dy); figura(g, rendido(rival.hd, llevaCollar(rival)), hdPose(rival.hd, "guardia", t), xb, dy, true); sudor(g, cR - 6, cabezaY + 2, true); }
-    else if (huye < 1) {
-      const xr = W - (xb + HD_OX + 30) + huye * 60;   // da media vuelta (mira a la derecha) y corre
+    else if (huye >= 1) {
+      const xe = xb - RETIRO, tiembla = reduce ? 0 : Math.floor(t / 90) % 2, ce = centroX(xe, true);
+      sombra(g, ce, dy); figura(g, rendido(rival.hd, llevaCollar(rival)), hdPose(rival.hd, "guardia", t), xe - tiembla, dy, true);
+      sudor(g, ce - 6, cabezaY + 2, true);
+    }
+    else {
+      const xr = W - (xb + HD_OX + 30) + huye * RETIRO;   // da media vuelta (mira a la derecha) y corre
       figura(g, rival.hd, hdPose(rival.hd, "ataque", 820), xr, dy, false);
       sudor(g, xr + HD_OX + 22, cabezaY + 2, false);
       g.fillStyle = "rgba(214,207,192,.85)";
