@@ -617,7 +617,9 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
   const course = courseOf(set)
   const ea = course.eas.find((e) => e.ea === set.ea)
   const eaIndex = course.eas.indexOf(ea)
-  const focusList = ea.activities.filter((a) => a.type === 'grammar-focus')
+  /* Las de un solo contenido van juntas: Grammar Focus y, al final, las con fotos (🖼️). */
+  const isTopic = (a) => a.type === 'grammar-focus' || a.type === 'picture-practice'
+  const focusList = [...ea.activities.filter((a) => a.type === 'grammar-focus'), ...ea.activities.filter((a) => a.type === 'picture-practice')]
   const teamMode = meta.teamMode === 'teams'
   const setTeamMode = (mode) => setMeta(mode === 'teams' && !meta.teams
     ? { teamMode: mode, teamPick: meta.teamPick || 'random', teams: makeTeams(suggestTeamCount(Object.keys(players).length)) }
@@ -753,7 +755,7 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
           </Field>
           <Field label={t('actividad')}>
             <div className="grid sm:grid-cols-2 gap-2">
-              {ea.activities.filter((a) => a.type !== 'grammar-focus').map((a) => (
+              {ea.activities.filter((a) => !isTopic(a)).map((a) => (
                 <button key={a.id} onClick={() => setMeta({ setId: a.id })} title={t(`desc_${a.type.replace(/-/g, '_')}`)}
                   className={`rounded-xl border-2 px-3 py-2 text-left transition ${selected(set.id === a.id)}`}>
                   <span className="block text-sm font-bold">
@@ -766,7 +768,7 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
             </div>
             {/* Los Grammar Focus pueden ser muchos (el intensivo junta dos cursos): van como lista compacta de temas. */}
             {focusList.length > 0 && (
-              <div className={`mt-2 rounded-xl border-2 px-3 py-2 transition ${set.type === 'grammar-focus' ? 'border-[#0F6FD6] bg-blue-50' : 'border-slate-200'}`}>
+              <div className={`mt-2 rounded-xl border-2 px-3 py-2 transition ${isTopic(set) ? 'border-[#0F6FD6] bg-blue-50' : 'border-slate-200'}`}>
                 <p className="text-sm font-bold">
                   {ACTIVITY_TYPES['grammar-focus'].name}
                   <span className="font-normal text-slate-500">{t('unContenido', focusList[0].questions.length)}</span>
@@ -774,8 +776,9 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {focusList.map((a) => (
                     <button key={a.id} onClick={() => setMeta({ setId: a.id })}
+                      title={a.type === 'picture-practice' ? t('desc_picture_practice') : undefined}
                       className={`rounded-full border px-2.5 py-0.5 text-sm font-bold transition ${set.id === a.id ? 'bg-[#0F6FD6] border-[#0F6FD6] text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-slate-400'}`}>
-                      {a.topic}{mine(a) && ' ✏️'}
+                      {a.type === 'picture-practice' && '🖼️ '}{a.topic}{mine(a) && ' ✏️'}
                     </button>
                   ))}
                 </div>
@@ -904,7 +907,7 @@ function MyActivities({ user, entries, selected, onSelect, onCreate }) {
           {entries.map(([id, info]) => (
             <button key={id} onClick={() => onSelect(id)}
               className={`rounded-lg border-2 px-3 py-2 text-left transition ${selected === id ? 'border-[#0F6FD6] bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-              <span className="block font-bold truncate">{info.title}</span>
+              <span className="block font-bold truncate">{info.images && '🖼️ '}{info.title}</span>
               <span className="block text-xs text-slate-500">
                 {info.mechanic === 'choice' ? t('opcionMultiple') : 'Answer Builder'} · {t('nPreguntas', info.count)}
               </span>
@@ -969,7 +972,8 @@ function ActivityEditor({ store, user, editing, library, customIndex, current, o
       mechanic={info.mechanic} questions={questions}
       onSave={async (qs, title) => {
         await store.update(root, {
-          [`custom/${editing.id}`]: { ...info, title, count: qs.length, updatedAt: store.stamp() },
+          // images: para marcarla con 🖼️ en el menú sin bajar las preguntas
+          [`custom/${editing.id}`]: { ...info, title, count: qs.length, images: qs.some((q) => q.image) || null, updatedAt: store.stamp() },
           [`customQuestions/${editing.id}`]: qs,
         })
         onSelect(editing.id)
