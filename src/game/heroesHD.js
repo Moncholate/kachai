@@ -892,20 +892,24 @@ const HD_EDITH = (() => {
 })();
 HEROES_HD.edith = HD_EDITH;
 
+/* Hoja de piedra del hacha de Uzu: lisa (con puntitos se volvía una rejilla al brillar con la racha), más oscura junto
+   al mango y con el filo claro de 2 px: así la media luna se entiende aunque el arma brille. */
+const LARGO_UZU = 15;   // largo del mango (antes 12): más largo, se entiende mejor como hacha de batalla; la hoja va en la punta
+const filoUzu = (k, ancho) => (k === ancho ? "#C2C2D1" : k === ancho - 1 && ancho >= 2 ? "#9AA3B0" : k === 0 ? "#2A2C33" : "#3E4048");
 /* ======================= UZU ======================= */
 const HD_UZU = (() => {
   const pal = {
     G: "#6FA544", g: "#4A7A2C", Z: "#8FC064", B: "#6B4A2A", b: "#8A6438", M: "#B8C0CC", R: "#E04848", W: "#E8E4D8",
     V: "#D6CFBC", v: "#8E8570", T: "#7A5232", t: "#5A3A22", Y: "#C9A24B",
   };
-  const DIR = { guardia: [0.6, -0.8], impulso: [-0.3, -1], golpe: [1, 0.2], choque: [1, 0.5], sigue: [0.8, 0.6], sube: [0.1, -1], alto: [0.05, -1] };
+  const DIR = { guardia: [0.6, -0.8], impulso: [-0.3, -1], golpe: [1, 0.2], choque: [1, 0.5], sigue: [0.8, 0.6], sube: [0.45, -0.9], alto: [0.5, -0.87] };   // al celebrar, inclinada como en guardia: vertical, la hoja parecía un gancho
   /* Hacha de hueso: mango con nudos y una hoja de piedra oscura con el filo hacia adelante. */
   const hacha = (px, hx, hy, d) => {
     const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, nx = -uy, ny = ux, pts = [];
     const at = (i, k, col) => pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), col]);
-    for (let i = -3; i <= 12; i++) for (let k = 0; k < 2; k++) at(i, k, k ? "#B8B2A2" : "#E8E4D8");
-    [-3, 12].forEach((i) => { at(i, -1, "#E8E4D8"); at(i, 2, "#B8B2A2"); });
-    for (let i = 6; i <= 13; i++) { const ancho = 6 - Math.round(Math.abs(i - 9.5) * 1.1); for (let k = 2; k <= 2 + ancho; k++) at(i, k, k === 2 + ancho ? "#9AA3B0" : (i + k) % 3 ? "#3E4048" : "#2A2C33"); }
+    for (let i = -3; i <= LARGO_UZU; i++) for (let k = 0; k < 2; k++) at(i, k, k ? "#B8B2A2" : "#E8E4D8");
+    [-3, LARGO_UZU].forEach((i) => { at(i, -1, "#E8E4D8"); at(i, 2, "#B8B2A2"); });
+    for (let i = LARGO_UZU - 6; i <= LARGO_UZU + 1; i++) { const ancho = 6 - Math.round(Math.abs(i - (LARGO_UZU - 2.5)) * 1.1); for (let k = 2; k <= 2 + ancho; k++) at(i, k, filoUzu(k - 2, ancho)); }
     hdContorno(px, pts);
   };
   return {
@@ -1524,9 +1528,9 @@ const HD_EDITH34 = { ...HD_EDITH, brazoGrueso: 2, brazoCerca: { hombro: [9, 19] 
 const hachaUzu = (px, hx, hy, d) => {
     const L = Math.hypot(d[0], d[1]), ux = d[0] / L, uy = d[1] / L, nx = -uy, ny = ux, pts = [];
     const at = (i, k, col) => pts.push([Math.round(hx + 1 + ux * i + nx * k), Math.round(hy + uy * i + ny * k), col]);
-    for (let i = -3; i <= 12; i++) for (let k = 0; k < 2; k++) at(i, k, k ? "#B8B2A2" : "#E8E4D8");
-    [-3, 12].forEach((i) => { at(i, -1, "#E8E4D8"); at(i, 2, "#B8B2A2"); });
-    for (let i = 6; i <= 13; i++) { const ancho = 6 - Math.round(Math.abs(i - 9.5) * 1.1); for (let k = 2; k <= 2 + ancho; k++) at(i, k, k === 2 + ancho ? "#9AA3B0" : (i + k) % 3 ? "#3E4048" : "#2A2C33"); }
+    for (let i = -3; i <= LARGO_UZU; i++) for (let k = 0; k < 2; k++) at(i, k, k ? "#B8B2A2" : "#E8E4D8");
+    [-3, LARGO_UZU].forEach((i) => { at(i, -1, "#E8E4D8"); at(i, 2, "#B8B2A2"); });
+    for (let i = LARGO_UZU - 6; i <= LARGO_UZU + 1; i++) { const ancho = 6 - Math.round(Math.abs(i - (LARGO_UZU - 2.5)) * 1.1); for (let k = 2; k <= 2 + ancho; k++) at(i, k, filoUzu(k - 2, ancho)); }
     hdContorno(px, pts);
   };
 const anguloUzu = (p) => {
@@ -1536,9 +1540,9 @@ const anguloUzu = (p) => {
   return (80 * Math.PI) / 180;
 };
 const HD_UZU34 = { ...HD_UZU, brazoGrueso: 2, brazoCerca: { hombro: [11, 22] },
-  manos: { ...HD_UZU.manos, guardia: [22, 28] },   // la mano justo bajo el hombro: el hacha pesa
+  manos: { ...HD_UZU.manos, guardia: [22, 28], sube: [26, 20], alto: [27, 13] },   // la mano justo bajo el hombro: el hacha pesa; al celebrar, el brazo se abre en espejo del otro (el mango ya no pasa junto a la cara)
   /* Codo en cada fase: apenas flectado en guardia; sube alto al tomar impulso y baja con el hachazo. */
-  codos: { guardia: [23, 25], impulso: [23, 16], golpe: [25, 18], choque: [25, 20], sigue: [24, 22], sube: [24, 20], alto: [23, 17] },
+  codos: { guardia: [23, 25], impulso: [23, 16], golpe: [25, 18], choque: [25, 20], sigue: [24, 22], sube: [25, 24], alto: [26, 19] },
   pierna: { ...HD_UZU.pierna, ancho: 3 },   // piernas más delgadas
   /* Asoman solo unos dedos sobre el mango: se ve que lo agarra sin tapar el hacha. */
   arma: (px, p) => {
@@ -3292,4 +3296,4 @@ const baculoXitin = (px, hx, hy, brilla = false) => {
 }
 const HD_POR_ID = Object.fromEntries(HEROES_34.map(([base, tc]) => [base.id, tc]));
 const HD_BASE_POR_ID = Object.fromEntries(HEROES_34.map(([base]) => [base.id, base]));
-export { HDK, hdColor, notaMusical, armaCupe, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
+export { HDK, hdColor, notaMusical, armaCupe, dagaUchis, HD_OX, HD_OY, aguilaVuela, conCollarUzu, gataCalico, gataGordita, hdDibujar, hdPose, hdLinea, hdContorno, HD_POR_ID, HD_BASE_POR_ID, collarOso, COLLAR_OSO, sapoMalala, flechaJanet, pajaritos, enredaRival, florCabeza, estrellita }
