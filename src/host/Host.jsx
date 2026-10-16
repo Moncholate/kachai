@@ -81,6 +81,7 @@ export default function Host() {
   const store = useStore()
   const [pin, setPin] = useState(null)
   const [error, setError] = useState(null)
+  const [bonusRindio, setBonusRindio] = useState(false)   // Lexicón ya se rindió en esta ronda bonus
   const opening = useRef(false)
 
   useEffect(() => {
@@ -350,8 +351,9 @@ function HostRoom({ store, pin, tema }) {
   /* La última pregunta tiene su tema propio (Final Question o Final Sprint, según el juego), haya 2X o no. */
   const track = state?.phase === 'end' ? null
     : state?.phase === 'answering' && isLast ? finalTrack(state?.round)
-    : state?.phase === 'bonus' && state.etapa === 'juego' ? 'bonus'
+    : state?.phase === 'bonus' && state.etapa === 'juego' && !bonusRindio ? 'bonus'   // al rendirse Lexicón la música se apaga: el remate suena solo
     : ({ lobby: 'lobby', answering: answeringTrack(state?.round, state?.qIndex) }[state?.phase] ?? null)
+  useEffect(() => { if (state?.etapa !== 'juego' && state?.etapa !== 'final') setBonusRindio(false) }, [state?.etapa])
   useEffect(() => { getSound().play(track) }, [track])
   useEffect(() => () => { getSound().play(null) }, [])
 
@@ -568,7 +570,7 @@ function HostRoom({ store, pin, tema }) {
         )}
 
         {state.phase === 'bonus' && (
-          <BonusProyector state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
+          <BonusProyector onRindio={() => setBonusRindio(true)} state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
             heroes={Object.fromEntries(Object.entries(players).map(([id, p]) => [id, heroFor(id, p.hero).id]))} />
         )}
 

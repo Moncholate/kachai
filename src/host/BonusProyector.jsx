@@ -9,7 +9,7 @@ import { EscenaBonus } from '../game/bonusProyector.js'
    'elegir': el profe toca una categoría · 'juego': cuenta regresiva + 40 s ·
    'final': Lexicón se rinde (o se cuentan las metas logradas) y se celebra.
    Nada de nombres ni errores: solo lo que logra el curso entre todos. */
-export default function BonusProyector({ state, hits, heroes, now, sugeridas, onElegir, onSaltar }) {
+export default function BonusProyector({ state, hits, heroes, now, sugeridas, onElegir, onSaltar, onRindio }) {
   const t = useT()
   const [verMas, setVerMas] = useState(false)
   const lienzo = useRef(null)
@@ -24,7 +24,7 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
 
   useEffect(() => {
     if (etapa === 'elegir' || !lienzo.current) return
-    escena.current = new EscenaBonus(lienzo.current, (n) => getSound().effect(n))
+    escena.current = new EscenaBonus(lienzo.current, (n) => { if (n === 'lexiconSurrender') onRindio?.(); getSound().effect(n) })
     return () => { escena.current?.destruir(); escena.current = null }
   }, [etapa === 'elegir'])
   useEffect(() => { escena.current?.actualizar({ fase, aciertos, heroes, meta }) })
