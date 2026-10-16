@@ -2,13 +2,93 @@
    de pregunta (completar, elegir la oración correcta, transformar, doble hueco,
    definición). Cortas a propósito: 6 preguntas (hasta 15 si el tema lo pide), 3–4 alternativas.
 
-   Por ahora, los cursos del semestre: Básico II, Elemental I, Intermedio I e
-   Intermedio Intensivo. El intensivo reutiliza los de Intermedio I en su EA1
-   (mismos KC) y suma los suyos propios. */
+   Todos los cursos. Los intensivos reutilizan los de sus dos cursos regulares,
+   sin lo que en el intensivo es SC y con lo que ahí pasa a ser KC. */
 
 import { mc } from './logic.js'
 
 const focus = (topic, ...questions) => ({ topic, questions })
+const sin = (list, ...topics) => list.filter((f) => !topics.includes(f.topic))
+
+/* ───────────── Básico I ───────────── */
+
+const BASICO1_EA1 = [
+  focus('Verb be',
+    mc('I ___ from Chile.', '’m', '’s', '’re', 'be'),
+    mc('She ___ a doctor.', 'is', 'are', 'am', 'be'),
+    mc('We ___ students.', 'are', 'is', 'am', 'be'),
+    mc('He ___ Mexican. He’s from Spain.', 'isn’t', 'aren’t', '’m not', 'not'),
+    mc('___ you a teacher? – Yes, I am.', 'Are', 'Is', 'Am', 'Do'),
+    mc('Is it a good hotel? – No, it ___.', 'isn’t', 'aren’t', 'not', 'doesn’t'),
+  ),
+  focus('Wh- questions with be',
+    mc('___ is your name? – Daniela.', 'What', 'Where', 'Who', 'How'),
+    mc('___ are you from? – I’m from Peru.', 'Where', 'What', 'Who', 'How'),
+    mc('___ old are you? – I’m 25.', 'How', 'What', 'Where', 'Who'),
+    mc('Choose the correct question.', 'Where is he from?', 'Where he is from?', 'Where is from he?', 'Where are he from?'),
+    mc('What ___ your phone number?', 'is', 'are', 'am', 'do'),
+    mc('Who ___ they? – They’re my friends.', 'are', 'is', 'am', 'do'),
+  ),
+  focus('Singular & plural nouns',
+    mc('one watch, two ___', 'watches', 'watchs', 'watch', 'watchies'),
+    mc('one key, two ___', 'keys', 'keies', 'keyes', 'key'),
+    mc('one dictionary, two ___', 'dictionaries', 'dictionarys', 'dictionaryes', 'dictionary'),
+    mc('one man, two ___', 'men', 'mans', 'mens', 'man'),
+    mc('It’s ___ umbrella.', 'an', 'a', 'two', 'these'),
+    mc('Choose the correct sentence.', 'They’re my glasses.', 'It’s my glasses.', 'They’re my glass.', 'They’re mys glasses.'),
+  ),
+  focus('This, that, these, those',
+    mc('___ is my phone, here in my hand.', 'This', 'That', 'These', 'Those'),
+    mc('Look at ___ birds over there!', 'those', 'these', 'this', 'that'),
+    mc('___ shoes are new. I’m wearing them now.', 'These', 'This', 'That', 'Those'),
+    mc('What’s ___ over there? – It’s a museum.', 'that', 'this', 'these', 'those'),
+    mc('Choose the correct sentence.', 'These are my keys.', 'These is my keys.', 'This are my keys.', 'These are my key.'),
+    mc('Are ___ your books, on the table over there?', 'those', 'these', 'that', 'this'),
+  ),
+]
+
+const BASICO1_EA2 = [
+  focus('Possessive adjectives & ’s',
+    mc('This is ___ sister. Her name is Ana.', 'my', 'me', 'I', 'mine'),
+    mc('Tom and Lisa love ___ kids.', 'their', 'there', 'they', 'his'),
+    mc('Pedro is ___ brother.', 'Laura’s', 'Lauras', 'Laura', 'Lauras’'),
+    mc('He lives with ___ wife in Lima.', 'his', 'her', 'he', 'him'),
+    mc('Choose the correct sentence.', 'My mother’s car is red.', 'My mother car is red.', 'The car my mother is red.', 'My mothers car is red.'),
+    mc('Is this ___ bag? – Yes, thank you!', 'your', 'you', 'you’re', 'yours'),
+  ),
+  focus('Adjectives',
+    mc('Choose the correct sentence.', 'It’s a fast car.', 'It’s a car fast.', 'It’s a fasts car.', 'It’s fast a car.'),
+    mc('Choose the correct sentence.', 'They’re expensive shoes.', 'They’re expensives shoes.', 'They’re shoes expensives.', 'They’re an expensive shoes.'),
+    mc('The opposite of “old” (a car) is ___.', 'new', 'young', 'big', 'cheap'),
+    mc('The opposite of “cheap” is ___.', 'expensive', 'easy', 'long', 'slow'),
+    mc('My cat is very ___.', 'beautiful', 'beautifuls', 'a beautiful', 'beauty'),
+    mc('Choose the correct sentence.', 'Her eyes are blue.', 'Her eyes are blues.', 'Her blues eyes are.', 'Her eyes is blue.'),
+  ),
+  focus('Simple present: I, you, we, they',
+    mc('I ___ coffee in the morning.', 'drink', 'drinks', 'drinking', 'am drink'),
+    mc('We ___ eat meat. We’re vegetarian.', 'don’t', 'doesn’t', 'aren’t', 'not'),
+    mc('___ you like pasta? – Yes, I do.', 'Do', 'Does', 'Are', 'Is'),
+    mc('They ___ in an apartment in the city.', 'live', 'lives', 'living', 'are live'),
+    mc('Do they have children? – No, they ___.', 'don’t', 'doesn’t', 'aren’t', 'not'),
+    mc('Choose the correct sentence.', 'You don’t speak French.', 'You not speak French.', 'You doesn’t speak French.', 'You don’t speaks French.'),
+  ),
+  focus('Simple present: he, she, it',
+    mc('My brother ___ in a bank.', 'works', 'work', 'working', 'is work'),
+    mc('She ___ like her job.', 'doesn’t', 'don’t', 'isn’t', 'not'),
+    mc('___ he wear a uniform?', 'Does', 'Do', 'Is', 'Are'),
+    mc('watch → she ___', 'watches', 'watchs', 'watch', 'watchies'),
+    mc('have → he ___', 'has', 'haves', 'have', 'hases'),
+    mc('Choose the correct question.', 'Does your sister drive?', 'Does your sister drives?', 'Do your sister drive?', 'Is your sister drive?'),
+  ),
+  focus('Adverbs of frequency',
+    mc('Choose the correct sentence.', 'I always have breakfast at home.', 'I have always breakfast at home.', 'I have breakfast always at home.', 'I always has breakfast at home.'),
+    mc('Choose the correct sentence.', 'She is never late.', 'She never late is.', 'Never she is late.', 'She is late never.'),
+    mc('0% = ___', 'never', 'sometimes', 'usually', 'always'),
+    mc('100% = ___', 'always', 'usually', 'often', 'sometimes'),
+    mc('Choose the correct sentence.', 'We usually go to bed at 11.', 'We go usually to bed at 11.', 'We go to bed usually at 11.', 'We usually goes to bed at 11.'),
+    mc('He ___ eats fish. He hates it!', 'never', 'always', 'usually', 'often'),
+  ),
+]
 
 /* ───────────── Básico II ───────────── */
 
@@ -197,6 +277,129 @@ const ELEMENTAL1_EA2 = [
   ),
 ]
 
+/* ───────────── Elemental II ───────────── */
+
+const ELEMENTAL2_EA1 = [
+  focus('Simple past of be',
+    mc('Frida Kahlo ___ a Mexican painter.', 'was', 'were', 'did', 'be'),
+    mc('The Beatles ___ a very famous band in the 1960s.', 'were', 'was', 'did', 'are'),
+    mc('I ___ at school yesterday. I was sick.', 'wasn’t', 'weren’t', 'didn’t', 'isn’t'),
+    mc('Where ___ you born?', 'were', 'was', 'did', 'are'),
+    mc('Was it cold last night? – Yes, it ___.', 'was', 'were', 'did', 'is'),
+    mc('Choose the correct question.', 'Were your parents at home?', 'Was your parents at home?', 'Did your parents at home?', 'Were at home your parents?'),
+  ),
+  focus('Simple past: regular verbs',
+    mc('We ___ a movie last night.', 'watched', 'watch', 'watching', 'watches'),
+    mc('study → past simple', 'studied', 'studyed', 'studed', 'studies'),
+    mc('I ___ my grandmother ___.', 'called / yesterday', 'call / yesterday', 'called / tomorrow', 'calling / yesterday'),
+    mc('She didn’t ___ the bus this morning.', 'miss', 'missed', 'misses', 'missing'),
+    mc('I moved to Santiago two years ___.', 'ago', 'last', 'yesterday', 'past'),
+    mc('___ you like the concert? – Yes, it was great!', 'Did', 'Were', 'Do', 'Was'),
+  ),
+  focus('Simple past: irregular verbs',
+    mc('go → past simple', 'went', 'goed', 'gone', 'wented'),
+    mc('Last Saturday we ___ a party at home.', 'had', 'have', 'haved', 'has'),
+    mc('I ___ up late this morning.', 'got', 'get', 'getted', 'gets'),
+    mc('see → past simple', 'saw', 'seed', 'seen', 'sawed'),
+    mc('I ___ a cake and my brother ___ the dishes.', 'made / washed', 'maked / washed', 'made / washd', 'make / wash'),
+    mc('Choose the correct sentence.', 'She didn’t go to work.', 'She didn’t went to work.', 'She don’t went to work.', 'She not went to work.'),
+    mc('What time ___ you leave the party?', 'did', 'were', 'do', 'was'),
+  ),
+  focus('There is / there are + some / any',
+    mc('There ___ some plants in the living room.', 'are', 'is', 'be', 'has'),
+    mc('There aren’t ___ chairs in the kitchen.', 'any', 'some', 'a', 'an'),
+    mc('Is there ___ bathroom upstairs?', 'a', 'any', 'some', 'an'),
+    mc('There are ___ books on the shelf.', 'some', 'any', 'a', 'an'),
+    mc('Are there ___ towels in the bathroom?', 'any', 'a', 'an', 'much'),
+    mc('Choose the correct sentence.', 'There’s a big window in my bedroom.', 'There are a big window in my bedroom.', 'It has a big window in my bedroom.', 'There’s some big window in my bedroom.'),
+  ),
+  focus('There was / there were',
+    mc('There ___ a lot of people at the party last night.', 'were', 'was', 'are', 'had'),
+    mc('There ___ a cinema here in 1990.', 'was', 'were', 'is', 'had'),
+    mc('There ___ any trains yesterday because of the snow.', 'weren’t', 'wasn’t', 'didn’t', 'aren’t'),
+    mc('___ there a TV in your room when you were a child?', 'Was', 'Were', 'Did', 'Is'),
+    mc('Were there any problems? – No, there ___.', 'weren’t', 'wasn’t', 'didn’t', 'aren’t'),
+    mc('Choose the correct sentence.', 'There wasn’t any milk in the fridge.', 'There weren’t any milk in the fridge.', 'There wasn’t some milk in the fridge.', 'It wasn’t any milk in the fridge.'),
+  ),
+  focus('Countable & uncountable nouns',
+    mc('Which one is uncountable?', 'rice', 'egg', 'apple', 'tomato'),
+    mc('Which one is countable?', 'banana', 'bread', 'milk', 'cheese'),
+    mc('I’d like ___ water, please.', 'some', 'a', 'an', 'many'),
+    mc('There’s ___ onion in the fridge.', 'an', 'a', 'some', 'many'),
+    mc('We don’t have ___ sugar.', 'any', 'a', 'many', 'an'),
+    mc('Choose the correct sentence.', 'I need some information.', 'I need an information.', 'I need some informations.', 'I need many information.'),
+  ),
+  focus('Quantifiers: how much / how many',
+    mc('How ___ coffee do you drink a day?', 'much', 'many', 'often', 'long'),
+    mc('How ___ eggs do we need?', 'many', 'much', 'often', 'lot'),
+    mc('I don’t eat ___ meat. Only on Sundays.', 'much', 'many', 'few', 'a'),
+    mc('He drinks ___ water: eight glasses a day!', 'a lot of', 'many', 'few', 'any'),
+    mc('How much sugar do you eat? – ___', 'Not much.', 'Not many.', 'A few.', 'No many.'),
+    mc('Choose the correct question.', 'How many people are there?', 'How much people are there?', 'How many people there are?', 'How many people is there?'),
+  ),
+  focus('Comparative adjectives',
+    mc('My city is ___ than yours.', 'bigger', 'more big', 'biger', 'biggest'),
+    mc('This book is ___ than the movie.', 'more interesting', 'interestinger', 'most interesting', 'more interestinger'),
+    mc('good → comparative', 'better', 'gooder', 'more good', 'best'),
+    mc('happy → comparative', 'happier', 'happyer', 'more happier', 'happiest'),
+    mc('A plane is faster ___ a train.', 'than', 'that', 'as', 'then'),
+    mc('bad → comparative', 'worse', 'badder', 'more bad', 'worst'),
+  ),
+]
+
+const ELEMENTAL2_EA2 = [
+  focus('Be going to',
+    mc('I ___ visit my grandparents this weekend.', '’m going to', 'going to', '’m go to', 'go to'),
+    mc('Look at those clouds! It ___ rain.', '’s going to', 'goes to', 'going to', 'is go to'),
+    mc('They ___ going to buy a car. They don’t have money.', 'aren’t', 'don’t', 'isn’t', 'not'),
+    mc('What ___ you going to do on vacation?', 'are', 'do', 'is', 'will'),
+    mc('Choose the correct sentence.', 'She’s going to study medicine.', 'She’s going study medicine.', 'She going to study medicine.', 'She’s going to studies medicine.'),
+    mc('Are you going to cook tonight? – Yes, I ___.', 'am', 'do', 'going', 'will'),
+  ),
+  focus('Adverbs',
+    mc('She speaks English very ___.', 'well', 'good', 'goodly', 'better'),
+    mc('Please drive ___. The road is dangerous.', 'carefully', 'careful', 'carefuly', 'care'),
+    mc('quick → adverb', 'quickly', 'quickely', 'quicky', 'quick'),
+    mc('He works very ___. He always finishes late.', 'slowly', 'slow', 'slowy', 'slowness'),
+    mc('Choose the correct sentence.', 'They played very badly.', 'They played very bad.', 'They very badly played.', 'They played badly very.'),
+    mc('I’m ___ tired. I need to sleep now.', 'very', 'very much', 'a lot', 'much'),
+  ),
+  focus('Verbs + infinitive',
+    mc('I want ___ a new language.', 'to learn', 'learn', 'learning', 'learned'),
+    mc('She decided ___ her job.', 'to leave', 'leave', 'leaving', 'left'),
+    mc('We need ___ some milk.', 'to buy', 'buy', 'buying', 'bought'),
+    mc('Do you plan ___ to Europe next year?', 'to travel', 'travel', 'traveling', 'travels'),
+    mc('I’d like ___ a coffee, please.', 'to have', 'have', 'having', 'had'),
+    mc('Choose the correct sentence.', 'He promised to call me.', 'He promised call me.', 'He promised calling me.', 'He promised to calling me.'),
+  ),
+  focus('Present perfect',
+    mc('I ___ been to Brazil three times.', '’ve', '’m', 'did', '’s'),
+    mc('She ___ never eaten sushi.', 'has', 'have', 'is', 'did'),
+    mc('___ you ever seen a ghost?', 'Have', 'Did', 'Are', 'Do'),
+    mc('write → past participle', 'written', 'wrote', 'writed', 'writen'),
+    mc('Have you ever ridden a horse? – No, I ___.', 'haven’t', 'didn’t', 'don’t', 'hasn’t'),
+    mc('Choose the correct sentence.', 'We’ve never been to Paris.', 'We’ve never went to Paris.', 'We never have been to Paris.', 'We’ve never be to Paris.'),
+  ),
+  focus('Present perfect or simple past?',
+    mc('Have you ever been to Peru? – Yes, I ___ there in 2022.', 'went', '’ve been', '’ve gone', 'go'),
+    mc('I ___ that movie last Friday.', 'saw', '’ve seen', 'see', '’ve saw'),
+    mc('___ you ever ___ in a band?', 'Have / played', 'Did / played', 'Have / play', 'Has / played'),
+    mc('When ___ you meet your best friend?', 'did', 'have', 'has', 'were'),
+    mc('She ___ to London last year.', 'went', 'has gone', 'has been', 'goes'),
+    mc('Choose the correct sentence.', 'I’ve never eaten octopus.', 'I never have eaten octopus.', 'I’ve never ate octopus.', 'I didn’t never eat octopus.'),
+  ),
+]
+
+/* KC solo en Elemental Intensivo (en Elemental II es SC). */
+const SUPERLATIVES = focus('Superlative adjectives',
+  mc('It’s the ___ city in the country.', 'biggest', 'bigest', 'most big', 'bigger'),
+  mc('This is the ___ beautiful beach I know.', 'most', 'more', 'much', 'very'),
+  mc('Who is the ___ person in your family?', 'oldest', 'older', 'most old', 'olddest'),
+  mc('good → superlative', 'the best', 'the goodest', 'the better', 'the most good'),
+  mc('bad → superlative', 'the worst', 'the baddest', 'the worse', 'the most bad'),
+  mc('Choose the correct sentence.', 'It’s the most expensive hotel in Lima.', 'It’s the expensivest hotel in Lima.', 'It’s the more expensive hotel in Lima.', 'It’s most expensive the hotel in Lima.'),
+)
+
 /* ───────────── Intermedio I ───────────── */
 
 const INTERMEDIO1_EA1 = [
@@ -376,11 +579,103 @@ const INTERMEDIO_INT_EA2 = [
   ),
 ]
 
+/* ───────────── Intermedio II ─────────────
+   Reutiliza los del intensivo donde el KC es el mismo. */
+
+const [GERUNDS_INFINITIVES, FIRST_CONDITIONAL, SECOND_CONDITIONAL, FOR_SINCE, USED_TO] = INTERMEDIO_INT_EA2
+
+const ADVERBS_OF_MANNER = focus('Adverbs of manner',
+  mc('He closed the door ___ so he didn’t wake the baby.', 'quietly', 'quiet', 'quietely', 'quieter'),
+  mc('She plays the piano ___.', 'beautifully', 'beautiful', 'beautifuly', 'beauty'),
+  mc('Choose the correct sentence.', 'He works very hard.', 'He works very hardly.', 'He hardly works very.', 'He works very hardy.'),
+  mc('We arrived ___ and missed the train.', 'late', 'lately', 'latly', 'lates'),
+  mc('Choose the correct sentence.', 'She speaks English fluently.', 'She speaks fluently English.', 'She speaks English fluent.', 'Fluently she English speaks.'),
+  mc('good → adverb', 'well', 'goodly', 'good', 'best'),
+)
+
+const PP_OR_PAST_BIOGRAPHIES = focus('Present perfect or simple past?',
+  mc('Lionel Messi ___ in Rosario in 1987.', 'was born', 'has been born', 'is born', 'born'),
+  mc('Gabriela Mistral ___ the Nobel Prize in 1945.', 'won', 'has won', 'wins', 'has winned'),
+  mc('My grandmother is 80. She ___ in the same house since 1970.', 'has lived', 'lived', 'lives', 'is living'),
+  mc('Pablo Neruda ___ many famous poems. He died in 1973.', 'wrote', 'has written', 'writes', 'has wrote'),
+  mc('How long ___ you known your best friend?', 'have', 'did', 'are', 'do'),
+  mc('Choose the correct sentence.', 'She has worked here since 2019.', 'She works here since 2019.', 'She has worked here in 2019.', 'She is working here since 2019.'),
+)
+
+const QUESTION_WORDS = focus('Question words',
+  mc('___ did you get here? – By taxi.', 'How', 'What', 'Where', 'Which'),
+  mc('___ is your birthday? – In March.', 'When', 'What', 'Where', 'How'),
+  mc('___ car is this? – It’s my brother’s.', 'Whose', 'Who', 'Who’s', 'What'),
+  mc('___ long does the trip take? – About two hours.', 'How', 'What', 'Which', 'When'),
+  mc('___ one do you want, the red one or the blue one?', 'Which', 'Who', 'Where', 'How'),
+  mc('___ do you study English? – Because I need it for work.', 'Why', 'What', 'How', 'Where'),
+)
+
+const INTERMEDIO2_EA1 = [
+  GERUNDS_INFINITIVES,
+  focus('Have to, don’t have to, must, mustn’t',
+    mc('You ___ wear a uniform at my school. It’s the rule.', 'have to', 'don’t have to', 'mustn’t', 'has to'),
+    mc('It’s Sunday! I ___ get up early.', 'don’t have to', 'mustn’t', 'have to', 'doesn’t have to'),
+    mc('You ___ smoke on the plane. It’s prohibited.', 'mustn’t', 'don’t have to', 'must', 'have to'),
+    mc('She ___ work on Saturdays. She only works Monday to Friday.', 'doesn’t have to', 'mustn’t', 'don’t have to', 'has to'),
+    mc('___ you have to wear a tie at work?', 'Do', 'Are', 'Must', 'Have'),
+    mc('Choose the correct sentence.', 'You must be quiet in the library.', 'You must to be quiet in the library.', 'You musts be quiet in the library.', 'You have be quiet in the library.'),
+  ),
+  FIRST_CONDITIONAL,
+  ADVERBS_OF_MANNER,
+  SECOND_CONDITIONAL,
+  FOR_SINCE,
+  PP_OR_PAST_BIOGRAPHIES,
+]
+
+const INTERMEDIO2_EA2 = [
+  focus('Prepositions of movement',
+    mc('The horse jumped ___ the fence and won the race.', 'over', 'through', 'into', 'along'),
+    mc('We walked ___ the river for an hour.', 'along', 'over', 'into', 'out of'),
+    mc('The train went ___ a long tunnel.', 'through', 'over', 'along', 'onto'),
+    mc('She ran ___ the house because it was raining.', 'into', 'out of', 'over', 'across'),
+    mc('Walk ___ the street at the crosswalk.', 'across', 'along', 'into', 'up'),
+    mc('The plane took off and flew ___ the mountains.', 'over', 'into', 'out of', 'along'),
+  ),
+  // Solo significado: el orden (pick them up) es SC en Intermedio II.
+  focus('Phrasal verbs',
+    mc('Please ___ your shoes before you come in.', 'take off', 'put on', 'turn on', 'get up'),
+    mc('It’s dark in here. Can you ___ the light?', 'turn on', 'turn off', 'take off', 'give back'),
+    mc('I ___ at 7 every morning.', 'get up', 'get on', 'give up', 'look up'),
+    mc('Stop doing something, like smoking:', 'give up', 'take up', 'look after', 'turn down'),
+    mc('Try to find something you lost:', 'look for', 'look after', 'look up', 'give back'),
+    mc('Return something to its owner:', 'give back', 'give up', 'take off', 'turn on'),
+  ),
+  USED_TO,
+  focus('Might',
+    mc('Take an umbrella. It ___ rain later.', 'might', 'might to', 'mights', 'is might'),
+    mc('I’m not sure. I ___ stay home tonight.', 'might', 'might to', 'mights', 'am might'),
+    mc('She ___ not come. She’s very busy.', 'might', 'mights', 'might to', 'doesn’t might'),
+    mc('Choose the correct sentence.', 'We might not have time.', 'We might not to have time.', 'We don’t might have time.', 'We mightn’t to have time.'),
+    mc('Which one means “maybe I will”?', 'I might.', 'I must.', 'I should.', 'I have to.'),
+    mc('Don’t touch the dog. It ___ bite you.', 'might', 'might to', 'mights', 'is might'),
+  ),
+  QUESTION_WORDS,
+]
+
 /* curso → [EA1, EA2] */
 export const FOCUS = {
+  basico1: [BASICO1_EA1, BASICO1_EA2],
   basico2: [BASICO2_EA1, BASICO2_EA2],
+  // En el intensivo object pronouns y can / can’t son SC.
+  basicoInt: [[...BASICO1_EA1, ...BASICO1_EA2], [...sin(BASICO2_EA1, 'Object pronouns', 'Can / can’t'), ...BASICO2_EA2]],
   elemental1: [ELEMENTAL1_EA1, ELEMENTAL1_EA2],
+  elemental2: [ELEMENTAL2_EA1, ELEMENTAL2_EA2],
+  // En el intensivo a / an & plurals, there is / was y verbs + infinitive son SC; superlatives pasa a KC.
+  elementalInt: [
+    [...sin(ELEMENTAL1_EA1, 'A / an & plurals'), ...ELEMENTAL1_EA2],
+    [...sin(ELEMENTAL2_EA1, 'There is / there are + some / any', 'There was / there were'), SUPERLATIVES,
+      ...sin(ELEMENTAL2_EA2, 'Verbs + infinitive')],
+  ],
   intermedio1: [INTERMEDIO1_EA1, INTERMEDIO1_EA2],
+  intermedio2: [INTERMEDIO2_EA1, INTERMEDIO2_EA2],
   // EA1 del intensivo = KC de Intermedio I completo, más "make or do", que ahí es KC.
-  intermedioInt: [[...INTERMEDIO1_EA1, ...INTERMEDIO1_EA2, MAKE_OR_DO], INTERMEDIO_INT_EA2],
+  // EA2 suma los KC de Intermedio II que no estaban (adverbs of manner, biografías, question words).
+  intermedioInt: [[...INTERMEDIO1_EA1, ...INTERMEDIO1_EA2, MAKE_OR_DO],
+    [...INTERMEDIO_INT_EA2, ADVERBS_OF_MANNER, PP_OR_PAST_BIOGRAPHIES, QUESTION_WORDS]],
 }

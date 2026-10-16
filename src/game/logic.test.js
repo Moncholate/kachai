@@ -107,16 +107,18 @@ describe('biblioteca', () => {
       expect(s.questions.length).toBeLessThanOrEqual(15)
     }
   })
-  it('Grammar Focus: cortas (6 a 15) y en los cursos del semestre', () => {
+  it('Grammar Focus: cortas (6 a 15) y en todos los cursos', () => {
     const focus = SETS.filter((x) => x.type === 'grammar-focus')
     for (const s of focus) {
       expect(s.questions.length).toBeGreaterThanOrEqual(6)
       expect(s.questions.length).toBeLessThanOrEqual(15)
       expect(s.title).toBe(`Grammar Focus · ${s.topic}`)
     }
-    for (const id of ['basico2', 'elemental1', 'intermedio1', 'intermedioInt']) {
-      for (const e of COURSES.find((c) => c.id === id).eas) {
-        expect(e.activities.filter((a) => a.type === 'grammar-focus').length).toBeGreaterThanOrEqual(4)
+    for (const c of COURSES) {
+      for (const e of c.eas) {
+        const topics = e.activities.filter((a) => a.type === 'grammar-focus').map((a) => a.topic)
+        expect(topics.length, `${c.id} ${e.ea}`).toBeGreaterThanOrEqual(4)
+        expect(new Set(topics).size, `${c.id} ${e.ea}: tema repetido`).toBe(topics.length)
       }
     }
   })
