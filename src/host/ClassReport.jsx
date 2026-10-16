@@ -1,6 +1,7 @@
 import { reportCsv } from '../game/report.js'
 import { Button, Prompt, ROLES, RoleTag } from '../ui.jsx'
 import { useT } from '../i18n.jsx'
+import { Icon } from '../icons.jsx'
 
 /* Resumen del curso para el profesor (ver game/report.js). Todo lo de arriba se
    puede proyectar: datos del curso y destacados en positivo. El detalle por
@@ -79,7 +80,7 @@ export default function ClassReport({ report, title, closeLabel, onClose }) {
                       <Prompt text={q.prompt} highlightWh={q.kind !== 'choice'} className="flex-1 text-lg" />
                       <span className={`rounded-full px-2 text-sm font-black text-white ${tone(q.correctRate)}`}>{q.correctRate}%</span>
                     </div>
-                    <p className="pl-8 font-bold text-green-700">✓ {q.solution}</p>
+                    <p className="pl-8 font-bold text-green-700 flex items-center gap-1.5"><Icon name="check" className="w-4 h-4" strokeWidth={3} />{q.solution}</p>
                     <Mistake q={q} />
                   </li>
                 ))}
@@ -89,7 +90,7 @@ export default function ClassReport({ report, title, closeLabel, onClose }) {
 
         <Card title={t('destacados')}>
           <ul className="flex flex-col gap-2 text-lg">
-            {highlights.mvp && <li>⭐ <b>{highlights.mvp.name}</b>{t('destacadoMvp', highlights.mvp.total)}</li>}
+            {highlights.mvp && <li><Icon name="star" className="w-4 h-4 -mt-1 mr-1 text-amber-500" /><b>{highlights.mvp.name}</b>{t('destacadoMvp', highlights.mvp.total)}</li>}
             {highlights.perfect.length > 0 && <li>{t('todoCorrecto')}<b>{highlights.perfect.join(', ')}</b></li>}
             {highlights.streak && <li>{t('rachaLarga')}<b>{highlights.streak.name}</b>{t('enSeguidas', highlights.streak.streak)}</li>}
             {highlights.improved && <li>{t('masMejoro')}<b>{highlights.improved.name}</b>{t('segundaMitad', highlights.improved.improvement)}</li>}

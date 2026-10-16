@@ -5,6 +5,7 @@ import {
 } from '../game/library.js'
 import { Button } from '../ui.jsx'
 import { traducir, useT } from '../i18n.jsx'
+import { Icon } from '../icons.jsx'
 
 /* Editor de actividades de la biblioteca personal. Trabaja sobre un borrador:
    nada se guarda hasta "Guardar".
@@ -100,9 +101,9 @@ export default function Editor({ heading, subheading, mechanic, questions, title
             <input value={d.prompt} onChange={(e) => change(i, { prompt: e.target.value })}
               placeholder={mechanic === 'choice' ? t('preguntaHueco') : t('preguntaAbierta')}
               className="flex-1 min-w-0 rounded-xl border-2 border-slate-200 px-3 py-2 font-bold focus:border-[#0F6FD6] outline-none" />
-            <IconButton title={t('subir')} disabled={i === 0} onClick={() => move(i, -1)}>↑</IconButton>
-            <IconButton title={t('bajar')} disabled={i === drafts.length - 1} onClick={() => move(i, 1)}>↓</IconButton>
-            <IconButton title={t('eliminarPregunta')} disabled={drafts.length === 1} onClick={() => remove(i)}>🗑</IconButton>
+            <IconButton title={t('subir')} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="up" className="w-4 h-4" /></IconButton>
+            <IconButton title={t('bajar')} disabled={i === drafts.length - 1} onClick={() => move(i, 1)}><Icon name="down" className="w-4 h-4" /></IconButton>
+            <IconButton title={t('eliminarPregunta')} disabled={drafts.length === 1} onClick={() => remove(i)}><Icon name="trash" className="w-4 h-4" /></IconButton>
           </div>
 
           <div className="pl-10">
@@ -252,7 +253,7 @@ function ImageField({ value, onChange }) {
 function IconButton({ children, ...props }) {
   return (
     <button {...props}
-      className="w-8 h-8 shrink-0 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-25 disabled:hover:bg-transparent">
+      className="w-8 h-8 shrink-0 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-25 disabled:hover:bg-transparent">
       {children}
     </button>
   )

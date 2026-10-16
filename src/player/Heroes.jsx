@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato, pintarRetratoRacha } from '../game/heroes.js'
 import { useT } from '../i18n.jsx'
 import { alAzar as coloresAlAzar, colorMuestra, materialesDe } from '../game/personaliza.js'
+import { Icon } from '../icons.jsx'
 
 const CLASE_EN = {
   latte: 'Trickster', agattita: 'Druid', malala: 'Witch', malia: 'Chef', kenny: 'Bard',
@@ -150,7 +151,7 @@ function HeroColors({ hero, colores, onChange }) {
       <button key={op || 'original'} type="button" onClick={() => elige(m, op)} aria-pressed={activo} aria-label={`${titulo(m)}: ${nombre}`} title={nombre}
         className={`relative w-8 h-8 shrink-0 rounded-full border-2 transition active:scale-90 ${activo ? 'border-amber-400 ring-2 ring-amber-400' : 'border-slate-300'}`}
         style={{ background: col === 'manchada' ? MANCHADA : col }}>
-        {!op && <span aria-hidden="true" className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-slate-300 text-[9px] font-black grid place-items-center text-slate-600">↺</span>}
+        {!op && <span aria-hidden="true" className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-slate-300 grid place-items-center text-slate-600"><Icon name="reset" className="w-2.5 h-2.5" strokeWidth={3} /></span>}
       </button>
     )
   }
@@ -158,12 +159,12 @@ function HeroColors({ hero, colores, onChange }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-3 flex flex-col gap-2 text-left">
       <button type="button" onClick={() => setAbierto(!abierto)} aria-expanded={abierto} className="flex items-center gap-2 font-black text-slate-900 text-left">
         <span className="flex-1">{t('personaliza')}</span>
-        <span aria-hidden="true" className={`text-slate-500 transition ${abierto ? 'rotate-180' : ''}`}>▾</span>
+        <span aria-hidden="true" className={`text-slate-500 transition ${abierto ? 'rotate-180' : ''}`}><Icon name="chevron" /></span>
       </button>
       {abierto && <>
       <div className="flex items-center gap-2 justify-end">
-        <button type="button" onClick={() => { onChange(coloresAlAzar(hero.id)); vibrar(30) }} className="rounded-full border-2 border-violet-300 text-violet-700 font-bold text-sm px-3 py-1">🎲 {t('alAzar')}</button>
-        <button type="button" onClick={() => { onChange({}); vibrar(15) }} className="rounded-full border-2 border-slate-300 text-slate-600 font-bold text-sm px-3 py-1">↺ {t('original')}</button>
+        <button type="button" onClick={() => { onChange(coloresAlAzar(hero.id)); vibrar(30) }} className="rounded-full border-2 border-violet-300 text-violet-700 font-bold text-sm px-3 py-1 flex items-center gap-1.5"><Icon name="shuffle" className="w-4 h-4" />{t('alAzar')}</button>
+        <button type="button" onClick={() => { onChange({}); vibrar(15) }} className="rounded-full border-2 border-slate-300 text-slate-600 font-bold text-sm px-3 py-1 flex items-center gap-1.5"><Icon name="reset" className="w-4 h-4" />{t('original')}</button>
       </div>
       {materialesDe(hero.id).map(([m, ops]) => (
         <div key={m} className="flex items-center gap-2">
@@ -211,7 +212,7 @@ export function HeroPicker({ value, heroe, onPick, alAzar, colores = {}, onColor
           <button key={h.id} type="button" onClick={() => tocar(h.id)} aria-pressed={h.id === value} aria-label={h.nombre}
             className={`relative aspect-square rounded-xl border-2 p-0.5 fondo-retrato transition active:scale-95 ${h.id === value ? 'border-amber-400 ring-2 ring-amber-400' : 'border-sky-300'}`}>
             <span key={recien === h.id ? 'salta' : 'quieto'} className={`block w-full h-full ${recien === h.id ? 'kachai-saltito' : ''}`}><Cara hero={h} /></span>
-            {h.id === value && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-indigo-950 text-xs font-black grid place-items-center shadow">✓</span>}
+            {h.id === value && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-indigo-950 grid place-items-center shadow"><Icon name="check" className="w-3.5 h-3.5" strokeWidth={3.5} /></span>}
           </button>
         ))}
       </div>

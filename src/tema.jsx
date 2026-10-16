@@ -13,6 +13,7 @@
    index.css, en un solo lugar, en vez de repartidos por cada pantalla.
    ========================================================================== */
 import { useEffect, useState } from 'react'
+import { Icon } from './icons.jsx'
 
 const leer = (k) => { try { return localStorage.getItem(k) } catch { return null } }
 const guardar = (k, v) => { try { localStorage.setItem(k, v) } catch { /* modo privado */ } }
@@ -55,8 +56,8 @@ export function useTema(clave = null, porDefecto = 'auto') {
 export function BotonTema({ tema, etiqueta, className = '' }) {
   return (
     <button onClick={tema.alternar} aria-label={etiqueta} title={etiqueta}
-      className={`w-9 h-9 grid place-items-center rounded-full text-lg hover:bg-slate-100 ${className}`}>
-      {tema.oscuro ? '☀️' : '🌙'}
+      className={`w-9 h-9 grid place-items-center rounded-full text-slate-600 hover:bg-slate-100 ${className}`}>
+      <Icon name={tema.oscuro ? 'sun' : 'moon'} />
     </button>
   )
 }

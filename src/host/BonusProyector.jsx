@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '../i18n.jsx'
 import { Button } from '../ui.jsx'
+import { Icon } from '../icons.jsx'
 import { BONUS_SEG, BONUS_INTRO_SEG, CATEGORIAS, metasLogradas } from '../game/bonus.js'
 import { getSound } from './sound.js'
 import { EscenaBonus, LLEGADA } from '../game/bonusProyector.js'
@@ -58,7 +59,7 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
             <p className="text-sm font-black uppercase tracking-widest text-slate-500 -mb-2">{t('bonusAntes')}</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">{antes.map(tarjeta)}</div>
           </>
-        ) : <Button variant="ghost" onClick={() => setVerMas(true)}>{t('bonusMas')} ▾</Button>)}
+        ) : <Button variant="ghost" onClick={() => setVerMas(true)}><span className="inline-flex items-center gap-1.5">{t('bonusMas')}<Icon name="chevron" className="w-4 h-4" /></span></Button>)}
         <Button variant="ghost" onClick={onSaltar}>{t('bonusSaltar')}</Button>
       </section>
     )
@@ -81,12 +82,12 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
           <div className="relative h-[2.4em] text-white font-black text-[.85em] [text-shadow:0_2px_3px_#000]">
             {[33, 66, 92].map((x, i) => (
               <span key={i} className={`absolute -translate-x-1/2 top-[.3em] whitespace-nowrap ${metas > i ? 'text-[#8fde5d]' : ''}`} style={{ left: `${x}%` }}>
-                {metas > i ? '✓ ' : ''}{t('bonusMeta', i + 1)}
+                {metas > i && <Icon name="check" className="w-[1em] h-[1em] -mt-[.15em] mr-[.2em]" strokeWidth={3.5} />}{t('bonusMeta', i + 1)}
               </span>
             ))}
           </div>
         </div>
-        <div className="bg-[rgba(11,18,34,.7)] text-white font-black rounded-[.6em] px-[.6em] py-[.2em] text-[1.5em] tabular-nums">⏱ 0:{String(quedan).padStart(2, '0')}</div>
+        <div className="bg-[rgba(11,18,34,.7)] text-white font-black rounded-[.6em] px-[.6em] py-[.2em] text-[1.5em] tabular-nums">0:{String(quedan).padStart(2, '0')}</div>
       </div>
       {fase === 'intro' && introMs != null && introMs >= LLEGADA.cruza && introMs < LLEGADA.vuelve && (
         <div key="llego" className="absolute left-1/2 bottom-[6%] -translate-x-1/2 whitespace-nowrap text-[3.4em] font-black text-[#ffe478] [text-shadow:0_4px_0_#272736,0_0_12px_#000] animate-[llego_.45s_cubic-bezier(.2,1.6,.4,1)_both]">

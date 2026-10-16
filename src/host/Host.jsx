@@ -26,8 +26,9 @@ import confetti from 'canvas-confetti'
 import { heroFor, heroOf, podioProyector } from '../game/heroes.js'
 import { conRacha, nivelRacha } from '../game/racha.js'
 import { personaliza } from '../game/personaliza.js'
-import { IDIOMA_POR_DEFECTO, ProveedorIdioma, SelectorIdioma, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
+import { IDIOMA_KEY, ProveedorIdioma, SelectorIdioma, idiomaGuardado, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
 import { BotonTema, useTema } from '../tema.jsx'
+import { Icon } from '../icons.jsx'
 
 /* El navegador del profesor es el "servidor" de la actividad: baraja, lleva el
    cronómetro, corrige y reparte puntos. La base de datos solo transporta. Todo el
@@ -39,12 +40,6 @@ const savedPin = {
   set(v) { try { v ? sessionStorage.setItem(PIN_KEY, v) : sessionStorage.removeItem(PIN_KEY) } catch { /* sin storage */ } },
 }
 
-/* El último idioma que eligió el docente en este navegador: la sala nueva parte
-   con él. */
-export const IDIOMA_KEY = 'kachai-idioma'
-export const idiomaGuardado = () => {
-  try { return valido(localStorage.getItem(IDIOMA_KEY) || IDIOMA_POR_DEFECTO) } catch { return IDIOMA_POR_DEFECTO }
-}
 
 /* "Mezclar preguntas" también se recuerda en este navegador. */
 const MEZCLAR_KEY = 'kachai-mezclar'
@@ -778,7 +773,7 @@ function Lobby({ store, base, pin, meta, teams, players, online, set, setReady, 
                     <button key={a.id} onClick={() => setMeta({ setId: a.id })}
                       title={a.type === 'picture-practice' ? t('desc_picture_practice') : undefined}
                       className={`rounded-full border px-2.5 py-0.5 text-sm font-bold transition ${set.id === a.id ? 'bg-[#0F6FD6] border-[#0F6FD6] text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-slate-400'}`}>
-                      {a.type === 'picture-practice' && '🖼️ '}{a.topic}{mine(a) && ' ✏️'}
+                      {a.type === 'picture-practice' && <Icon name="image" className="w-3.5 h-3.5 -mt-0.5 mr-1" />}{a.topic}{mine(a) && <Icon name="pencil" className="w-3 h-3 -mt-0.5 ml-1" />}
                     </button>
                   ))}
                 </div>
@@ -907,7 +902,7 @@ function MyActivities({ user, entries, selected, onSelect, onCreate }) {
           {entries.map(([id, info]) => (
             <button key={id} onClick={() => onSelect(id)}
               className={`rounded-lg border-2 px-3 py-2 text-left transition ${selected === id ? 'border-[#0F6FD6] bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-              <span className="block font-bold truncate">{info.images && '🖼️ '}{info.title}</span>
+              <span className="block font-bold truncate">{info.images && <Icon name="image" className="w-4 h-4 -mt-0.5 mr-1 text-slate-500" />}{info.title}</span>
               <span className="block text-xs text-slate-500">
                 {info.mechanic === 'choice' ? t('opcionMultiple') : 'Answer Builder'} · {t('nPreguntas', info.count)}
               </span>
@@ -1162,8 +1157,8 @@ function Leaderboard({ title, rows, board, footnote, double, onNext }) {
 function DoubleBanner({ text }) {
   const t = useT()
   return (
-    <span className="block mx-auto my-2 w-fit rounded-2xl bg-amber-400 text-amber-950 px-6 py-2 text-3xl font-black normal-case tracking-normal shadow-lg animate-rise">
-      {text ?? t('dobleAviso')}
+    <span className="block mx-auto my-2 w-fit rounded-2xl bg-amber-400 text-amber-950 px-6 py-2 text-3xl font-black normal-case tracking-normal shadow-lg animate-rise flex items-center gap-3">
+      <Icon name="bolt" className="w-7 h-7" />{text ?? t('dobleAviso')}
     </span>
   )
 }
@@ -1211,16 +1206,16 @@ function SoundControl({ className = '' }) {
   if (!s.running) {
     return (
       <button onClick={sound.unlock}
-        className={`rounded-full bg-amber-100 text-amber-900 font-bold text-sm px-4 py-2 animate-pulse ${className}`}>
-        {t('activarSonido')}
+        className={`rounded-full bg-amber-100 text-amber-900 font-bold text-sm px-4 py-2 animate-pulse inline-flex items-center gap-2 ${className}`}>
+        <Icon name="volume" className="w-4 h-4" />{t('activarSonido')}
       </button>
     )
   }
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <button onClick={() => sound.setMuted(!s.muted)} title={s.muted ? t('activarSonidoCorto') : t('silenciar')}
-        className="w-9 h-9 rounded-full hover:bg-slate-100 text-xl">
-        {s.muted ? '🔇' : '🔊'}
+        className="w-9 h-9 grid place-items-center rounded-full text-slate-600 hover:bg-slate-100">
+        <Icon name={s.muted ? 'mute' : 'volume'} />
       </button>
       <input type="range" min="0" max="1" step="0.05" value={s.volume} aria-label={t('volumen')}
         disabled={s.muted} onChange={(e) => sound.setVolume(Number(e.target.value))}
@@ -1359,7 +1354,7 @@ function ChoiceTiles({ options, answer, votes, compact = false, stacked = false 
             className={`relative overflow-hidden rounded-2xl px-5 ${compact ? 'py-2.5' : 'py-3.5'} flex items-center gap-4 text-white text-2xl lg:text-3xl font-bold transition ${st.solid} ${revealed && !right ? 'opacity-35' : ''} ${revealed && right ? 'ring-8 ring-green-300' : ''}`}>
             <ChoiceLetter style={st} className="w-11 h-11 text-2xl" />
             <span className="flex-1">{o}</span>
-            {revealed && right && <span className="text-3xl">✓</span>}
+            {revealed && right && <Icon name="check" className="w-9 h-9" strokeWidth={3.5} />}
             {votes && <span className="rounded-full bg-white/25 px-3 text-xl tabular-nums">{votes[i]}</span>}
             {votes && total > 0 && (
               <span className="absolute left-0 bottom-0 h-1.5 bg-white/70" style={{ width: `${(votes[i] / total) * 100}%` }} />
@@ -1698,7 +1693,7 @@ export function Podium({ ranking, mvp, stage, onAgain, onReport, conPersonajes }
         )}
         {stage.rest && mvp && (
           <div className="flex items-center gap-4 rounded-3xl bg-gradient-to-r from-amber-100 to-yellow-50 border-2 border-amber-300 px-5 py-2 animate-rise" style={{ color: '#0f172a' }}>
-            <span className="text-4xl">⭐</span>
+            <Icon name="star" className="w-10 h-10 text-amber-500" />
             <div>
               <p className="text-sm font-black uppercase tracking-widest" style={{ color: '#b45309' }}>{t('mvpMejor')}</p>
               <p className="text-2xl font-black">{mvp.name} <span className="text-lg font-bold tabular-nums" style={{ color: '#475569' }}>· {mvp.total} {t('ptsCorto')}</span></p>

@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react'
-import Host, { IDIOMA_KEY, idiomaGuardado } from './host/Host.jsx'
-import Player from './player/Player.jsx'
-import { Button, Logo } from './ui.jsx'
-import { ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, useT } from './i18n.jsx'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { Button, Center, Logo } from './ui.jsx'
+import { IDIOMA_KEY, ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, idiomaGuardado, useT } from './i18n.jsx'
+
+/* El proyector (biblioteca de actividades, editor, reporte, podio…) se baja
+   solo al abrir #/host: el celular de cada alumno no lo necesita y entra más
+   rápido con el wifi del colegio. El juego del celular también va aparte: la
+   portada aparece al tiro y lo baja mientras el alumno escribe el PIN. */
+const Host = lazy(() => import('./host/Host.jsx'))
+const cargarPlayer = () => import('./player/Player.jsx')
+const Player = lazy(cargarPlayer)
 import { useTema } from './tema.jsx'
 
 /* Ruteo por hash: GitHub Pages solo sirve index.html, así que #/host y
@@ -19,10 +25,10 @@ function useHash() {
 
 export default function App() {
   const hash = useHash()
-  if (hash.startsWith('#/host')) return <Host />
+  if (hash.startsWith('#/host')) return <Suspense fallback={<Center>…</Center>}><Host /></Suspense>
   if (hash.startsWith('#/play')) {
     const pin = new URLSearchParams(hash.split('?')[1] || '').get('pin') || ''
-    return <Player key={pin} initialPin={pin} />
+    return <Suspense fallback={<Center>…</Center>}><Player key={pin} initialPin={pin} /></Suspense>
   }
   return <HomeConIdioma />
 }
@@ -44,6 +50,7 @@ function HomeConIdioma() {
 function Home({ onIdioma }) {
   const t = useT()
   const [pin, setPin] = useState('')
+  useEffect(() => { cargarPlayer() }, [])
   return (
     <div className="min-h-screen grid place-items-center p-4">
       <div className="w-full max-w-sm flex flex-col gap-6 text-center">

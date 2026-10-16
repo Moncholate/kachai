@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti'
 import { Button, CHOICE_STYLES, Center, ChoiceLetter, Logo, PART_KEYS, Prompt, ROLES, RoleTag, StreakBadge, StreakName, TimerBar, choiceCols } from '../ui.jsx'
 import { ProveedorIdioma, SelectorIdioma, idiomaDelNavegador, nombreEquipo, traducir, useT, valido } from '../i18n.jsx'
 import BonusCelular from './BonusCelular.jsx'
+import { Icon } from '../icons.jsx'
 import { useTema } from '../tema.jsx'
 import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
@@ -211,7 +212,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         </>
       )
       : (
-        <Message emoji="✅" title={t('estasDentro', profile.name)}>
+        <Message title={t('estasDentro', profile.name)}>
           {t('miraPantallaEmpieza')}
           <HeroPicker value={me.id} heroe={me} onPick={pickHero} alAzar={!profile.hero} colores={profile.colores || {}} onColores={pickColores} />
         </Message>
@@ -234,13 +235,13 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
     if (myAnswer === undefined) body = <Center>…</Center>
     else if (myAnswer) {
       body = (
-        <Message emoji="📨" title={t('respuestaEnviada')}>
+        <Message icon="check" tone="bg-blue-100 text-[#0F6FD6]" title={t('respuestaEnviada')}>
           <MyChoices answer={myAnswer} options={state.question.options} />
           <span className="block mt-3">{t('esperaOtros')}</span>
         </Message>
       )
     } else if (timeUp) {
-      body = <Message emoji="⏰" title={t('seAcaboTiempo')}>{t('masRapido')}</Message>
+      body = <Message icon="clock" title={t('seAcaboTiempo')}>{t('masRapido')}</Message>
     } else {
       body = (
         <>
@@ -271,7 +272,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
     )
   } else if (state.phase === 'leaderboard') {
     body = (
-      <Message emoji="📊" title={score?.rank ? t('vasNumero', score.rank) : t('ranking')}>
+      <Message title={score?.rank ? t('vasNumero', score.rank) : t('ranking')}>
         <HeroDuelScene board={state.board} pid={pid} me={enEscena} escenario={escenario} />
         {t('puntos', score?.total ?? 0)}
         <DuelNote board={state.board} id={pid} />
@@ -302,7 +303,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
               <HeroApplause me={enEscena} escenario={escenario} />
             </Message>
           )
-          : <Message emoji="👀" title={t('miraPantalla')}>{t('revelandoPodio')}</Message>
+          : <Message title={t('miraPantalla')}>{t('revelandoPodio')}</Message>
   }
 
   return (
@@ -317,7 +318,7 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
         </span>
         <span className="rounded-full bg-slate-900 text-white px-3 py-1 text-sm font-black tabular-nums"
           title={secretScore ? t('secretoHastaPodio') : undefined}>
-          {secretScore ? '🤫' : score?.total ?? 0}
+          {secretScore ? <Icon name="lock" className="w-4 h-4 -my-0.5" /> : score?.total ?? 0}
         </span>
       </header>
       <main className="flex-1 w-full max-w-md mx-auto p-4">{body}</main>
@@ -342,7 +343,7 @@ function TeamLobby({ profile, pid, meta, teams, players, onPick }) {
         </Message>
       )
       : (
-        <Message emoji="🎲" title={t('estasDentro', profile.name)}>
+        <Message title={t('estasDentro', profile.name)}>
           {t('profeArmaEquipos')}
         </Message>
       )
@@ -445,9 +446,8 @@ function TeamFinalPosition({ team, place, total, mvp, hero, escenario }) {
     if (!mvp && (!place || place > 3)) return
     confetti({ particleCount: place === 1 || mvp ? 180 : 80, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true })
   }, [place, mvp])
-  const medal = ['🥇', '🥈', '🥉'][place - 1] || team.emoji
   return (
-    <Message emoji={medal} title={place ? `${team.emoji} ${team.name}: #${place}` : t('finDelJuego')}>
+    <Message title={place ? `${team.emoji} ${team.name}: #${place}` : t('finDelJuego')}>
       {t('puntosEquipoFinal', total)} {place === 1 ? t('campeones') : t('bienEquipo')}
       {mvp && <span className="block mt-3 text-xl font-black text-amber-600">{t('eresMvp')}</span>}
       <Celebra hero={hero} place={place} escenario={escenario} />
@@ -462,9 +462,8 @@ function FinalPosition({ score, hero, escenario }) {
     if (!rank || rank > 3) return
     confetti({ particleCount: rank === 1 ? 180 : 80, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true })
   }, [rank])
-  const medal = ['🥇', '🥈', '🥉'][rank - 1] || '🎉'
   return (
-    <Message emoji={medal} title={rank ? t('posicionFinal', rank) : t('finDelJuego')}>
+    <Message title={rank ? t('posicionFinal', rank) : t('finDelJuego')}>
       {t('puntosFinal', score?.total ?? 0)} {rank === 1 ? t('eresCampeon') : t('bienHecho')}
       <Celebra hero={hero} place={rank} escenario={escenario} />
     </Message>
@@ -530,14 +529,14 @@ function ReviewItem({ n, q, h }) {
       <div className="flex items-start gap-2">
         <span className="font-black text-slate-400">{n}</span>
         <Prompt text={q.prompt} highlightWh={!isChoice(q)} className="flex-1 text-base" />
-        <span className="text-xl">{!a ? '😶' : all ? '✅' : some ? '🟡' : '❌'}</span>
+        <EstadoIcono status={!a ? 'none' : all ? 'right' : some ? 'partial' : 'wrong'} />
       </div>
       {q.hasImage && <p className="text-xs text-slate-500">{t('teniaImagen')}</p>}
       {!a && <p className="text-sm text-slate-500">{t('sinRespuesta')}</p>}
       {isChoice(q) ? (
         <div className="text-sm flex flex-col gap-1">
-          {a && <p className={`font-bold ${all ? 'text-green-700' : 'text-rose-600'}`}>{all ? '✓' : '✗'} {t('tu')}: {a.choice}</p>}
-          {!all && <p className="font-bold text-green-700">✓ {t('correcta')}: {q.answer}</p>}
+          {a && <p className={`font-bold flex items-center gap-1.5 ${all ? 'text-green-700' : 'text-rose-600'}`}><Icon name={all ? 'check' : 'x'} className="w-4 h-4" strokeWidth={3} />{t('tu')}: {a.choice}</p>}
+          {!all && <p className="font-bold text-green-700 flex items-center gap-1.5"><Icon name="check" className="w-4 h-4" strokeWidth={3} />{t('correcta')}: {q.answer}</p>}
         </div>
       ) : (
         <div className="text-sm flex flex-col gap-1">
@@ -547,7 +546,7 @@ function ReviewItem({ n, q, h }) {
             return (
               <p key={k} className="flex flex-wrap items-center gap-1.5">
                 <RoleTag part={k} />
-                {a && parts[i] ? <b className={ROLES[k].text}>{given} ✓</b> : (
+                {a && parts[i] ? <b className={`${ROLES[k].text} inline-flex items-center gap-1`}>{given}<Icon name="check" className="w-4 h-4 text-green-600" strokeWidth={3} /></b> : (
                   <>
                     {given && <s className="text-slate-400">{given}</s>}
                     <b className={ROLES[k].text}>{correct}</b>
@@ -578,7 +577,7 @@ function QuestionPicture({ src }) {
       <button type="button" onClick={() => setOpen(true)} className="relative block w-full mb-3">
         <img src={src} alt="" className="mx-auto max-h-44 max-w-full rounded-xl object-contain bg-white shadow" />
         <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/70 text-white text-xs font-bold px-2.5 py-1">
-          🔍 {t('tocaAgrandar')}
+          <Icon name="zoom" className="w-3.5 h-3.5 -mt-0.5 mr-1" />{t('tocaAgrandar')}
         </span>
       </button>
       {open && <PictureViewer src={src} onClose={() => setOpen(false)} />}
@@ -634,8 +633,8 @@ function LookAtScreen() {
 function DoubleBadge({ text }) {
   const t = useT()
   return (
-    <p className="self-center mx-auto my-3 w-fit rounded-full bg-amber-400 text-amber-950 text-base font-black px-4 py-1.5">
-      {text ?? t('dobleAviso')}
+    <p className="self-center mx-auto my-3 w-fit rounded-full bg-amber-400 text-amber-950 text-base font-black px-4 py-1.5 flex items-center gap-1.5">
+      <Icon name="bolt" className="w-4 h-4" />{text ?? t('dobleAviso')}
     </p>
   )
 }
@@ -649,9 +648,12 @@ function PracticeBadge() {
   )
 }
 
-function Message({ emoji, title, children }) {
+/* icon: un ícono de icons.jsx en un círculo (tone: fondo y color). emoji: solo
+   para el emblema del equipo, mientras no haya íconos propios. */
+function Message({ emoji, icon, tone = 'bg-slate-100 text-slate-600', title, children }) {
   return (
     <div className="pt-16 flex flex-col items-center text-center gap-3">
+      {icon && <span className={`grid place-items-center w-16 h-16 rounded-full ${tone}`}><Icon name={icon} className="w-8 h-8" strokeWidth={2.5} /></span>}
       {emoji && <span className="text-6xl">{emoji}</span>}
       <h2 className="text-2xl font-black">{title}</h2>
       <div className="w-full text-slate-600">{children}</div>
@@ -779,19 +781,31 @@ function ChoiceResult({ question, solution, answer, score, secret, practice }) {
 }
 
 /* Veredicto a todo lo ancho: lo primero que se ve, sin depender de colores de alternativas. */
+/* Bien, a medias, mal o sin responder: el mismo color e ícono en el veredicto y en el repaso. */
+const ESTADO = {
+  right: { bg: 'bg-green-600', text: 'text-green-600', icon: 'check' },
+  partial: { bg: 'bg-amber-500', text: 'text-amber-500', icon: 'half' },
+  wrong: { bg: 'bg-rose-600', text: 'text-rose-600', icon: 'x' },
+  none: { bg: 'bg-slate-500', text: 'text-slate-500', icon: 'minus' },
+}
+
+function EstadoIcono({ status }) {
+  const e = ESTADO[status]
+  return (
+    <span className={`grid place-items-center w-7 h-7 rounded-full shrink-0 text-white ${e.bg}`}>
+      <Icon name={e.icon} className="w-4 h-4" strokeWidth={3} />
+    </span>
+  )
+}
+
 function Verdict({ status, score, secret, practice, detail }) {
   const t = useT()
-  const look = {
-    right: ['bg-green-600', '✅'],
-    partial: ['bg-amber-500', '🤏'],
-    wrong: ['bg-rose-600', '❌'],
-    none: ['bg-slate-500', '😶'],
-  }[status]
+  const look = ESTADO[status]
   return (
-    <div className={`rounded-3xl ${look[0]} text-white text-center px-4 py-4 shadow`}>
-      {/* El ícono va en un círculo blanco: la ❌ roja sobre el fondo rojo casi no se distinguía. */}
+    <div className={`rounded-3xl ${look.bg} text-white text-center px-4 py-4 shadow`}>
+      {/* El ícono va en un círculo blanco, del color del veredicto. */}
       <p className="text-3xl font-black flex items-center justify-center gap-3">
-        <span className="grid place-items-center w-12 h-12 rounded-full bg-white text-2xl shrink-0 shadow">{look[1]}</span>
+        <span className={`grid place-items-center w-12 h-12 rounded-full bg-white shrink-0 shadow ${look.text}`}><Icon name={look.icon} className="w-7 h-7" strokeWidth={3} /></span>
         {t(`veredicto_${status}`)}
       </p>
       {detail && <p className="font-bold opacity-90">{detail}</p>}
@@ -812,7 +826,7 @@ function AnswerTile({ label, right, className, letter, text }) {
         {letter}
         <span className="flex-1">{text}</span>
         <span className={`grid place-items-center w-9 h-9 rounded-full text-xl font-black shrink-0 ${right ? 'bg-green-600 text-white' : 'bg-white text-rose-600 ring-4 ring-rose-600'}`}>
-          {right ? '✓' : '✗'}
+          <Icon name={right ? 'check' : 'x'} className="w-5 h-5" strokeWidth={3.5} />
         </span>
       </div>
     </div>
@@ -859,14 +873,14 @@ function Result({ solution, answer, score, secret, practice }) {
               <p className={`flex items-center gap-2 font-black ${parts[i] ? 'text-green-700' : 'text-rose-600'}`}>
                 <span className="text-xs uppercase tracking-widest text-slate-500 w-16">{t('tu')}</span>
                 <span className="flex-1">{given}</span>
-                <span className="text-xl">{parts[i] ? '✓' : '✗'}</span>
+                <Icon name={parts[i] ? 'check' : 'x'} className="w-6 h-6" strokeWidth={3} />
               </p>
             )}
             {!parts[i] && (
               <p className="flex items-center gap-2 font-black text-green-700">
                 <span className="text-xs uppercase tracking-widest text-slate-500 w-16">{t('correcta')}</span>
                 <span className="flex-1">{correct[k]}</span>
-                <span className="text-xl">✓</span>
+                <Icon name="check" className="w-6 h-6" strokeWidth={3} />
               </p>
             )}
           </div>
