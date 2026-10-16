@@ -586,8 +586,7 @@ function HostRoom({ store, pin, tema }) {
             rows={teamMode
               ? teamRank.map((tm) => ({
                 ...tm, tint: `${presetOf(tm.id).tint} ${presetOf(tm.id).border} border-2`,
-                extra: <span className="text-base font-normal text-slate-500">· {tm.members.length}</span>,
-                sub: <EnRacha miembros={streaksOf(tm.members, players, scores, STREAK_MIN)} />,
+                sub: <Integrantes miembros={integrantesDe(tm.members, players, scores)} />,
               }))
               : ranking.map((p) => ({ ...p, extra: <StreakBadge streak={p.streak} className="text-base shrink-0" /> }))} />
         )}
@@ -1172,16 +1171,23 @@ function DoubleBanner({ text }) {
   )
 }
 
-/* En equipos, bajo el nombre del equipo: sus integrantes en racha, con el
-   mismo fuego que en individual. Quien recién llegó entra con animación: es
-   a quien anunció el sonido. */
-function EnRacha({ miembros }) {
+/* En equipos, bajo el nombre del equipo: quiénes lo forman (en el celular las placas del versus muestran solo
+   el equipo). Primero los que van en racha, con el mismo fuego que en individual; quien recién llegó a la
+   racha entra con animación: es a quien anunció el sonido. Luego el resto, en gris. */
+function integrantesDe(ids, players, scores) {
+  const enRacha = streaksOf(ids, players, scores, STREAK_MIN)
+  const resto = ids.filter((id) => !enRacha.some((m) => m.id === id))
+    .map((id) => ({ id, name: players[id]?.name || '', streak: 0 }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  return [...enRacha, ...resto]
+}
+function Integrantes({ miembros }) {
   if (!miembros.length) return null
   return (
     <span className="flex flex-wrap gap-x-4 gap-y-1 text-lg">
       {miembros.map((m) => (
-        <span key={m.id} className={`inline-flex items-center gap-1 ${m.nueva ? 'animate-rise' : ''}`}>
-          <StreakName name={m.name} streak={m.streak} className="font-bold" />
+        <span key={m.id} className={`inline-flex items-center gap-1 ${m.nueva ? 'animate-rise' : ''} ${m.streak ? '' : 'text-slate-500 font-medium'}`}>
+          <StreakName name={m.name} streak={m.streak} className={m.streak ? 'font-bold' : ''} />
           <StreakBadge streak={m.streak} className="text-base" />
         </span>
       ))}

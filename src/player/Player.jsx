@@ -14,7 +14,7 @@ import { heroFor } from '../game/heroes.js'
 import { conRacha } from '../game/racha.js'
 import { personaliza } from '../game/personaliza.js'
 import { escenarioDe } from '../game/fondos.js'
-import { HeroApplause, HeroBadge, HeroCompanion, HeroDuel, HeroPicker, HeroPodium } from './Heroes.jsx'
+import { HeroApplause, HeroBadge, HeroCompanion, HeroPicker, HeroPodium, HeroVersus } from './Heroes.jsx'
 import { momentoDe } from '../game/companero.js'
 
 /* sessionStorage y no localStorage: cada pestaña es un jugador distinto (útil
@@ -271,19 +271,17 @@ function PlayerRoomBody({ store, base, pid, meta, onLeave }) {
   } else if (state.phase === 'leaderboard' && myTeam) {
     body = (
       <Message emoji={myTeam.emoji} title={myTeamPlace ? t('tuEquipoEs', myTeamPlace) : t('ranking')}>
-        <HeroTeamDuelScene board={state.board} team={myTeam.id} pid={pid} me={enEscena} players={players} scores={scores} round={state.qIndex} escenario={escenario} />
+        <HeroTeamDuelScene board={state.board} team={myTeam.id} teams={teams} pid={pid} me={enEscena} players={players} scores={scores} round={state.qIndex} escenario={escenario} />
         {t('puntosEquipo', myTeam.name, teamRank[myTeamPlace - 1]?.total ?? 0)}
         <span className="block mt-1 text-sm">{t('tuPuntaje', score?.total ?? 0)}</span>
-        <DuelNote board={state.board} id={myTeam.id} team />
         {state.nextDouble && <DoubleBadge text={t('dobleProxima')} />}
       </Message>
     )
   } else if (state.phase === 'leaderboard') {
     body = (
       <Message title={score?.rank ? t('vasNumero', score.rank) : t('ranking')}>
-        <HeroDuelScene board={state.board} pid={pid} me={enEscena} escenario={escenario} />
+        <HeroDuelScene board={state.board} pid={pid} me={enEscena} myName={profile.name} escenario={escenario} />
         {t('puntos', score?.total ?? 0)}
-        <DuelNote board={state.board} id={pid} />
         {state.nextDouble && <DoubleBadge text={t('dobleProxima')} />}
       </Message>
     )
@@ -382,63 +380,60 @@ function TeamLobby({ profile, pid, meta, teams, players, onPick }) {
   )
 }
 
-/* El duelo del ranking dibujado con los personajes: si adelantaste a tu rival,
-   lo desarmas; si te adelantaron, ves la victoria del otro desde tu lado;
-   si estás a tiro de alguien, chocan. */
-function HeroDuelScene({ board, pid, me, escenario }) {
-  const overtakes = board?.overtakes ? Object.values(board.overtakes) : []
-  const passed = overtakes.find((o) => o.who.id === pid)
-  const lost = overtakes.find((o) => o.over.id === pid)
-  const duel = board?.personal?.[pid]
-  if (passed) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(passed.over.id, passed.over.hero), passed.over.colores), passed.over.streak)} won escenario={escenario} /></div>
-  if (lost) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(lost.who.id, lost.who.hero), lost.who.colores), lost.who.streak)} lost escenario={escenario} /></div>
-  if (duel) return <div className="mb-3"><HeroDuel me={me} rival={conRacha(personaliza(heroFor(duel.rival, duel.rivalHero), duel.rivalColores), duel.rivalStreak)} escenario={escenario} /></div>
-  return null
+/* El duelo del ranking dibujado con los personajes, como versus de juego de pelea (HeroVersus): si
+   adelantaste a tu rival, lo desarmas; si te adelantaron, ves la victoria del otro desde tu lado; si estás
+   a tiro de alguien, chocan. Arriba los dos nombres; abajo una sola frase con lo que pasó. */
+function HeroDuelScene({ board, pid, me, myName, escenario }) {
+  const t = useT()
+  const v = versusDe(board, pid)
+  if (!v) return null
+  const rival = conRacha(personaliza(heroFor(v.rival.id, v.rival.hero), v.rival.colores), v.rival.streak)
+  return <HeroVersus me={me} rival={rival} won={v.caso === 'gana'} lost={v.caso === 'pierde'} escenario={escenario}
+    yo={{ nombre: myName, sub: t('vsTu'), retrato: me }} el={{ nombre: v.rival.name, sub: t('vsRival'), retrato: rival }}
+    {...fraseVersus(t, v, false)} />
 }
 
 /* Modo equipos: dos contra dos. Siempre apareces tú; tu compañero y la pareja
-   rival van rotando entre los integrantes, una vez por pregunta. */
-function HeroTeamDuelScene({ board, team, pid, me, players, scores, round = 0, escenario }) {
-  const overtakes = board?.overtakes ? Object.values(board.overtakes) : []
-  const passed = overtakes.find((o) => o.who.id === team)
-  const lost = overtakes.find((o) => o.over.id === team)
-  const duel = board?.personal?.[team]
-  const rivalTeam = passed ? passed.over.id : duel ? duel.rivalId : lost ? lost.who.id : null
-  if (!rivalTeam) return null
+   rival van rotando entre los integrantes, una vez por pregunta. En las placas,
+   solo los nombres de los equipos (quiénes los forman se ve en el proyector). */
+function HeroTeamDuelScene({ board, team, teams, pid, me, players, scores, round = 0, escenario }) {
+  const t = useT()
+  const v = versusDe(board, team)
+  if (!v) return null
+  const rivalTeam = v.rival.id
   const heroDe = (id) => conRacha(personaliza(heroFor(id, players[id]?.hero), players[id]?.colores), scores[id]?.streak)
   const mates = membersOf(team, players).filter((id) => id !== pid).sort()
   const rivals = membersOf(rivalTeam, players).sort()
   if (!rivals.length) return null
   const mios = mates.length ? [me, heroDe(mates[round % mates.length])] : [me]
   const ellos = rivals.length > 1 ? [heroDe(rivals[round % rivals.length]), heroDe(rivals[(round + 1) % rivals.length])] : [heroDe(rivals[0])]
-  return <div className="mb-3"><HeroDuel me={mios} rival={ellos} won={Boolean(passed)} lost={!passed && Boolean(lost)} escenario={escenario} /></div>
+  const placa = (id, sub) => ({ nombre: teams[id]?.name ?? '', sub, emoji: teams[id]?.emoji ?? '' })
+  return <HeroVersus me={mios} rival={ellos} won={v.caso === 'gana'} lost={v.caso === 'pierde'} escenario={escenario}
+    yo={placa(team, t('vsTuEquipo'))} el={placa(rivalTeam, t('vsRival'))} {...fraseVersus(t, v, true)} />
 }
 
-/* El duelo personal en el ranking (ver game/duels.js): adelantamientos de esta
-   pregunta y el rival a tiro para la próxima. team: frases para el equipo. */
-function DuelNote({ board, id, team = false }) {
-  const t = useT()
+/* Qué muestra el versus de este alumno (o equipo): adelantar va primero, luego que te adelanten, luego el
+   rival a tiro para la próxima. otroDuelo: si además quedó a tiro de alguien distinto, va en letra chica. */
+function versusDe(board, id) {
   const overtakes = board?.overtakes ? Object.values(board.overtakes) : []
   const passed = overtakes.find((o) => o.who.id === id)
   const lost = overtakes.find((o) => o.over.id === id)
   const duel = board?.personal?.[id]
-  const we = team ? t('tuEquipoSujeto') : t('tuSujeto')
-  if (!passed && !lost && !duel) return null
-  return (
-    <span className="mt-4 flex flex-col gap-2">
-      {passed && <span className="rounded-2xl bg-violet-600 text-white font-black px-4 py-2">{t('adelantoA', we, passed.over.name)}</span>}
-      {lost && <span className="rounded-2xl bg-slate-700 text-white font-black px-4 py-2">{t('adelantoATi', lost.who.name, team)}</span>}
-      {duel && (
-        <span className={`rounded-2xl border-2 font-black px-4 py-2 ${duel.gap < 100 ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-orange-400 bg-orange-50 text-orange-700'}`}>
-          {duel.gap === 0
-            ? t('empate', we, duel.rival, team)
-            : duel.ahead
-              ? t('detras', we, duel.gap, duel.rival, team)
-              : t('defiende', duel.rival, duel.gap, team)}
-        </span>
-      )}
-    </span>
-  )
+  const caso = passed ? 'gana' : lost ? 'pierde' : duel ? 'duelo' : null
+  if (!caso) return null
+  const rival = passed ? passed.over : lost ? lost.who
+    : { id: duel.rivalId, name: duel.rival, hero: duel.rivalHero, colores: duel.rivalColores, streak: duel.rivalStreak }
+  return { caso, rival, duel, otroDuelo: caso !== 'duelo' && duel && duel.rivalId !== rival.id ? duel : null }
+}
+function fraseVersus(t, { caso, duel, otroDuelo }, eq) {
+  const we = eq ? t('tuEquipoSujeto') : t('tuSujeto')
+  const nota = (d) => (d.gap === 0 ? t('empate', we, d.rival, eq) : d.ahead ? t('detras', we, d.gap, d.rival, eq) : t('defiende', d.rival, d.gap, eq))
+  if (caso === 'gana') return { tono: 'gana', frase: t('vsAdelantaste', eq), detalle: otroDuelo ? nota(otroDuelo) : null }
+  if (caso === 'pierde') return { tono: 'pierde', frase: t('vsTeAdelanto', eq), detalle: otroDuelo ? nota(otroDuelo) : null }
+  if (duel.gap === 0) return { tono: 'duelo', frase: t('vsEmpate') }
+  return duel.ahead
+    ? { tono: 'duelo', frase: t('vsAlcanza', duel.gap), detalle: t('vsAlcanzaDet', eq) }
+    : { tono: 'duelo', frase: t('vsDefiende', eq), detalle: t('vsDefiendeDet', duel.gap, eq) }
 }
 
 /* Los tres primeros siguen viendo a su personaje celebrar en la pantalla final:

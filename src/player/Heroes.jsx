@@ -1,7 +1,7 @@
 /* Los personajes en el celular (ver game/heroes.js): el selector del lobby, el
    duelo del ranking y el podio. El celular no suena (el sonido es del
    proyector), pero vibra en los golpes y al elegir personaje. */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { HEROES, escenaAplauso, escenaDuelo, escenaDuelo2, escenaGana, escenaGana2, escenaPodio, pintarRetrato, pintarRetratoRacha } from '../game/heroes.js'
 import { pintaMomento } from '../game/companero.js'
 import { useT } from '../i18n.jsx'
@@ -66,6 +66,85 @@ export function HeroDuel({ me, rival, won, lost, escenario }) {
     ? (won ? (g, t) => escenaGana2(g, t, a, b, o) : lost ? espejo((g, t) => escenaGana2(g, t, b, a, o)) : (g, t) => escenaDuelo2(g, t, a, b, o))
     : (won ? (g, t) => escenaGana(g, t, a[0], b[0], o) : lost ? espejo((g, t) => escenaGana(g, t, b[0], a[0], o)) : (g, t) => escenaDuelo(g, t, a[0], b[0], o))), [clave, dos, won, lost, escenario])
   return <Lienzo dibujar={dibujar} golpes={golpes} label={`${a.map((h) => h.nombre).join(' + ')} vs ${b.map((h) => h.nombre).join(' + ')}`} className={ESCENA} />
+}
+
+/* Achica la letra hasta que el nombre quepa en `lineas` líneas sin partir palabras (los nombres llegan a 20
+   letras: «el papa del kizasito»); solo si ni con la mínima cabe una palabra sola, la parte. Nunca «…». */
+function useAjusta(texto, max, min, lineas) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ajusta = () => {
+      el.style.overflowWrap = 'normal'
+      for (let s = max; s >= min; s -= 0.5) {
+        el.style.fontSize = s + 'px'
+        if (el.scrollHeight <= s * 1.05 * lineas + 2 && el.scrollWidth <= el.clientWidth + 1) return
+      }
+      el.style.overflowWrap = 'anywhere'
+    }
+    ajusta()
+    document.fonts?.ready.then(ajusta)
+    addEventListener('resize', ajusta)
+    return () => removeEventListener('resize', ajusta)
+  }, [texto, max, min, lineas])
+  return ref
+}
+
+/* Un lado del versus: retrato del personaje (o el emoji del equipo) y el nombre */
+function Placa({ lado, quien }) {
+  const ref = useAjusta(quien.nombre, 15, 9, 2)
+  const yo = lado === 'yo'
+  return (
+    <span className={`flex-1 min-w-0 flex items-center gap-1.5 rounded-xl p-1 ${yo ? 'vs-placa-yo text-left' : 'vs-placa-el flex-row-reverse text-right'}`}
+      style={{ background: yo ? 'linear-gradient(90deg, #7c3aed, #4c1d95)' : 'linear-gradient(270deg, #e11d48, #881337)' }}>
+      <span className="w-7 h-7 shrink-0 rounded-lg grid place-items-center text-lg overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
+        {quien.emoji ?? <Cara hero={quien.retrato} />}
+      </span>
+      <span className="flex-1 min-w-0 text-white font-black italic leading-[1.05]">
+        <small className="block text-[10px] not-italic tracking-widest uppercase opacity-80">{quien.sub}</small>
+        <span ref={ref} className="block">{quien.nombre}</span>
+      </span>
+    </span>
+  )
+}
+function NombreGrande({ quien }) {
+  const ref = useAjusta(quien.nombre, 30, 14, 2)
+  return <><small>{quien.sub}</small><span ref={ref} className="vs-grande">{quien.nombre}</span></>
+}
+
+/* El versus del ranking, como en los juegos de pelea (los estilos van en index.css): al aparecer, los dos
+   nombres en grande sobre la escena con un VS que golpea; luego quedan las placas arriba y, bajo la escena,
+   una sola frase con lo que pasó. Tú siempre a la izquierda (morado) y el rival a la derecha (rojo).
+   yo / el: { nombre, sub ('Tú', 'Rival', 'Tu equipo'), retrato (personaje) o emoji (equipo) }.
+   tono: 'duelo' | 'gana' | 'pierde'. */
+const TONOS = {
+  duelo: 'border-2 border-orange-400 bg-orange-50 text-orange-700',
+  gana: 'bg-violet-600 text-white',
+  pierde: 'bg-slate-700 text-white',
+}
+export function HeroVersus({ me, rival, won, lost, escenario, yo, el, frase, tono, detalle }) {
+  return (
+    <div className="flex flex-col gap-2.5 mb-3">
+      <div className="vs-barra flex items-stretch gap-1 rounded-2xl p-1.5 min-h-12" style={{ background: '#0f172a' }}>
+        <Placa lado="yo" quien={yo} />
+        <span className="vs-chico self-center px-0.5 text-[22px] font-black italic" style={{ color: '#ffe478', textShadow: '2px 2px 0 #b4380f' }}>VS</span>
+        <Placa lado="el" quien={el} />
+      </div>
+      <div className="relative">
+        <HeroDuel me={me} rival={rival} won={won} lost={lost} escenario={escenario} />
+        <div className="vs-intro overflow-hidden rounded-xl" style={{ inset: 4 }} aria-hidden>
+          <div className="vs-lado vs-yo"><NombreGrande quien={yo} /></div>
+          <div className="vs-lado vs-el"><NombreGrande quien={el} /></div>
+          <div className="vs-golpe">VS</div>
+        </div>
+      </div>
+      <div className={`rounded-2xl px-3 py-1.5 font-black ${TONOS[tono]}`}>
+        <span className="block text-xl uppercase">{frase}</span>
+        {detalle && <span className="block text-sm font-bold opacity-90">{detalle}</span>}
+      </div>
+    </div>
+  )
 }
 
 /* El compañero: tras cada pregunta, el personaje reacciona bajo el veredicto (ver game/companero.js).
