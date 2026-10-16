@@ -34,10 +34,18 @@ export function multiplicadores(ranking) {
   return Object.fromEntries(ranking.map((id, i) => [id, i < n / 2 ? 1 : i < (3 * n) / 4 ? 2 : 3]))
 }
 
-/* Meta del curso: la barra se llena con estos aciertos (sumados entre todos).
+/* Meta del curso: ~10 aciertos por alumno conectado (sumados entre todos; uno solo puede
+   reventar unas 24 correctas en la ronda).
    Las 3 marcas están en 1/3, 2/3 y el total. Un curso chico también llega. */
 export function metaDelCurso(jugadores) {
-  return Math.max(12, Math.round(jugadores * 6))
+  return Math.max(12, Math.round(jugadores * 10))
+}
+
+/* La ronda se acelera de a poco, por tiempo (igual para todos, cumplan o no las metas):
+   k = 0 al empezar, 1 al terminar. Al final salen burbujas ~45 % más seguido y caen ~30 % más rápido. */
+export function ritmoBonus(k) {
+  const p = Math.min(1, Math.max(0, k || 0))
+  return { frecuencia: 1 + 0.45 * p, caida: 1 + 0.3 * p }
 }
 export function metasLogradas(aciertos, meta) {
   const p = meta > 0 ? aciertos / meta : 0

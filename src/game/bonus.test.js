@@ -1,6 +1,6 @@
 import { LEXICO } from './bonusLexico.js'
 import { describe, it, expect } from 'vitest'
-import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS } from './bonus.js'
+import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS, ritmoBonus } from './bonus.js'
 
 describe('ronda bonus', () => {
   it('aparece a la mitad, o mitad + 1 si es impar', () => {
@@ -19,7 +19,10 @@ describe('ronda bonus', () => {
 
   it('la meta crece con el curso y las 3 metas se marcan en tercios', () => {
     expect(metaDelCurso(1)).toBe(12)
-    expect(metaDelCurso(30)).toBe(180)
+    expect(metaDelCurso(30)).toBe(300)
+    expect(ritmoBonus(0)).toEqual({ frecuencia: 1, caida: 1 })
+    expect(ritmoBonus(1).frecuencia).toBeCloseTo(1.45)
+    expect(ritmoBonus(5)).toEqual(ritmoBonus(1))
     expect(metasLogradas(0, 30)).toBe(0)
     expect(metasLogradas(10, 30)).toBe(1)
     expect(metasLogradas(20, 30)).toBe(2)

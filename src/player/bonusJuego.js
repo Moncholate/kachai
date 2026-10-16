@@ -16,7 +16,7 @@
 import { HEROES } from '../game/heroes.js'
 import { lienzoPear36 } from '../game/pear36.js'
 import { W, H, capasCielo, globoYCuerdas, barquilla, dardo, cuadroHeroe, cubierta, HW, OX, OY } from '../game/bonusCielo.js'
-import { CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, PUNTOS_BURBUJA, explicarError, nuevaPalabra } from '../game/bonus.js'
+import { ritmoBonus, CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, PUNTOS_BURBUJA, explicarError, nuevaPalabra } from '../game/bonus.js'
 
 const X_MIN = 46, X_MAX = 100          // las burbujas caen a la derecha de la barquilla
 const HEROE_X = 2
@@ -163,6 +163,8 @@ export class JuegoBonus {
   }
 
   /* ---- burbujas ---- */
+  /* Cuánto se aceleró la ronda (por el reloj del servidor: igual en todos los celulares) */
+  ritmo() { return ritmoBonus((this.o.ahora() - this.o.inicio) / (this.o.fin - this.o.inicio)) }
   nuevaBurbuja() {
     const J = this.J
     const w = nuevaPalabra(this.o.catId, new Set(J.burbujas.map((b) => b.palabra)))
@@ -171,7 +173,7 @@ export class JuegoBonus {
     let x, k = 0
     do { x = X_MIN + Math.random() * (X_MAX - X_MIN) } while (altas.some((b) => Math.abs(b.x - x) < 24) && ++k < 12)
     const el = document.createElement('div'); el.className = 'bj-burbuja'; el.textContent = w.palabra
-    const b = { ...w, x, y: y0, vel: CAIDA * (0.85 + Math.random() * 0.35), el, estado: 'cae' }
+    const b = { ...w, x, y: y0, vel: CAIDA * this.ritmo().caida * (0.85 + Math.random() * 0.35), el, estado: 'cae' }
     el.addEventListener('pointerdown', (e) => { e.stopPropagation(); this.disparar(b) })
     this.el.capa.append(el)
     J.burbujas.push(b)
@@ -266,7 +268,7 @@ export class JuegoBonus {
     if (this.jugando()) {
       J.t = this.reloj
       J.proxima -= dt
-      if (J.proxima <= 0) { this.nuevaBurbuja(); J.proxima = 0.75 + Math.random() * 0.35 }
+      if (J.proxima <= 0) { this.nuevaBurbuja(); J.proxima = (0.75 + Math.random() * 0.35) / this.ritmo().frecuencia }
       const fondo = cubierta(0) + 8
       for (const b of [...J.burbujas]) {
         if (b.estado === 'cae' || b.estado === 'apuntada') b.y += b.vel * dt
