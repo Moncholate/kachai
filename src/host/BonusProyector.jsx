@@ -3,7 +3,7 @@ import { useT } from '../i18n.jsx'
 import { Button } from '../ui.jsx'
 import { Icon } from '../icons.jsx'
 import { BONUS_SEG, BONUS_INTRO_SEG, CATEGORIAS, metasLogradas } from '../game/bonus.js'
-import { getSound } from './sound.js'
+import { BONUS_DUCK, getSound } from './sound.js'
 import { EscenaBonus, LLEGADA } from '../game/bonusProyector.js'
 
 /* La ronda bonus en el proyector (ver game/bonus.js y game/bonusProyector.js).
@@ -30,9 +30,9 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
   }, [etapa === 'elegir'])
   const introMs = typeof state.startedAt === 'number' && fase === 'intro' ? Math.max(0, now - state.startedAt) : null
   useEffect(() => { escena.current?.actualizar({ fase, aciertos, heroes, meta, ...(introMs != null ? { introMs } : {}) }) })
-  /* Al congelarse Lexicón, la música se aparta 1,6 s para que se oiga el golpe épico */
+  /* Al congelarse Lexicón, la música se aparta 1,6 s para que se oiga el golpe épico (sin bajarla tanto: BONUS_DUCK) */
   const golpe = introMs != null && introMs >= LLEGADA.cruza && introMs < LLEGADA.cruza + 1600
-  useEffect(() => { getSound().duck(golpe); return () => getSound().duck(false) }, [golpe])
+  useEffect(() => { getSound().duck(golpe, BONUS_DUCK); return () => getSound().duck(false) }, [golpe])
 
   if (etapa === 'elegir') {
     /* Lo de esta unidad primero; lo de antes, aparte y plegado (o directo si esta unidad no trae nada) */

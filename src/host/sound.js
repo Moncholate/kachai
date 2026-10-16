@@ -64,6 +64,7 @@ const EFFECTS = {
 }
 const MUSIC_LEVEL = 0.8 // deja aire a los efectos por encima de la música
 const DUCKED_LEVEL = 0.25 // últimos segundos: la música se aparta para que se oigan los tics
+export const BONUS_DUCK = 0.5 // ronda bonus: al llegar Lexicón y al rendirse, la música se aparta, pero sigue sonando (bajarla más se sentía como un corte)
 /* Alguien entra: la música (la del lobby, casi siempre) baja ~8 dB mientras suena el aviso (0,9 s)
    y vuelve sola. Si entran varios seguidos, se queda abajo hasta el último. */
 const JOIN_DUCK = 0.4
@@ -202,16 +203,16 @@ function createSoundEngine() {
       hit(ctx.currentTime)
       if (secondsLeft <= 3) hit(ctx.currentTime + 0.5)
     },
-    /* Baja la música (sin detenerla) mientras dura la cuenta regresiva. */
-    duck(on) {
-      music.gain.setTargetAtTime(on ? DUCKED_LEVEL : MUSIC_LEVEL, ctx.currentTime, 0.15)
+    /* Baja la música (sin detenerla) mientras dura la cuenta regresiva (o al nivel que se pida). */
+    duck(on, nivel = DUCKED_LEVEL) {
+      music.gain.setTargetAtTime(on ? nivel : MUSIC_LEVEL, ctx.currentTime, 0.15)
     },
-    /* Silencia la música (sin detenerla) por ms y la devuelve con un fundido: el remate de Lexicón al rendirse
-       suena solo, y la ronda sigue con su música mientras a los celulares les queda tiempo. */
-    silencia(ms) {
+    /* Aparta la música (sin detenerla) por ms y la devuelve con un fundido: el remate de Lexicón al rendirse
+       se oye encima, y la ronda sigue con su música mientras a los celulares les queda tiempo. */
+    aparta(ms, nivel = BONUS_DUCK) {
       const t = ctx.currentTime, g = music.gain
       g.cancelScheduledValues(t)
-      g.setTargetAtTime(0, t, 0.08)
+      g.setTargetAtTime(nivel, t, 0.08)
       g.setTargetAtTime(MUSIC_LEVEL, t + ms / 1000, 0.6)
     },
     /* Alguien entró a la sala. */

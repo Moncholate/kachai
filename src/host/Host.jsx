@@ -34,7 +34,7 @@ import { Icon } from '../icons.jsx'
    cronómetro, corrige y reparte puntos. La base de datos solo transporta. Todo el
    estado vive en la base, así que recargar esta pestaña retoma la partida. */
 
-/* Lo que dura el remate de Lexicón al rendirse (lexicon-surrender.ogg): la música se silencia ese rato y vuelve,
+/* Lo que dura el remate de Lexicón al rendirse (lexicon-surrender.ogg): la música se aparta ese rato y vuelve,
    porque a los celulares todavía les puede quedar tiempo para reventar burbujas. */
 const REMATE_LEXICON_MS = 4500
 const PIN_KEY = 'kachai-host-pin'
@@ -348,7 +348,7 @@ function HostRoom({ store, pin, tema }) {
   /* La última pregunta tiene su tema propio (Final Question o Final Sprint, según el juego), haya 2X o no. */
   const track = state?.phase === 'end' ? null
     : state?.phase === 'answering' && isLast ? finalTrack(state?.round)
-    : state?.phase === 'bonus' && state.etapa === 'juego' ? 'bonus'   // al rendirse Lexicón la música se silencia mientras suena el remate y vuelve (ver onRindio)
+    : state?.phase === 'bonus' && state.etapa === 'juego' ? 'bonus'   // al rendirse Lexicón la música se aparta mientras suena el remate y vuelve (ver onRindio)
     : ({ lobby: 'lobby', answering: answeringTrack(state?.round, state?.qIndex) }[state?.phase] ?? null)
   useEffect(() => { getSound().play(track) }, [track])
   useEffect(() => () => { getSound().play(null) }, [])
@@ -566,7 +566,7 @@ function HostRoom({ store, pin, tema }) {
         )}
 
         {state.phase === 'bonus' && (
-          <BonusProyector onRindio={() => getSound().silencia(REMATE_LEXICON_MS)} state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
+          <BonusProyector onRindio={() => getSound().aparta(REMATE_LEXICON_MS)} state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
             heroes={Object.fromEntries(Object.entries(players).map(([id, p]) => [id, heroFor(id, p.hero).id]))} />
         )}
 
