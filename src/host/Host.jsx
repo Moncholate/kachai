@@ -81,7 +81,6 @@ export default function Host() {
   const store = useStore()
   const [pin, setPin] = useState(null)
   const [error, setError] = useState(null)
-  const [bonusRindio, setBonusRindio] = useState(false)   // Lexicón ya se rindió en esta ronda bonus
   const opening = useRef(false)
 
   useEffect(() => {
@@ -96,6 +95,7 @@ export default function Host() {
 }
 
 function HostRoom({ store, pin, tema }) {
+  const [bonusRindio, setBonusRindio] = useState(false)   // Lexicón ya se rindió en esta ronda bonus: la música se apaga
   const base = `rooms/${pin}`
   const meta = useValue(store, `${base}/meta`)
   /* Todo el proyector, también los controles, va en el idioma de la sala. */
