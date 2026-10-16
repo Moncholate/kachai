@@ -13,7 +13,7 @@
    ========================================================================== */
 
 export const BONUS_SEG = 40          // lo que dura la ronda (sin contar la cuenta regresiva)
-export const BONUS_INTRO_SEG = 3     // cuenta regresiva, igual en proyector y celulares
+export const BONUS_INTRO_SEG = 7     // llega Lexicón (calza con la intro de Bubble Chase); igual en proyector y celulares
 export const BONUS_FINAL_SEG = 6     // celebración en el proyector antes de volver al ranking
 export const PUNTOS_BURBUJA = 30     // por burbuja correcta, antes del bonus
 export const CARGADOR = 5            // dardos de la ballesta

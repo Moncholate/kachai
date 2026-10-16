@@ -262,7 +262,7 @@ export class JuegoBonus {
     const dt = Math.min(0.05, (ms - this.antes) / 1000); this.antes = ms
     const J = this.J, ahora = this.o.ahora()
     /* cuenta regresiva hasta el inicio (sincronizada con el proyector) */
-    if (ahora < this.o.inicio) { this.el.cuenta.textContent = Math.max(1, Math.ceil((this.o.inicio - ahora) / 1000)) }
+    if (ahora < this.o.inicio) { const n = Math.max(1, Math.ceil((this.o.inicio - ahora) / 1000)); this.el.cuenta.textContent = n <= 3 ? n : '👀'; this.el.cuenta.style.fontSize = n <= 3 ? '' : '44px' }   // antes: «mira el proyector»
     else if (!this.el.intro.classList.contains('bj-oculto')) this.el.intro.classList.add('bj-oculto')
     if (ahora >= this.o.fin && !J.terminado) this.terminar()
     if (this.jugando()) {

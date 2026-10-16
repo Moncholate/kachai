@@ -37,6 +37,8 @@ export const SFX = {
   'lexicon-hoot': ['Lexicon hoot.wav', 700, 100, -15],
   'lexicon-goal': ['Lexicon goal.wav', 1100, 150, -15],
   'lexicon-surrender': ['Lexicon surrender.wav', 4500, 350, -15],
+  'lexicon-whoosh': ['Lexicon whoosh.wav', 1050, 300, -17],   // la llegada: cruza la pantalla (pico a los 0,5 s)
+  'lexicon-impact': ['Lexicon impact.wav', 1900, 450, -14],   // la llegada: se congela al centro
 }
 
 const only = process.argv[2]

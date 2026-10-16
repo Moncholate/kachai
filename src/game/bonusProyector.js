@@ -38,10 +38,45 @@ function conContorno(px, pts) {
 const elipse = (pts, cx, cy, rx, ry, col) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) pts.push([x, y, typeof col === 'function' ? col(x, y) : col]) }
 
 /* ======================= LEXICÓN ======================= */
+/* Alas abiertas: un abanico de plumas desde el hombro. [ángulo (0 = hacia afuera, negativo = arriba), largo].
+   Cada pluma es sólida (dorada, con dos barras rojizas y la punta clara) y lleva su propio contorno:
+   así entre pluma y pluma queda una línea oscura, como en una lechuza en vuelo. Se dibujan de abajo
+   hacia arriba, para que cada pluma tape el borde de la anterior. Arriba, el brazo oscuro del ala.
+   giro: cuánto se gira el abanico entero (aleteo); largo: escorzo cuando el ala baja. */
+const PLUMAS = [[-52, 24], [-41, 26], [-30, 26], [-19, 25], [-8, 23], [4, 20], [16, 17], [28, 14], [40, 11]]
+const VUELO = { aparece: [0, 1], vuela: [-42, 1], vuela3: [-8, 0.92], vuela2: [38, 0.8] }
+function trazo(pts, hx, hy, a, lado, l, ancho, color) {
+  const dx = Math.cos(a) * lado, dy = Math.sin(a)
+  for (let j = 0; j <= l; j++) {
+    const w = j > l - 2 ? 0 : ancho
+    for (let o = -w; o <= w; o++) pts.push([Math.round(hx + dx * j - dy * o), Math.round(hy + dy * j + dx * o), color(j / l)])
+  }
+}
+function alasPlumas(px, cx, cy, giro, largo, lados = [-1, 1]) {
+  for (const lado of lados) {
+    const hx = cx + lado * 9, hy = cy - 6
+    for (const [ang, l0] of [...PLUMAS].reverse()) {
+      const pts = []
+      trazo(pts, hx, hy, (ang + giro) * Math.PI / 180, lado, Math.round(l0 * largo), 1,
+        (k) => k > 0.93 ? '#FFFFEB' : (k > 0.5 && k < 0.58) || (k > 0.74 && k < 0.82) ? '#BA6156' : '#F2A65E')
+      conContorno(px, pts)
+    }
+    /* brazo y cobertoras: la parte oscura que va pegada al cuerpo y por el borde de arriba */
+    const brazo = []
+    trazo(brazo, hx, hy, (PLUMAS[0][0] + giro + 4) * Math.PI / 180, lado, Math.round(15 * largo), 1, () => '#8C3F5D')
+    const ca = (giro - 18) * Math.PI / 180
+    elipse(brazo, hx + Math.cos(ca) * lado * 5, hy + Math.sin(ca) * 5, 6, 4, '#8C3F5D')
+    conContorno(px, brazo)
+  }
+}
 /* A) Búho erudito: birrete, lentes redondos, sopla burbujas por encima de un diccionario abierto.
-   modo: 'sopla' | 'arranca' (arranca una hoja) | 'lanza' (la lanza) | 'rinde'. birrete: si todavía lo tiene. */
+   modo: 'sopla' | 'arranca' (arranca una hoja) | 'lanza' (la lanza) | 'rinde' |
+   'vuela' / 'vuela3' / 'vuela2' (aleteo: alas arriba / al medio / abajo) | 'aparece' (alas abiertas, pico abierto). birrete: si todavía lo tiene. */
 function lexiconBuho(px, cx, pie, modo = 'sopla', birrete = true, lentes = true) {
   const cuerpo = [], cy = pie - 14
+  if (VUELO[modo]) alasPlumas(px, cx, cy, ...VUELO[modo])   // detrás del cuerpo
+  else if (modo === 'arranca') alasPlumas(px, cx, cy, -28, 0.75, [-1])   // desde la nube: el ala de plumas sube con la hoja
+  else if (modo === 'lanza') alasPlumas(px, cx, cy, 8, 0.78, [-1])      // y se estira hacia la nave al lanzarla
   elipse(cuerpo, cx, cy, 11, 13.5, (x, y) => (x - cx) + (y - cy) * 0.6 > 6 ? '#8C3F5D' : (y - cy) < -9 && (x - cx) < 2 ? '#F2A65E' : '#BA6156')
   for (const s of [-1, 1]) for (let i = 0; i < 4; i++) for (let j = 0; j <= i; j++) cuerpo.push([cx + s * (8 - j), cy - 15 + i, '#BA6156'])   // penachos
   conContorno(px, cuerpo)
@@ -60,9 +95,10 @@ function lexiconBuho(px, cx, pie, modo = 'sopla', birrete = true, lentes = true)
   if (lentes && modo !== 'rinde') { px(cx - 1, cy - 6, '#FFE478'); px(cx, cy - 6, '#FFE478'); px(cx + 1, cy - 6, '#FFE478') }   // puente de los lentes
   else if (lentes) { px(cx + 9, cy - 1, '#FFE478'); px(cx + 10, cy, '#FFE478'); px(cx + 11, cy + 1, '#FFE478') }                   // los lentes se le cayeron de un lado
   /* pico: soplando (redondo) o abierto de sorpresa */
-  const pico = modo === 'rinde' ? [[0, 0], [1, 0], [-1, 0], [0, 1], [1, 1], [-1, 1], [0, 2]] : [[0, 0], [-1, 0], [0, 1], [-1, 1], [-2, 1]]
+  const abre = modo === 'rinde' || modo === 'aparece'
+  const pico = abre ? [[0, 0], [1, 0], [-1, 0], [0, 1], [1, 1], [-1, 1], [0, 2]] : [[0, 0], [-1, 0], [0, 1], [-1, 1], [-2, 1]]
   conContorno(px, pico.map(([a, b]) => [cx + a, cy - 2 + b, '#FFE478']))
-  if (modo === 'rinde') px(cx, cy - 1, '#BA6156')
+  if (abre) px(cx, cy - 1, '#BA6156')
   /* patas */
   for (const s of [-4, 3]) [[0, 0], [1, 0], [2, 0], [1, -1]].forEach(([a, b]) => px(cx + s + a, pie + b, '#F2A65E'))
   if (modo === 'rinde') {
@@ -74,9 +110,12 @@ function lexiconBuho(px, cx, pie, modo = 'sopla', birrete = true, lentes = true)
     const libro = []; for (let y = pie - 4; y <= pie; y++) for (let x = cx - 24; x <= cx - 14; x++) libro.push([x, y, y === pie - 4 ? '#FFFFEB' : x === cx - 24 ? '#B0305C' : '#EB564B']); conContorno(px, libro)
     return
   }
+  if (VUELO[modo]) {
+    /* en el aire no lleva el libro: las alas ya se dibujaron detrás del cuerpo */
+  } else {
   /* alas: las dos sostienen el libro; al arrancar, la izquierda sube con la hoja; al lanzar, se estira hacia la nave */
   const alaIzq = modo === 'arranca' ? [cx - 13, cy - 7, 3, 6] : modo === 'lanza' ? [cx - 16, cy + 1, 6, 2.5] : [cx - 10, cy + 4, 3, 6]
-  for (const [ax, ay, rx, ry] of [alaIzq, [cx + 10, cy + 4, 3, 6]]) { const ala = []; elipse(ala, ax, ay, rx, ry, '#8C3F5D'); conContorno(px, ala) }
+  for (const [ax, ay, rx, ry] of modo === 'arranca' || modo === 'lanza' ? [[cx + 10, cy + 4, 3, 6]] : [alaIzq, [cx + 10, cy + 4, 3, 6]]) { const ala = []; elipse(ala, ax, ay, rx, ry, '#8C3F5D'); conContorno(px, ala) }
   if (modo === 'arranca') hoja(px, cx - 21, cy - 17, 'plana')
   const libro = []
   for (let x = cx - 9; x <= cx + 9; x++) { const curva = Math.round(Math.abs(x - cx) * 0.25); for (let y = cy + 6 - curva; y <= cy + 9 - curva + (Math.abs(x - cx) > 7 ? 1 : 0); y++) libro.push([x, y, Math.abs(x - cx) <= 7 ? (y === cy + 6 - curva ? '#FFFFEB' : ((x - cx) % 2 ? '#C2C2D1' : '#FFFFEB')) : '#EB564B']) }
@@ -84,6 +123,7 @@ function lexiconBuho(px, cx, pie, modo = 'sopla', birrete = true, lentes = true)
   conContorno(px, libro)
   px(cx, cy + 6, '#7E7E8F'); px(cx, cy + 7, '#7E7E8F'); px(cx, cy + 8, '#7E7E8F')   // el lomo al centro
   if (modo === 'arranca') { px(cx - 5, cy + 5, '#FFFFEB'); px(cx - 6, cy + 4, '#FFFFEB') }   // el borde roto que queda en el libro
+  }
   /* birrete */
   if (birrete) {
     const b = []
@@ -235,6 +275,34 @@ function nubeLexicon(px, cx, pie) {
 /* ======================= El motor de la escena ======================= */
 export const PW_BONUS = PW, PH_BONUS = PH
 const LX = 268, LP = 124
+
+/* ── La llegada de Lexicón (los 7 s de la intro, en ms desde que se eligió la categoría) ──
+   0–0,3 s   se abre una franja oscura de lado a lado y la escena se oscurece
+   0,3–1,1   Lexicón cruza volando de izquierda a derecha, en grande (×3), con estela
+   1,1       se congela al centro: destello blanco, ululato, halo y rayos girando
+   1,1–4,0   "¡Lexicón ha llegado!" (el texto va en BonusProyector.jsx)
+   4,0–5,4   la franja se cierra y él vuela a su nube, achicándose de a poco de ×3 a ×1
+   5,2–7     ya en la nube; la cuenta 3, 2, 1 va encima (BonusProyector.jsx) */
+export const LLEGADA = { franja: 300, cruza: 1100, vuelve: 4000, posa: 5400 }
+const FRANJA_Y = 22, FRANJA_H = 120, CENTRO_X = 160, CENTRO_PIE = 128
+const facil = (k) => 1 - (1 - k) ** 3
+const suave = (k) => k * k * (3 - 2 * k)   // arranca y frena despacio
+const RES = 4   // el lienzo del proyector va a 4×: la escena se dibuja igual, pero el búho que vuela se mueve de a 1/4 de píxel
+/* El búho en un lienzo aparte, para agrandarlo sin suavizar (nunca se rota). Cada píxel suyo mide
+   un número entero de píxeles del lienzo 4× (de 12 a 4): se ve nítido aunque se achique de a poco. */
+const BUHO_W = 96, BUHO_H = 56, BUHO_CX = 48, BUHO_PIE = 50
+function buhoGrande(g, cache, modo, x, pie, escala) {
+  let c = cache[modo]
+  if (!c) {
+    c = cache[modo] = mk(BUHO_W, BUHO_H)
+    const gc = lienzoPear36(c.getContext('2d'))
+    lexiconBuho((px, py, col) => { gc.fillStyle = col; gc.fillRect(Math.round(px), Math.round(py), 1, 1) }, BUHO_CX, BUHO_PIE, modo)
+  }
+  const lado = Math.max(1, Math.round(escala * RES))
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false
+  g.drawImage(c, Math.round(x * RES - BUHO_CX * lado), Math.round(pie * RES - BUHO_PIE * lado), BUHO_W * lado, BUHO_H * lado)
+  g.restore()
+}
 const ORDEN_HEROES = Object.keys(CHIBIS)
 /* Puestos en la cubierta: primero la fila de adelante (8, pegada a la baranda), después la de atrás (7, de pie
    sobre las tablas). Con pocos alumnos solo se llena la de adelante. */
@@ -244,8 +312,9 @@ const azar = (a, b) => a + Math.random() * (b - a)
 export class EscenaBonus {
   constructor(canvas, sonido) {
     this.sonido = sonido   // sonido(nombre): los efectos de Lexicón salen del proyector
-    this.cv = canvas; canvas.width = PW; canvas.height = PH
+    this.cv = canvas; canvas.width = PW * RES; canvas.height = PH * RES
     this.g = canvas.getContext('2d')
+    this.g.setTransform(RES, 0, 0, RES, 0, 0); this.g.imageSmoothingEnabled = false   // todo se dibuja en coordenadas de la escena (320 × 180)
     this.capa = mk(PW, PH); this.gp = lienzoPear36(this.capa.getContext('2d'))
     this.pxP = (x, y, col) => { this.gp.fillStyle = col; this.gp.fillRect(Math.round(x), Math.round(y), 1, 1) }
     const atras = mk(PW, PH), ga = atras.getContext('2d'), pa = (x, y, col) => { ga.fillStyle = col; ga.fillRect(Math.round(x), Math.round(y), 1, 1) }
@@ -253,19 +322,31 @@ export class EscenaBonus {
     const frente = mk(PW, PH), gf = frente.getContext('2d'); casco((x, y, col) => { gf.fillStyle = col; gf.fillRect(Math.round(x), Math.round(y), 1, 1) }); this.naveFrente = frente
     const nube = mk(PW, PH), gn = nube.getContext('2d'); nubeLexicon((x, y, c) => { gn.fillStyle = c; gn.fillRect(x, y, 1, 1) }, LX, LP); this.nube = nube
     this.datos = { fase: 'intro', aciertos: {}, heroes: {}, meta: 12 }
+    this.buhos = {}   // el búho grande ya dibujado, por pose
     this.reiniciar()
     this.antes = 0
     this.raf = requestAnimationFrame((t) => this.cuadro(t))
   }
   reiniciar() {
-    Object.assign(this, { previos: {}, hojas: [], burbujas: [], dardos: [], vuelan: [], confeti: [], marcas: 0, birrete: true, lentes: true, proxHoja: 0, inicioJuego: null, rindio: false })
+    Object.assign(this, { previos: {}, hojas: [], burbujas: [], dardos: [], vuelan: [], confeti: [], marcas: 0, birrete: true, lentes: true, proxHoja: 0, inicioJuego: null, rindio: false, ululo: false, zumbo: false, introBase: null })
   }
   destruir() { cancelAnimationFrame(this.raf) }
 
-  /* fase, aciertos {id: n}, heroes {id: heroId}, meta */
+  /* fase, aciertos {id: n}, heroes {id: heroId}, meta, introMs (cuánto va de la llegada, por el reloj del servidor) */
   actualizar(d) {
     if (d.fase === 'intro' && this.datos.fase !== 'intro') this.reiniciar()
+    /* introMs llega cada ~100 ms: se ancla al reloj de la animación y solo se corrige si se desfasa */
+    if (typeof d.introMs === 'number') {
+      const ahora = performance.now(), b = this.introBase
+      if (!b || Math.abs(b.ms + (ahora - b.t) - d.introMs) > 150) this.introBase = { ms: d.introMs, t: ahora }
+    }
     this.datos = { ...this.datos, ...d }
+  }
+  /* ms de la llegada de Lexicón; Infinity si ya pasó (o si el proyector se abrió con la ronda empezada) */
+  llegada(t) {
+    if (this.datos.fase !== 'intro') return Infinity
+    const b = this.introBase
+    return b ? b.ms + (t - b.t) : 0
   }
 
   /* Los héroes del curso en la cubierta (sin repetir, hasta 15) y el puesto de cada alumno */
@@ -287,7 +368,12 @@ export class EscenaBonus {
     const dt = Math.min(0.05, (t - this.antes) / 1000); this.antes = t
     const { fase, aciertos = {}, heroes = {}, meta = 12 } = this.datos
     const jugando = fase === 'juego'
-    if (jugando && this.inicioJuego == null) { this.inicioJuego = t; this.sonido?.("lexiconHoot") }
+    if (jugando && this.inicioJuego == null) this.inicioJuego = t
+    const ll = this.llegada(t)
+    /* sonidos de la llegada: el zumbido mientras cruza (su pico calza con lo más rápido del vuelo) y,
+       al congelarse, el golpe épico con el ululato encima. Solo si el proyector vio la llegada desde el principio. */
+    if (ll >= LLEGADA.franja - 100 && ll < LLEGADA.cruza - 300 && !this.zumbo) { this.zumbo = true; this.sonido?.('lexiconWhoosh') }
+    if (ll >= LLEGADA.cruza && ll < LLEGADA.vuelve && !this.ululo) { this.ululo = true; this.sonido?.('lexiconImpact'); this.sonido?.('lexiconHoot') }
     const enCubierta = this.cubierta()
 
     /* Lexicón: cada 1,6 s arranca una hoja y la lanza; se deshace en 3–4 burbujas al centro del cielo */
@@ -364,7 +450,7 @@ export class EscenaBonus {
     gp.clearRect(0, 0, PW, PH)
     const ly = Math.round(Math.sin(t / 700))
     g.drawImage(this.nube, 0, ly)
-    lexiconBuho(pxP, LX, LP + ly, rinde ? 'rinde' : modo, this.birrete, this.lentes)
+    if (ll >= LLEGADA.posa) lexiconBuho(pxP, LX, LP + ly, rinde ? 'rinde' : modo, this.birrete, this.lentes)
     for (const h of this.hojas) {
       if (!h.rota) { hoja(pxP, h.x, h.y, Math.floor((t - h.t0) / 120) % 2 ? 'canto' : 'plana'); if (t - h.t0 < 500) rayas(pxP, h.x + 7, h.y + 2) }
       else hoja(pxP, h.tx - 6, h.ty - 5, 'pedazos')
@@ -383,5 +469,63 @@ export class EscenaBonus {
     for (const c of this.confeti) { c.y += c.vy * dt; if (c.y > PH) c.y -= PH + 20; pxP(c.x, c.y, c.c); pxP(c.x + 1, c.y, c.c) }
     g.drawImage(this.capa, 0, 0)
     des(NUBES_CERCA, 0.008)
+    if (ll < LLEGADA.posa) this.dibujarLlegada(g, ll, t)
+  }
+
+  dibujarLlegada(g, ms, t) {
+    const L = LLEGADA
+    const aleteo = ['vuela', 'vuela3', 'vuela2', 'vuela3'][Math.floor(t / 85) % 4]
+    /* cuánto está abierta la franja (0–1) y cuánto se oscurece el resto */
+    const abierta = ms < L.franja ? facil(ms / L.franja) : ms < L.vuelve ? 1 : Math.max(0, 1 - (ms - L.vuelve) / 300)
+    if (abierta > 0) {
+      g.fillStyle = `rgba(9, 10, 20, ${0.5 * abierta})`; g.fillRect(0, 0, PW, PH)
+      const h = Math.round(FRANJA_H * abierta), y0 = FRANJA_Y + Math.round((FRANJA_H - h) / 2)
+      g.save(); g.beginPath(); g.rect(0, y0, PW, h); g.clip()
+      g.fillStyle = '#151d28'; g.fillRect(0, y0, PW, h)
+      if (ms >= L.cruza) {
+        /* rayos que giran detrás de él: cuñas alternadas */
+        const cy = CENTRO_PIE - 40, giro = (ms - L.cruza) / 2600
+        for (let k = 0; k < 16; k++) {
+          const a0 = (k / 16 + giro) * Math.PI * 2, a1 = a0 + Math.PI / 16
+          g.fillStyle = k % 2 ? '#202e37' : '#10141f'
+          g.beginPath(); g.moveTo(CENTRO_X, cy); g.lineTo(CENTRO_X + Math.cos(a0) * 400, cy + Math.sin(a0) * 400); g.lineTo(CENTRO_X + Math.cos(a1) * 400, cy + Math.sin(a1) * 400); g.fill()
+        }
+      }
+      /* estelas de velocidad que corren de izquierda a derecha */
+      for (let i = 0; i < 14; i++) {
+        const largo = 18 + (i * 37) % 40, vel = 0.35 + (i % 4) * 0.12
+        const x = Math.floor((ms * vel + i * 73) % (PW + largo)) - largo, y = y0 + 4 + ((i * 29) % Math.max(1, h - 8))
+        g.fillStyle = i % 3 ? '#394a50' : '#577277'; g.fillRect(x, y, largo, 1)
+      }
+      g.fillStyle = '#ebede9'; g.fillRect(0, y0, PW, 1); g.fillRect(0, y0 + h - 1, PW, 1)   // bordes de la franja
+      g.restore()
+    }
+    if (ms < L.franja) return
+    if (ms < L.cruza) {
+      /* cruza de izquierda a derecha y frena al centro */
+      const k = facil((ms - L.franja) / (L.cruza - L.franja)), x = -110 + (CENTRO_X + 110) * k
+      g.fillStyle = '#FFE478'
+      for (let i = 0; i < 6; i++) g.fillRect(Math.round(x - 60 - i * 14 - (1 - k) * 30), CENTRO_PIE - 70 + i * 9, Math.round(40 * (1 - k)) + 6, 2)   // estela
+      buhoGrande(g, this.buhos, aleteo, x, CENTRO_PIE, 3)
+      return
+    }
+    if (ms < L.vuelve) {
+      /* congelado al centro: halo que late y destello blanco al llegar */
+      const late = 1 + Math.round(Math.sin((ms - L.cruza) / 160))
+      g.fillStyle = '#FFE478'   // anillos píxel a píxel (un arc() saldría suavizado)
+      for (const r of [58 + late, 66 + late * 2]) {
+        const n = Math.ceil(r * 7)
+        for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; g.fillRect(Math.round(CENTRO_X + Math.cos(a) * r), Math.round(CENTRO_PIE - 42 + Math.sin(a) * r), 1, 1) }
+      }
+      buhoGrande(g, this.buhos, 'aparece', CENTRO_X, CENTRO_PIE + Math.round(Math.sin((ms - L.cruza) / 300)), 3)
+      const destello = 1 - (ms - L.cruza) / 220
+      if (destello > 0) { g.fillStyle = `rgba(255, 255, 235, ${destello})`; g.fillRect(0, 0, PW, PH) }
+      return
+    }
+    /* se va a su nube: en arco, arrancando y frenando suave, y achicándose de a poco hasta su tamaño normal */
+    const k = Math.min(1, (ms - L.vuelve) / (L.posa - L.vuelve)), e = suave(k)
+    const llega = LP + Math.round(Math.sin(t / 700))   // la nube se mece: aterriza donde está
+    const x = CENTRO_X + (LX - CENTRO_X) * e, pie = CENTRO_PIE + (llega - CENTRO_PIE) * e - Math.sin(k * Math.PI) * 26
+    buhoGrande(g, this.buhos, k > 0.92 ? 'sopla' : aleteo, x, pie, 3 - 2 * e)
   }
 }

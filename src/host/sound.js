@@ -60,7 +60,7 @@ const EFFECTS = {
   streak: 'streak.ogg', // 🔥 alguien llegó a 3 seguidas, o a 5, 10…
   double: 'double.ogg', // ⚡ el profesor activó el 2X
   /* Ronda bonus: Lexicón, en el proyector (los de los celulares los carga bonusJuego.js) */
-  lexiconPage: 'lexicon-page.ogg', lexiconHoot: 'lexicon-hoot.ogg', lexiconGoal: 'lexicon-goal.ogg', lexiconSurrender: 'lexicon-surrender.ogg',
+  lexiconPage: 'lexicon-page.ogg', lexiconHoot: 'lexicon-hoot.ogg', lexiconGoal: 'lexicon-goal.ogg', lexiconSurrender: 'lexicon-surrender.ogg', lexiconWhoosh: 'lexicon-whoosh.ogg', lexiconImpact: 'lexicon-impact.ogg',
 }
 const MUSIC_LEVEL = 0.8 // deja aire a los efectos por encima de la música
 const DUCKED_LEVEL = 0.25 // últimos segundos: la música se aparta para que se oigan los tics

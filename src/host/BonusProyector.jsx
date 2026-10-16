@@ -3,7 +3,7 @@ import { useT } from '../i18n.jsx'
 import { Button } from '../ui.jsx'
 import { BONUS_SEG, BONUS_INTRO_SEG, CATEGORIAS, metasLogradas } from '../game/bonus.js'
 import { getSound } from './sound.js'
-import { EscenaBonus } from '../game/bonusProyector.js'
+import { EscenaBonus, LLEGADA } from '../game/bonusProyector.js'
 
 /* La ronda bonus en el proyector (ver game/bonus.js y game/bonusProyector.js).
    'elegir': el profe toca una categoría · 'juego': cuenta regresiva + 40 s ·
@@ -27,7 +27,11 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
     escena.current = new EscenaBonus(lienzo.current, (n) => { if (n === 'lexiconSurrender') onRindio?.(); getSound().effect(n) })
     return () => { escena.current?.destruir(); escena.current = null }
   }, [etapa === 'elegir'])
-  useEffect(() => { escena.current?.actualizar({ fase, aciertos, heroes, meta }) })
+  const introMs = typeof state.startedAt === 'number' && fase === 'intro' ? Math.max(0, now - state.startedAt) : null
+  useEffect(() => { escena.current?.actualizar({ fase, aciertos, heroes, meta, ...(introMs != null ? { introMs } : {}) }) })
+  /* Al congelarse Lexicón, la música se aparta 1,6 s para que se oiga el golpe épico */
+  const golpe = introMs != null && introMs >= LLEGADA.cruza && introMs < LLEGADA.cruza + 1600
+  useEffect(() => { getSound().duck(golpe); return () => getSound().duck(false) }, [golpe])
 
   if (etapa === 'elegir') {
     /* Lo de esta unidad primero; lo de antes, aparte y plegado (o directo si esta unidad no trae nada) */
@@ -84,22 +88,24 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
         </div>
         <div className="bg-[rgba(11,18,34,.7)] text-white font-black rounded-[.6em] px-[.6em] py-[.2em] text-[1.5em] tabular-nums">⏱ 0:{String(quedan).padStart(2, '0')}</div>
       </div>
-      {fase !== 'juego' && (
-        <div className="absolute left-1/2 top-[22%] -translate-x-1/2 text-center text-white [text-shadow:0_3px_4px_#000] bg-[rgba(11,18,34,.72)] rounded-[.8em] px-[1.6em] py-[.5em] whitespace-nowrap">
-          {fase === 'intro' ? (
-            <>
-              <div className="text-[3em] font-black text-[#ffe478] leading-tight">{t('rondaBonus')}</div>
-              <div className="text-[1.5em] font-black">{t('bonusAparecio')}</div>
-              <div className="text-[4em] font-black text-[#ffe478] leading-none">{inicio == null ? 3 : Math.max(1, Math.ceil((inicio - now) / 1000))}</div>
-            </>
-          ) : (
-            <>
-              <div className="text-[3em] font-black text-[#ffe478] leading-tight">{metas >= 3 ? t('bonusRindio') : t('bonusParcial', metas)}</div>
-              <div className="text-[1.5em] font-black">{'★ '.repeat(Math.max(1, metas)).trim()} · {t('bonusBurbujas', total)}</div>
-            </>
-          )}
+      {fase === 'intro' && introMs != null && introMs >= LLEGADA.cruza && introMs < LLEGADA.vuelve && (
+        <div key="llego" className="absolute left-1/2 bottom-[6%] -translate-x-1/2 whitespace-nowrap text-[3.4em] font-black text-[#ffe478] [text-shadow:0_4px_0_#272736,0_0_12px_#000] animate-[llego_.45s_cubic-bezier(.2,1.6,.4,1)_both]">
+          {t('bonusLlego')}
         </div>
       )}
+      {fase === 'intro' && introMs != null && introMs >= LLEGADA.vuelve && (
+        <div className="absolute left-1/2 top-[30%] -translate-x-1/2 text-center text-white [text-shadow:0_3px_4px_#000]">
+          <div className="text-[1.6em] font-black">{t('bonusListos')}</div>
+          <div key={Math.ceil((inicio - now) / 1000)} className="text-[5em] font-black text-[#ffe478] leading-none animate-[cuentaPop_.35s_ease-out_both]">{Math.max(1, Math.ceil((inicio - now) / 1000))}</div>
+        </div>
+      )}
+      {fase === 'final' && (
+        <div className="absolute left-1/2 top-[22%] -translate-x-1/2 text-center text-white [text-shadow:0_3px_4px_#000] bg-[rgba(11,18,34,.72)] rounded-[.8em] px-[1.6em] py-[.5em] whitespace-nowrap">
+          <div className="text-[3em] font-black text-[#ffe478] leading-tight">{metas >= 3 ? t('bonusRindio') : t('bonusParcial', metas)}</div>
+          <div className="text-[1.5em] font-black">{'★ '.repeat(Math.max(1, metas)).trim()} · {t('bonusBurbujas', total)}</div>
+        </div>
+      )}
+      <style>{'@keyframes llego { from { transform: translateX(-50%) scale(.3); opacity: 0 } to { transform: translateX(-50%) scale(1); opacity: 1 } } @keyframes cuentaPop { from { transform: scale(1.8); opacity: 0 } to { transform: scale(1); opacity: 1 } }'}</style>
     </section>
   )
 }

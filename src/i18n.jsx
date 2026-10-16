@@ -304,6 +304,8 @@ export const TEXTOS = {
   // ── Ronda bonus (Lexicón) ─────────────────────────────────────────────
   rondaBonus: { es: '¡Ronda bonus!', en: 'Bonus round!' },
   bonusAparecio: { es: 'Lexicón apareció', en: 'Lexicón is here' },
+  bonusLlego: { es: '¡Lexicón ha llegado!', en: 'Lexicón has arrived!' },
+  bonusListos: { es: '¡Prepárense!', en: 'Get ready!' },
   bonusElegir: { es: 'Elige la categoría de palabras', en: 'Choose the word category' },
   bonusEligiendo: { es: 'Tu profe está eligiendo la categoría…', en: 'Your teacher is choosing the category…' },
   bonusMira: { es: 'Prepárate: vas a reventar burbujas con tu ballesta', en: 'Get ready: you’ll pop bubbles with your crossbow' },
