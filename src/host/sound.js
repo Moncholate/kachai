@@ -22,7 +22,7 @@ const TRACKS = {
      Los dos de la última pregunta van ~1,5 dB más arriba, a propósito: medidos
      iguales, en la sala se oían más bajos (bronces y guitarra sostenidos pegan
      menos que los golpes secos del chiptune), y la final merece sobresalir. */
-  bonus: { file: 'bonus.ogg', loop: true, level: 1.25 }, // Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s). Mide −14,9 LUFS como los demás, pero en la sala se oía más baja (los sintetizadores burbujeantes pegan menos): +2 dB, como los temas de la última pregunta
+  bonus: { file: 'bonus.ogg', loop: true, level: 1.25, fadeIn: 0.02 }, // entra sin fundido: su golpe inicial es el golpe de la llegada de Lexicón. Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s). Mide −14,9 LUFS como los demás, pero en la sala se oía más baja (los sintetizadores burbujeantes pegan menos): +2 dB, como los temas de la última pregunta
   final: { file: 'final.ogg', loop: true, loopStart: 26.4896, level: 1.26 }, // Final Question
   final2: { file: 'final-2.ogg', loop: true, loopStart: 36.6668, level: 1.22 }, // Final Sprint (las dos final: solo en la última pregunta)
   /* La fanfarria del campeón es música (se detiene con fundido al salir del podio),
@@ -147,7 +147,7 @@ function createSoundEngine() {
     if (asEffect) gain.gain.setValueAtTime(level, t)
     else {
       gain.gain.setValueAtTime(0, t)
-      gain.gain.linearRampToValueAtTime(level, t + FADE_IN)
+      gain.gain.linearRampToValueAtTime(level, t + (TRACKS[name].fadeIn ?? FADE_IN))
     }
     src.connect(gain).connect(asEffect ? master : music)
     src.start()

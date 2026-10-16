@@ -18,6 +18,7 @@ import { PODIUM_SOUNDS, podiumStage } from '../game/podium.js'
 import { BOARD_SIZE, DUEL_GAP, buildBoard, previousTotals } from '../game/duels.js'
 import { BONUS_SEG, BONUS_INTRO_SEG, BONUS_FINAL_SEG, preguntaDelBonus, multiplicadores, metaDelCurso, puntosBonus, categoriasPara } from '../game/bonus.js'
 import BonusProyector from './BonusProyector.jsx'
+import { LLEGADA } from '../game/bonusProyector.js'
 import {
   MAX_TEAMS, TEAM_MAX, TEAM_MIN, makeTeams, membersOf, mvpOf, presetOf, shuffleIntoTeams, smallestTeam,
   streaksOf, suggestTeamCount, teamIdsOf, teamRanking,
@@ -351,7 +352,9 @@ function HostRoom({ store, pin, tema }) {
   /* La última pregunta tiene su tema propio (Final Question o Final Sprint, según el juego), haya 2X o no. */
   const track = state?.phase === 'end' ? null
     : state?.phase === 'answering' && isLast ? finalTrack(state?.round)
-    : state?.phase === 'bonus' && state.etapa === 'juego' ? 'bonus'   // al rendirse Lexicón la música se aparta mientras suena el remate y vuelve (ver onRindio)
+    /* La ronda bonus: la música la arranca la llegada de Lexicón (ver bonusProyector.js); esto es por si
+       el proyector no la vio desde el principio (se recargó a mitad). */
+    : state?.phase === 'bonus' && state.etapa === 'juego' && now >= state.startedAt + LLEGADA.musica ? 'bonus'   // al rendirse Lexicón la música se aparta mientras suena el remate y vuelve (ver onRindio)
     : ({ lobby: 'lobby', answering: answeringTrack(state?.round, state?.qIndex) }[state?.phase] ?? null)
   useEffect(() => { getSound().play(track) }, [track])
   useEffect(() => () => { getSound().play(null) }, [])
@@ -384,7 +387,9 @@ function HostRoom({ store, pin, tema }) {
 
   /* Un efecto al entrar en cada fase clave, una vez por pregunta. */
   const phaseEffect = { reading: 'question', reveal: 'reveal', leaderboard: 'ranking' }[state?.phase]
-  const phaseKey = state ? `${state.round}-${state.qIndex}-${state.phase}` : null
+  /* Tras la ronda bonus vuelve el ranking de la misma pregunta: bonusHecho lo distingue para que suene otra vez */
+  const trasBonus = state?.phase === 'leaderboard' && state.bonusHecho && state.qIndex === preguntaDelBonus(set?.questions.length)
+  const phaseKey = state ? `${state.round}-${state.qIndex}-${state.phase}${trasBonus ? '-bonus' : ''}` : null
   const lastEffect = useRef(null)
   useEffect(() => {
     if (!phaseEffect || lastEffect.current === phaseKey) return
@@ -406,8 +411,8 @@ function HostRoom({ store, pin, tema }) {
       if (overtook) later(300, 'overtake')
       const dueled = Object.keys(state.board?.duels || {}).length > 0
       if (dueled) later(overtook ? 900 : 400, 'duel')
-      // 🔥 alguien llegó a 3 seguidas (fuego) o a 5, 10… (estrella)
-      const milestone = Object.values(scores).some((s) => s.streak === STREAK_MIN || (s.streak >= 5 && s.streak % 5 === 0))
+      // 🔥 alguien llegó a 3 seguidas (fuego) o a 5, 10… (estrella); tras el bonus ya sonó en el ranking de antes
+      const milestone = !trasBonus && Object.values(scores).some((s) => s.streak === STREAK_MIN || (s.streak >= 5 && s.streak % 5 === 0))
       if (milestone) later(overtook || dueled ? 1500 : 500, 'streak')
     }
   }, [phaseKey, phaseEffect])

@@ -278,12 +278,14 @@ const LX = 268, LP = 124
 
 /* ── La llegada de Lexicón (los 7 s de la intro, en ms desde que se eligió la categoría) ──
    0–0,3 s   se abre una franja oscura de lado a lado y la escena se oscurece
+   0,2–1,1   zumbido y ululato doble («hu-huu»), sin música todavía
    0,3–1,1   Lexicón cruza volando de izquierda a derecha, en grande (×3), con estela
-   1,1       se congela al centro: destello blanco, ululato, halo y rayos girando
+   0,9       arranca Bubble Chase: su golpe inicial (a los 0,2 s del tema) es el golpe del congelado
+   1,1       se congela al centro: destello blanco, halo y rayos girando
    1,1–4,0   "¡Lexicón ha llegado!" (el texto va en BonusProyector.jsx)
    4,0–5,4   la franja se cierra y él vuela a su nube, achicándose de a poco de ×3 a ×1
    5,2–7     ya en la nube; la cuenta 3, 2, 1 va encima (BonusProyector.jsx) */
-export const LLEGADA = { franja: 300, cruza: 1100, vuelve: 4000, posa: 5400 }
+export const LLEGADA = { franja: 300, musica: 900, cruza: 1100, vuelve: 4000, posa: 5400 }
 const FRANJA_Y = 22, FRANJA_H = 120, CENTRO_X = 160, CENTRO_PIE = 128
 const facil = (k) => 1 - (1 - k) ** 3
 const suave = (k) => k * k * (3 - 2 * k)   // arranca y frena despacio
@@ -328,7 +330,7 @@ export class EscenaBonus {
     this.raf = requestAnimationFrame((t) => this.cuadro(t))
   }
   reiniciar() {
-    Object.assign(this, { previos: {}, hojas: [], burbujas: [], dardos: [], vuelan: [], confeti: [], marcas: 0, birrete: true, lentes: true, proxHoja: 0, inicioJuego: null, rindio: false, ululo: false, zumbo: false, introBase: null })
+    Object.assign(this, { previos: {}, hojas: [], burbujas: [], dardos: [], vuelan: [], confeti: [], marcas: 0, birrete: true, lentes: true, proxHoja: 0, inicioJuego: null, rindio: false, ululo: false, zumbo: false, ulula2: false, introBase: null })
   }
   destruir() { cancelAnimationFrame(this.raf) }
 
@@ -370,10 +372,14 @@ export class EscenaBonus {
     const jugando = fase === 'juego'
     if (jugando && this.inicioJuego == null) this.inicioJuego = t
     const ll = this.llegada(t)
-    /* sonidos de la llegada: el zumbido mientras cruza (su pico calza con lo más rápido del vuelo) y,
-       al congelarse, el golpe épico con el ululato encima. Solo si el proyector vio la llegada desde el principio. */
-    if (ll >= LLEGADA.franja - 100 && ll < LLEGADA.cruza - 300 && !this.zumbo) { this.zumbo = true; this.sonido?.('lexiconWhoosh') }
-    if (ll >= LLEGADA.cruza && ll < LLEGADA.vuelve && !this.ululo) { this.ululo = true; this.sonido?.('lexiconImpact'); this.sonido?.('lexiconHoot') }
+    /* sonidos de la llegada: el zumbido y un ululato doble («hu-huu») apenas entra volando, solos (el pico
+       del zumbido calza con lo más rápido del vuelo), y luego 'musica': la música de la ronda arranca aquí,
+       en el cuadro exacto, para que su golpe inicial caiga al congelarse (antes un efecto de golpe sonaba
+       además del de la canción y se sentía doble). Solo si el proyector vio la llegada desde el principio;
+       si no, Host la arranca con el reloj. */
+    if (ll >= LLEGADA.franja - 100 && ll < LLEGADA.cruza - 300 && !this.zumbo) { this.zumbo = true; this.sonido?.('lexiconWhoosh'); this.sonido?.('lexiconHoot') }
+    if (this.zumbo && ll >= LLEGADA.franja + 550 && ll < LLEGADA.vuelve && !this.ulula2) { this.ulula2 = true; this.sonido?.('lexiconHoot') }
+    if (this.zumbo && ll >= LLEGADA.musica && ll < LLEGADA.vuelve && !this.ululo) { this.ululo = true; this.sonido?.('musica') }
     const enCubierta = this.cubierta()
 
     /* Lexicón: cada 1,6 s arranca una hoja y la lanza; se deshace en 3–4 burbujas al centro del cielo */

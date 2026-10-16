@@ -34,7 +34,7 @@ export const SFX = {
   'bonus-shot': ['Bonus shot.wav', 700, 150, -17],
   'bonus-jam': ['Bonus jam.wav', 1000, 200, -17],
   'bonus-reload': ['Bonus reload.wav', 1450, 120, -19],
-  'lexicon-page': ['Lexicon page.wav', 800, 100, -16],
+  'lexicon-page': ['Lexicon page.wav', 800, 100, -19],   // se repite cada 1,6 s: más bajo que los demás para no cansar
   'lexicon-hoot': ['Lexicon hoot.wav', 700, 100, -15],
   'lexicon-goal': ['Lexicon goal.wav', 1100, 150, -15],
   'lexicon-surrender': ['Lexicon surrender.wav', 4500, 350, -15],
