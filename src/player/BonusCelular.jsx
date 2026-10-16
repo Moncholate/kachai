@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useT } from '../i18n.jsx'
-import { BONUS_SEG, BONUS_INTRO_SEG } from '../game/bonus.js'
+import { BONUS_SEG, BONUS_INTRO_SEG, CATEGORIAS } from '../game/bonus.js'
 import { JuegoBonus } from './bonusJuego.js'
 
 /* La ronda bonus en el celular (ver bonusJuego.js). Ocupa toda la pantalla.
-   Etapas (state.etapa): 'elegir' → el profe elige la categoría · 'juego' → se
+   Etapas (state.etapa): 'elegir' → el profe elige la categoría · 'reglas' → el
+   proyector explica cómo se juega · 'juego' → se
    juega (con cuenta regresiva) · 'final' → queda el resumen hasta volver al ranking.
    Los aciertos van a rooms/{pin}/bonus/hits/{pid}, como mucho cada 300 ms. */
 export default function BonusCelular({ store, base, pid, state, heroe }) {
@@ -39,11 +40,13 @@ export default function BonusCelular({ store, base, pid, state, heroe }) {
   }, [jugando, state.startedAt, state.categoria])
 
   if (!jugando) {
+    const cat = state.etapa === 'reglas' && CATEGORIAS[state.categoria]
     return (
       <div className="h-dvh flex flex-col items-center justify-center gap-3 bg-[#0b1222] text-white text-center p-6">
         <p className="text-sm font-black uppercase tracking-[.3em] text-[#9fb3d1]">{t('rondaBonus')}</p>
-        <p className="text-2xl font-black">{t('bonusEligiendo')}</p>
-        <p className="text-[#c8d4e6]">{t('bonusMira')}</p>
+        {cat ? <p className="text-2xl font-black">Pop the <span className="text-[#ffe478]">{cat.lema}</span>!</p>
+          : <p className="text-2xl font-black">{t('bonusEligiendo')}</p>}
+        <p className="text-[#c8d4e6]">{cat ? t('bonusMiraReglas') : t('bonusMira')}</p>
       </div>
     )
   }

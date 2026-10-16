@@ -7,10 +7,58 @@ import { BONUS_DUCK, getSound } from './sound.js'
 import { EscenaBonus, LLEGADA } from '../game/bonusProyector.js'
 
 /* La ronda bonus en el proyector (ver game/bonus.js y game/bonusProyector.js).
-   'elegir': el profe toca una categoría · 'juego': cuenta regresiva + 40 s ·
+   'elegir': el profe toca una categoría · 'reglas': cómo se juega, hasta que el
+   profe toca «¡A jugar!» · 'juego': llega Lexicón, cuenta regresiva + 40 s ·
    'final': Lexicón se rinde (o se cuentan las metas logradas) y se celebra.
    Nada de nombres ni errores: solo lo que logra el curso entre todos. */
-export default function BonusProyector({ state, hits, heroes, now, sugeridas, onElegir, onSaltar, onRindio }) {
+
+/* Dibujitos de las instrucciones, iguales a lo que ven en el celular */
+const burbuja = (palabra, tipo = '') => (
+  <span className={`relative inline-block rounded-full border-2 px-[.7em] py-[.2em] font-black whitespace-nowrap ${
+    tipo === 'mal' ? 'bg-[rgba(255,170,160,.9)] border-[#eb564b] text-[#5a0f0f]'
+    : tipo === 'oro' ? 'bg-[radial-gradient(circle_at_30%_28%,#fffff0_0_10%,#ffe478_32%,#f2a65e_75%)] border-[#fff3b0] text-[#4a2a05] shadow-[0_0_14px_4px_rgba(255,228,120,.8)]'
+    : 'bg-[radial-gradient(circle_at_30%_28%,#fff_0_10%,#d6ecff_30%,#96c8ff_70%)] border-white text-[#102040]'}`}>{palabra}</span>
+)
+const dardos = (llenos) => (
+  <span className="inline-flex gap-[.15em]">
+    {Array.from({ length: 5 }, (_, i) => <i key={i} className={`block w-[.45em] h-[.95em] rounded-[.25em_.25em_.1em_.1em] ${i < llenos ? 'bg-[linear-gradient(#eb564b_0_30%,#ffe478_30%)]' : 'bg-[#334155]'}`} />)}
+  </span>
+)
+
+function Reglas({ cat, onEmpezar, onSaltar }) {
+  const t = useT()
+  const pasos = [
+    [<>{burbuja(cat.si[0])}<Icon name="check" className="w-[1.1em] h-[1.1em] text-[#8fde5d]" strokeWidth={3.5} /></>, 'bonusPaso1'],
+    [dardos(5), 'bonusPaso2'],
+    [<>{dardos(0)}<Icon name="reset" className="w-[1em] h-[1em] text-[#ffe478]" strokeWidth={3} /></>, 'bonusPaso3'],
+    [burbuja(Array.isArray(cat.no[0]) ? cat.no[0][0] : cat.no[0], 'mal'), 'bonusPaso4'],
+    [burbuja('???', 'oro'), 'bonusPaso5'],
+    [<span className="relative block w-[6em] h-[.9em] rounded-full border-2 border-white bg-[rgba(11,18,34,.6)] overflow-hidden"><span className="absolute inset-y-0 left-0 w-[70%] bg-gradient-to-r from-[#8fde5d] to-[#3ca370]" /><span className="absolute inset-y-0 left-[33%] w-[2px] bg-white" /><span className="absolute inset-y-0 left-[66%] w-[2px] bg-white" /></span>, 'bonusPaso6'],
+  ]
+  return (
+    <section className="relative w-full max-w-[min(100%,calc((100dvh-7rem)*16/9))] mx-auto aspect-video rounded-2xl overflow-hidden bg-[#0b1222] text-white shadow-xl text-[clamp(10px,1.5vw,18px)] flex flex-col items-center justify-center gap-[1.2em] px-[4%]">
+      <div className="text-center">
+        <p className="text-[.9em] font-black uppercase tracking-[.3em] text-[#9fb3d1]">{t('bonusComo')}</p>
+        <h2 className="text-[2.2em] font-black leading-tight">Pop the <span className="text-[#ffe478]">{cat.lema}</span>!</h2>
+      </div>
+      <ol className="grid grid-cols-2 gap-x-[2.5em] gap-y-[1em] w-full max-w-[60em]">
+        {pasos.map(([dibujo, clave], i) => (
+          <li key={clave} className="flex items-center gap-[.8em]">
+            <span className="shrink-0 w-[1.7em] h-[1.7em] rounded-full bg-[#ffe478] text-[#3b2a05] font-black flex items-center justify-center">{i + 1}</span>
+            <span className="shrink-0 w-[7.5em] flex items-center justify-center gap-[.3em] text-[1.05em]">{dibujo}</span>
+            <span className="text-[1.15em] leading-snug [&_b]:text-[#ffe478]" dangerouslySetInnerHTML={{ __html: t(clave) }} />
+          </li>
+        ))}
+      </ol>
+      <div className="flex items-center gap-4">
+        <button onClick={onEmpezar} className="rounded-2xl border-[3px] border-slate-900 bg-[#ffe478] px-[1.6em] py-[.4em] text-[1.6em] font-black text-[#3b2a05] shadow-[0_5px_0_#0f172a] hover:-translate-y-0.5 active:translate-y-1 active:shadow-none transition">{t('bonusAJugar')}</button>
+        <button onClick={onSaltar} className="text-[#9fb3d1] font-bold underline-offset-4 hover:underline">{t('bonusSaltar')}</button>
+      </div>
+    </section>
+  )
+}
+
+export default function BonusProyector({ state, hits, heroes, now, sugeridas, onElegir, onEmpezar, onSaltar, onRindio }) {
   const t = useT()
   const [verMas, setVerMas] = useState(false)
   const lienzo = useRef(null)
@@ -23,11 +71,12 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
   const meta = state.meta || 12
   const metas = metasLogradas(total, meta)
 
+  const conEscena = etapa !== 'elegir' && etapa !== 'reglas'
   useEffect(() => {
-    if (etapa === 'elegir' || !lienzo.current) return
+    if (!conEscena || !lienzo.current) return
     escena.current = new EscenaBonus(lienzo.current, (n) => { if (n === 'lexiconSurrender') onRindio?.(); getSound().effect(n) })
     return () => { escena.current?.destruir(); escena.current = null }
-  }, [etapa === 'elegir'])
+  }, [conEscena])
   const introMs = typeof state.startedAt === 'number' && fase === 'intro' ? Math.max(0, now - state.startedAt) : null
   useEffect(() => { escena.current?.actualizar({ fase, aciertos, heroes, meta, ...(introMs != null ? { introMs } : {}) }) })
   /* Al congelarse Lexicón, la música se aparta 1,6 s para que se oiga el golpe épico (sin bajarla tanto: BONUS_DUCK) */
@@ -64,6 +113,8 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
       </section>
     )
   }
+
+  if (etapa === 'reglas') return <Reglas cat={CATEGORIAS[state.categoria]} onEmpezar={onEmpezar} onSaltar={onSaltar} />
 
   const quedan = inicio == null ? BONUS_SEG : Math.max(0, Math.ceil((inicio + BONUS_SEG * 1000 - Math.max(inicio, etapa === 'final' ? state.finalAt ?? now : now)) / 1000))
   const pct = Math.min(100, Math.round((total / meta) * 100))

@@ -18,7 +18,18 @@ export const BONUS_FINAL_SEG = 6     // celebración en el proyector antes de vo
 export const PUNTOS_BURBUJA = 30     // por burbuja correcta, antes del bonus
 export const CARGADOR = 5            // dardos de la ballesta
 export const TRABA_SEG = 1.5         // palabra incorrecta: la ballesta se traba
-export const RECARGA_SEG = 1.5
+export const RECARGA_SEG = 1.5      // también al vaciarse el cargador: el héroe recarga solo
+export const DORADA_VALE = 2         // la burbuja dorada cuenta por 2 aciertos (puntos y barra del curso)
+export const DORADA_LENTA = 0.6      // y cae más lento, para que alcance a leerla
+
+/* Burbujas doradas: un evento raro. Pueden traer una palabra correcta o una trampa
+   (en la misma proporción que las normales): obligan a leer, no premian el reflejo.
+   Salen más para el bonus oculto ×2 y ×3 (1, 2 o 3 en la ronda), repartidas
+   entre los 5 s y los 35 s. → segundos de la ronda, de menor a mayor. */
+export function horasDoradas(mult = 1, rand = Math.random) {
+  const n = Math.min(3, Math.max(1, mult || 1)), desde = 5, tramo = (BONUS_SEG - 10) / n
+  return Array.from({ length: n }, (_, i) => desde + tramo * (i + 0.15 + rand() * 0.7))
+}
 
 /* ¿Después de qué pregunta aparece? A la mitad, o mitad + 1 si es impar
    (10 preguntas → tras la 5.ª; 9 → tras la 5.ª). Con menos de 4 no hay ronda. */

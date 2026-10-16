@@ -219,7 +219,10 @@ function HostRoom({ store, pin, tema }) {
     : goQuestion(state.qIndex + 1, state.round, {}, state.order ?? null, Boolean(beforeLast && state.nextDouble)))
   /* Ronda bonus (game/bonus.js): aparece sola tras el ranking de la pregunta del medio, una vez por juego. */
   const tocaBonus = state?.phase === 'leaderboard' && !state.practice && !state.bonusHecho && state.qIndex === preguntaDelBonus(set?.questions.length)
-  const elegirBonus = (categoria) => {
+  /* Elegida la categoría, el proyector muestra cómo se juega; el profe explica y toca «¡A jugar!» */
+  const elegirBonus = (categoria) => store.update(`${base}/state`, { etapa: 'reglas', categoria })
+  const empezarBonus = () => {
+    const categoria = state.categoria
     /* Los que aún no tienen puntaje (llegaron tarde) cuentan como los últimos */
     const conPuntaje = individualRanking(players, scores).map((r) => r.id)
     const orden = [...conPuntaje, ...Object.keys(players).filter((id) => !conPuntaje.includes(id))]
@@ -566,7 +569,7 @@ function HostRoom({ store, pin, tema }) {
         )}
 
         {state.phase === 'bonus' && (
-          <BonusProyector onRindio={() => getSound().aparta(REMATE_LEXICON_MS)} state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onSaltar={saltarBonus}
+          <BonusProyector onRindio={() => getSound().aparta(REMATE_LEXICON_MS)} state={state} hits={bonusHits} sugeridas={categoriasPara(set?.course, set?.ea === 'EA2' ? 1 : 0)} now={now} onElegir={elegirBonus} onEmpezar={empezarBonus} onSaltar={saltarBonus}
             heroes={Object.fromEntries(Object.entries(players).map(([id, p]) => [id, heroFor(id, p.hero).id]))} />
         )}
 

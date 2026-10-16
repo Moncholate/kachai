@@ -30,6 +30,7 @@ export const SFX = {
   /* Ronda bonus: celulares (pop, tiro, traba, recarga) y proyector (Lexicón) */
   'bonus-pop1': ['Bonus pop 1.wav', 170, 40, -16],
   'bonus-pop2': ['Bonus pop 2.wav', 280, 60, -16],
+  'bonus-gold': ['Bonus gold.wav', 1000, 200, -15],   // la burbuja dorada: pop fuerte a los 0,05 s y destellos que se apagan hacia 1 s
   'bonus-shot': ['Bonus shot.wav', 700, 150, -17],
   'bonus-jam': ['Bonus jam.wav', 1000, 200, -17],
   'bonus-reload': ['Bonus reload.wav', 1450, 120, -19],

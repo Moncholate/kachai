@@ -5,7 +5,9 @@
    ventosas). Caen burbujas con palabras: toca las de la categoría para
    dispararles. 5 dardos: un acierto devuelve el dardo; una palabra incorrecta
    o un tiro al aire lo pierde, y la incorrecta traba la ballesta 1,5 s (con la
-   explicación del error). Nunca se restan puntos.
+   explicación del error). Al vaciarse el cargador, el héroe recarga solo.
+   De vez en cuando cae una burbuja dorada (vale doble, pero puede ser trampa).
+   Nunca se restan puntos.
 
    El juego corre entero en el celular (sin red); solo avisa sus aciertos con
    onAciertos(n), y el componente de React los manda al proyector. El reloj es
@@ -16,7 +18,7 @@
 import { HEROES } from '../game/heroes.js'
 import { lienzoPear36 } from '../game/pear36.js'
 import { W, H, capasCielo, globoYCuerdas, barquilla, dardo, cuadroHeroe, cubierta, HW, OX, OY } from '../game/bonusCielo.js'
-import { ritmoBonus, CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, PUNTOS_BURBUJA, explicarError, nuevaPalabra } from '../game/bonus.js'
+import { ritmoBonus, CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, PUNTOS_BURBUJA, DORADA_VALE, DORADA_LENTA, AMBIGUAS, horasDoradas, explicarError, nuevaPalabra } from '../game/bonus.js'
 
 const X_MIN = 46, X_MAX = 100          // las burbujas caen a la derecha de la barquilla
 const HEROE_X = 2
@@ -40,9 +42,20 @@ const CSS = `
 .bj-burbuja { position: absolute; transform: translate(-50%, -50%); padding: 9px 13px; border-radius: 999px; white-space: nowrap; font-weight: 800; font-size: 17px; color: #102040;
   background: radial-gradient(circle at 30% 28%, rgba(255,255,255,.95) 0 10%, rgba(214,236,255,.7) 30%, rgba(150,200,255,.45) 70%);
   border: 2px solid rgba(255,255,255,.95); box-shadow: inset -5px -7px 10px rgba(77,120,230,.35), 0 3px 8px rgba(0,0,0,.3); }
+.bj-burbuja.dorada { color: #4a2a05; border-color: #fff3b0;
+  background: radial-gradient(circle at 30% 28%, rgba(255,255,240,.98) 0 10%, rgba(255,228,120,.92) 32%, rgba(242,166,94,.85) 75%);
+  animation: bj-brilla .7s ease-in-out infinite alternate; }
+@keyframes bj-brilla { from { box-shadow: inset -5px -7px 10px rgba(186,97,86,.4), 0 0 6px 2px rgba(255,228,120,.5) } to { box-shadow: inset -5px -7px 10px rgba(186,97,86,.4), 0 0 16px 6px rgba(255,228,120,.95) } }
+.bj-burbuja.dorada::before, .bj-burbuja.dorada::after { content: ''; position: absolute; width: 7px; height: 7px; background: #fff;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: bj-destello 1.1s ease-in-out infinite; }
+.bj-burbuja.dorada::before { top: -4px; right: 6px; }
+.bj-burbuja.dorada::after { bottom: -3px; left: 8px; animation-delay: .55s; }
+@keyframes bj-destello { 0%, 100% { transform: scale(.3); opacity: 0 } 50% { transform: scale(1.2); opacity: 1 } }
+.bj-flota.oro .e { color: #fff3b0; text-shadow: 0 0 8px #ffe478, 0 1px 3px #000; }
 .bj-burbuja.plop { animation: bj-plop .25s ease-out forwards; }
 @keyframes bj-plop { 0% { transform: translate(-50%, -50%) scale(1, 1) } 40% { transform: translate(-50%, -50%) scale(1.15, .85) } 100% { transform: translate(-50%, -50%) scale(.95, 1.08) } }
-.bj-burbuja.mal { background: rgba(255,170,160,.85); border-color: #eb564b; color: #5a0f0f; }
+.bj-burbuja.mal { background: rgba(255,170,160,.85); border-color: #eb564b; color: #5a0f0f; animation: none; }
+.bj-burbuja.mal::before, .bj-burbuja.mal::after { display: none; }
 .bj-flota { position: absolute; transform: translate(-50%, -50%); font-weight: 800; text-align: center; pointer-events: none; animation: bj-sube .9s ease-out forwards; text-shadow: 0 1px 3px #000; }
 .bj-flota .e { font-size: 26px; color: #ffe478; letter-spacing: -1px; }
 .bj-flota .p { font-size: 16px; color: #8fde5d; }
@@ -51,9 +64,7 @@ const CSS = `
 .bj-aviso { position: absolute; left: 12px; right: 12px; top: 32%; background: #fff7e6; border: 2px solid #f2a65e; border-radius: 14px; padding: 8px 10px; font-size: 15px; color: #4a2a05; text-align: center; display: none; pointer-events: none; z-index: 3; }
 .bj-aviso b { color: #b4380f; }
 .bj-recargar { position: absolute; right: 10px; bottom: 10px; border: 0; border-radius: 14px; padding: 10px 14px; font: inherit; font-weight: 800; font-size: 16px; background: #ffe478; color: #3b2a05; box-shadow: 0 3px 0 #ba6156; display: none; z-index: 3; }
-.bj-recargar.urgente { animation: bj-late .6s infinite alternate; }
 .bj-recargar.sacude { animation: bj-sacude .3s; }
-@keyframes bj-late { from { transform: scale(1) } to { transform: scale(1.12) } }
 @keyframes bj-sacude { 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
 .bj-tarjeta { position: absolute; inset: 0; background: rgba(11,18,34,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; gap: 10px; z-index: 5; }
 .bj-tarjeta .t1 { font-size: 13px; color: #9fb3d1; letter-spacing: 1px; text-transform: uppercase; }
@@ -73,7 +84,7 @@ let cssPuesto = false
    los efectos de ElevenLabs (public/audio/bonus-*.ogg), cargados al primer uso. */
 let audio
 const buffers = {}
-const ARCHIVOS = { pop1: 'bonus-pop1', pop2: 'bonus-pop2', tiro: 'bonus-shot', mal: 'bonus-jam', recarga: 'bonus-reload' }
+const ARCHIVOS = { pop1: 'bonus-pop1', pop2: 'bonus-pop2', oro: 'bonus-gold', tiro: 'bonus-shot', mal: 'bonus-jam', recarga: 'bonus-reload' }
 function cargar(nombre) {
   buffers[nombre] ??= fetch(`${import.meta.env.BASE_URL}audio/${ARCHIVOS[nombre]}.ogg`)
     .then((r) => r.arrayBuffer()).then((d) => audio.decodeAudioData(d)).catch(() => null)
@@ -139,7 +150,8 @@ export class JuegoBonus {
     const cv = raiz.querySelector('canvas'); cv.width = W; cv.height = H
     this.g = lienzoPear36(cv.getContext('2d'))
     this.px = (x, y, col) => { this.g.fillStyle = col; this.g.fillRect(x, y, 1, 1) }
-    this.J = { t: 0, burbujas: [], dardos: [], proxima: 0.3, municion: CARGADOR, racha: 0, mejorRacha: 0, aciertos: 0, apunta: 'a0', pose: 'guardia', poseHasta: 0, trabadaHasta: 0, recargaHasta: 0, recargaDesde: 0, terminado: false }
+    /* aciertos = lo que suma (la dorada vale DORADA_VALE); reventadas = burbujas correctas, para el resumen */
+    this.J = { t: 0, burbujas: [], dardos: [], proxima: 0.3, municion: CARGADOR, racha: 0, mejorRacha: 0, aciertos: 0, reventadas: 0, doradas: horasDoradas(opts.mult), apunta: 'a0', pose: 'guardia', poseHasta: 0, trabadaHasta: 0, recargaHasta: 0, recargaDesde: 0, terminado: false }
     this.el.juego.addEventListener('pointerdown', (e) => this.tocarCielo(e))
     this.el.recargar.addEventListener('pointerdown', (e) => { e.stopPropagation(); this.recargar() })
     this.antes = performance.now()
@@ -159,7 +171,6 @@ export class JuegoBonus {
     this.el.pts.textContent = '+' + J.aciertos * PUNTOS_BURBUJA * this.o.mult
     const ocupado = J.t < J.recargaHasta
     this.el.recargar.style.display = this.jugando() && J.municion < CARGADOR && !ocupado ? 'block' : 'none'
-    this.el.recargar.classList.toggle('urgente', J.municion === 0)
   }
 
   /* ---- burbujas ---- */
@@ -172,8 +183,11 @@ export class JuegoBonus {
     const altas = J.burbujas.filter((b) => b.y < y0 + 40)
     let x, k = 0
     do { x = X_MIN + Math.random() * (X_MAX - X_MIN) } while (altas.some((b) => Math.abs(b.x - x) < 24) && ++k < 12)
-    const el = document.createElement('div'); el.className = 'bj-burbuja'; el.textContent = w.palabra
-    const b = { ...w, x, y: y0, vel: CAIDA * this.ritmo().caida * (0.85 + Math.random() * 0.35), el, estado: 'cae' }
+    /* ¿Toca dorada? Correcta o trampa, como venga; nunca una palabra dudosa ni dos a la vez */
+    const dorada = J.doradas.length > 0 && J.t >= J.doradas[0] && !AMBIGUAS.has(w.palabra.toLowerCase()) && !J.burbujas.some((o) => o.dorada && o.estado !== 'fuera')
+    if (dorada) J.doradas.shift()
+    const el = document.createElement('div'); el.className = 'bj-burbuja' + (dorada ? ' dorada' : ''); el.textContent = w.palabra
+    const b = { ...w, dorada, x, y: y0, vel: CAIDA * this.ritmo().caida * (0.85 + Math.random() * 0.35) * (dorada ? DORADA_LENTA : 1), el, estado: 'cae' }
     el.addEventListener('pointerdown', (e) => { e.stopPropagation(); this.disparar(b) })
     this.el.capa.append(el)
     J.burbujas.push(b)
@@ -223,10 +237,11 @@ export class JuegoBonus {
     setTimeout(() => {
       d.fuera = true
       if (b.correcta) {
-        J.racha++; J.mejorRacha = Math.max(J.mejorRacha, J.racha); J.aciertos++
+        const vale = b.dorada ? DORADA_VALE : 1
+        J.racha++; J.mejorRacha = Math.max(J.mejorRacha, J.racha); J.aciertos += vale; J.reventadas++
         J.municion = Math.min(CARGADOR, J.municion + 1)
-        this.flota(b.x, b.y, `<div class="e">✦ POP ✦</div><div class="p">+${PUNTOS_BURBUJA * this.o.mult}</div>`)
-        sonar('pop', J.racha)
+        this.flota(b.x, b.y, `<div class="e">✦ ${b.dorada ? 'GOLD' : 'POP'} ✦</div><div class="p">+${PUNTOS_BURBUJA * vale * this.o.mult}</div>`, b.dorada ? 'oro' : '')
+        sonar(b.dorada ? 'oro' : 'pop', J.racha)   // la dorada tiene su propio pop épico
         this.quitar(b)
         this.o.onAciertos?.(J.aciertos)
       } else {
@@ -249,7 +264,7 @@ export class JuegoBonus {
     J.burbujas.forEach((b) => b.el.remove()); J.burbujas = []; J.dardos = []
     this.el.aviso.style.display = 'none'; this.el.recargar.style.display = 'none'
     const t = this.o.t
-    this.el.res1.innerHTML = t('bonusReventaste', J.aciertos)
+    this.el.res1.innerHTML = t('bonusReventaste', J.reventadas)
     this.el.res2.innerHTML = t('bonusMejorRacha', J.mejorRacha) + (this.o.mult > 1 ? ` · Bonus <b>×${this.o.mult}</b>` : '')
     this.el.total.textContent = `+${J.aciertos * PUNTOS_BURBUJA * this.o.mult}`
     this.el.final.classList.remove('bj-oculto')
@@ -290,6 +305,8 @@ export class JuegoBonus {
       for (const d of J.dardos) if (d.pegado && !d.fuera && d.b) { d.x = d.b.x - Math.cos(d.ang * Math.PI / 180) * 9; d.y = d.b.y + Math.sin(d.ang * Math.PI / 180) * 9 }
       J.dardos = J.dardos.filter((d) => !d.fuera)
       if (J.recargaHasta && J.t >= J.recargaHasta && J.municion < CARGADOR) { J.municion = CARGADOR; J.recargaHasta = 0; this.actualizarBarra() }
+      /* Sin dardos, recarga solo: espera a que el último dardo pegue (si acierta, vuelve y no hace falta) */
+      if (J.municion === 0 && !J.recargaHasta && !J.dardos.some((d) => d.vuela || (d.b && !d.fuera))) this.recargar()
       if (Math.floor(J.t * 4) !== J.ultimoTic) { J.ultimoTic = Math.floor(J.t * 4); this.actualizarBarra() }
     }
     this.dibujar(ms)

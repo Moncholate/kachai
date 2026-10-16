@@ -1,8 +1,19 @@
 import { LEXICO } from './bonusLexico.js'
 import { describe, it, expect } from 'vitest'
-import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS, ritmoBonus } from './bonus.js'
+import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS, ritmoBonus, horasDoradas, BONUS_SEG } from './bonus.js'
 
 describe('ronda bonus', () => {
+  it('burbujas doradas: raras, más para el bonus ×2/×3, dentro de la ronda y en orden', () => {
+    expect(horasDoradas(1)).toHaveLength(1)
+    expect(horasDoradas(2)).toHaveLength(2)
+    expect(horasDoradas(3)).toHaveLength(3)
+    for (const r of [() => 0, () => 0.999]) {
+      const h = horasDoradas(3, r)
+      for (const s of h) { expect(s).toBeGreaterThanOrEqual(5); expect(s).toBeLessThanOrEqual(BONUS_SEG - 5) }
+      expect([...h].sort((a, b) => a - b)).toEqual(h)
+    }
+  })
+
   it('aparece a la mitad, o mitad + 1 si es impar', () => {
     expect(preguntaDelBonus(10)).toBe(4)   // tras la 5.ª
     expect(preguntaDelBonus(9)).toBe(4)    // tras la 5.ª
