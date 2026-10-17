@@ -834,7 +834,7 @@ function TeamsPanel({ store, base, meta, teams, players, online, onKick }) {
   const member = (id) => (
     <li key={id}
       className={`flex items-center gap-1 rounded-full bg-white border pl-3 pr-1 py-0.5 text-sm font-bold ${online[id] === false ? 'text-slate-400 border-dashed' : 'border-slate-200'}`}>
-      <span className="truncate max-w-[9rem]">{players[id].name}</span>
+      <span className="truncate max-w-[12rem]">{players[id].name}</span>
       <select value={teams[players[id].team] ? players[id].team : ''} onChange={(e) => move(id, e.target.value)}
         title={t('moverEquipo')} className="bg-transparent text-sm cursor-pointer">
         <option value="">—</option>
@@ -1090,6 +1090,32 @@ function Account({ store, user }) {
 function activityLabel(set) {
   const course = set.courseName ?? COURSES.find((c) => c.id === set.course)?.name
   return [course, set.ea, set.title].filter(Boolean).join(' · ')
+}
+
+/* Un nombre que cabe en su ancho sin cortarse con «…» (los nombres llegan a 20 letras: «el papa del kizasito»):
+   hasta `lineas` líneas sin partir palabras, achicando la letra (hasta la mitad) si hace falta; solo si una
+   palabra sola no cabe ni así, se parte. El tamaño de base lo da `style` (fontSize); el ajuste va en em adentro. */
+function NombreAjustado({ children, className = '', style, lineas = 2 }) {
+  const caja = useRef(null)
+  const texto = useRef(null)
+  useLayoutEffect(() => {
+    const el = texto.current, fuera = caja.current
+    if (!el || !fuera) return
+    const ajusta = () => {
+      el.style.overflowWrap = 'normal'
+      const base = parseFloat(getComputedStyle(fuera).fontSize) || 16
+      for (let k = 1; k >= 0.5; k -= 0.05) {
+        el.style.fontSize = k + 'em'
+        if (el.scrollHeight <= base * k * 1.05 * lineas + 2 && el.scrollWidth <= el.clientWidth + 1) return
+      }
+      el.style.overflowWrap = 'anywhere'
+    }
+    ajusta()
+    const ro = new ResizeObserver(ajusta)
+    ro.observe(fuera)
+    return () => ro.disconnect()
+  }, [children, lineas])
+  return <span ref={caja} className={className} style={style}><span ref={texto} className="block">{children}</span></span>
 }
 
 /* Orden del ranking individual: el mismo al armar los duelos y al dibujarlos. */
@@ -1608,10 +1634,10 @@ export function Podium({ ranking, mvp, stage, onAgain, onReport, conPersonajes }
               aria-hidden={shown[place] ? undefined : 'true'}>
               {champion && <span className="leading-none -mb-1" style={{ fontSize: compacto ? '2rem' : 'clamp(2.5rem, 6vh, 4rem)', transition: SUAVE }}>👑</span>}
               <span className="leading-none" style={{ fontSize: champion ? (compacto ? '2.5rem' : 'clamp(3.5rem, 9vh, 6rem)') : (compacto ? '2rem' : 'clamp(2.5rem, 6.5vh, 4.25rem)'), transition: SUAVE }}>{style.medal}</span>
-              <span className="mt-1 font-black text-center truncate w-full text-white"
+              <NombreAjustado className="mt-1 font-black text-center w-full text-white leading-[1.05]"
                 style={{ fontSize: champion ? (compacto ? '1.75rem' : 'clamp(2rem, 5vh, 3.5rem)') : (compacto ? '1.25rem' : 'clamp(1.4rem, 3.4vh, 2.4rem)'), textShadow: '0 2px 12px rgba(0,0,0,.6)', transition: SUAVE }}>
                 {shown[place] ? p.name : '·'}
-              </span>
+              </NombreAjustado>
               {/* Los puntos llegan al final, todos a la vez, para comparar las
                   distancias sin adelantar quién ganó. */}
               {stage.rest && (
