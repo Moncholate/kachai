@@ -18,7 +18,7 @@
 import { HEROES } from '../game/heroes.js'
 import { lienzoPear36 } from '../game/pear36.js'
 import { W, H, capasCielo, globoYCuerdas, barquilla, dardo, cuadroHeroe, cubierta, HW, OX, OY } from '../game/bonusCielo.js'
-import { ritmoBonus, CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, PUNTOS_BURBUJA, DORADA_VALE, DORADA_LENTA, AMBIGUAS, horasDoradas, explicarError, nuevaPalabra } from '../game/bonus.js'
+import { ritmoBonus, CATEGORIAS, CARGADOR, TRABA_SEG, RECARGA_SEG, puntosBonus, punteria, DORADA_VALE, DORADA_LENTA, AMBIGUAS, horasDoradas, explicarError, nuevaPalabra } from '../game/bonus.js'
 
 const X_MIN = 46, X_MAX = 100          // las burbujas caen a la derecha de la barquilla
 const HEROE_X = 2
@@ -114,7 +114,8 @@ function precargar() {
 const azar = (a) => a[Math.floor(Math.random() * a.length)]
 
 export class JuegoBonus {
-  /* opts: { catId, lang, mult, heroe (o heroId), inicio, fin (ms del servidor), ahora(), t(clave, ...), onAciertos(n) } */
+  /* opts: { catId, lang, mult, preguntas (jugadas antes del bonus), heroe (o heroId), inicio, fin (ms del servidor), ahora(),
+     t(clave, ...), onAciertos(aciertos, fallos) } */
   constructor(contenedor, opts) {
     this.o = opts
     precargar()
@@ -127,7 +128,7 @@ export class JuegoBonus {
       <div class="bj-sup">
         <div class="bj-cat">Pop the ${cat.lema}!</div>
         <div class="bj-datos"><span class="bj-reloj">⏱ 0:40</span><span class="bj-dardos"></span><span class="bj-chip bj-racha bj-oculto"></span>
-          <span class="bj-chip bj-bonus ${opts.mult > 1 ? '' : 'bj-oculto'}">Bonus ×${opts.mult}</span><b class="bj-pts">+0</b></div>
+          <span class="bj-chip bj-bonus ${opts.mult > 1 ? '' : 'bj-oculto'}">Bonus ×${opts.mult}</span><b class="bj-pts"></b></div>
       </div>
       <div class="bj-juego"><div class="bj-escena"><canvas></canvas><div class="bj-capa"></div></div>
         <div class="bj-aviso"></div><button class="bj-recargar">⟳ ${t('bonusRecargar')}</button></div>
@@ -151,7 +152,7 @@ export class JuegoBonus {
     this.g = lienzoPear36(cv.getContext('2d'))
     this.px = (x, y, col) => { this.g.fillStyle = col; this.g.fillRect(x, y, 1, 1) }
     /* aciertos = lo que suma (la dorada vale DORADA_VALE); reventadas = burbujas correctas, para el resumen */
-    this.J = { t: 0, burbujas: [], dardos: [], proxima: 0.3, municion: CARGADOR, racha: 0, mejorRacha: 0, aciertos: 0, reventadas: 0, doradas: horasDoradas(opts.mult), apunta: 'a0', pose: 'guardia', poseHasta: 0, trabadaHasta: 0, recargaHasta: 0, recargaDesde: 0, terminado: false }
+    this.J = { t: 0, burbujas: [], dardos: [], proxima: 0.3, municion: CARGADOR, racha: 0, mejorRacha: 0, aciertos: 0, reventadas: 0, fallos: 0, doradas: horasDoradas(opts.mult), apunta: 'a0', pose: 'guardia', poseHasta: 0, trabadaHasta: 0, recargaHasta: 0, recargaDesde: 0, terminado: false }
     this.el.juego.addEventListener('pointerdown', (e) => this.tocarCielo(e))
     this.el.recargar.addEventListener('pointerdown', (e) => { e.stopPropagation(); this.recargar() })
     this.antes = performance.now()
@@ -168,7 +169,8 @@ export class JuegoBonus {
     this.el.reloj.textContent = `⏱ 0:${String(quedan).padStart(2, '0')}`
     this.el.dardos.innerHTML = Array.from({ length: CARGADOR }, (_, i) => `<i class="${i < J.municion ? '' : 'no'}"></i>`).join('')
     this.el.racha.textContent = `${this.o.t('bonusRacha')} ${J.racha}`; this.el.racha.classList.toggle('bj-oculto', J.racha < 2)
-    this.el.pts.textContent = '+' + J.aciertos * PUNTOS_BURBUJA * this.o.mult
+    /* durante la ronda, las burbujas (los puntos dependen de la puntería y se ven al final: así nunca «bajan») */
+    this.el.pts.textContent = this.o.t('bonusBurbujasHud', J.reventadas)
     const ocupado = J.t < J.recargaHasta
     this.el.recargar.style.display = this.jugando() && J.municion < CARGADOR && !ocupado ? 'block' : 'none'
   }
@@ -240,12 +242,13 @@ export class JuegoBonus {
         const vale = b.dorada ? DORADA_VALE : 1
         J.racha++; J.mejorRacha = Math.max(J.mejorRacha, J.racha); J.aciertos += vale; J.reventadas++
         J.municion = Math.min(CARGADOR, J.municion + 1)
-        this.flota(b.x, b.y, `<div class="e">✦ ${b.dorada ? 'GOLD' : 'POP'} ✦</div><div class="p">+${PUNTOS_BURBUJA * vale * this.o.mult}</div>`, b.dorada ? 'oro' : '')
+        this.flota(b.x, b.y, `<div class="e">✦ ${b.dorada ? 'GOLD' : 'POP'} ✦</div><div class="p">+${vale}</div>`, b.dorada ? 'oro' : '')
         sonar(b.dorada ? 'oro' : 'pop', J.racha)   // la dorada tiene su propio pop épico
         this.quitar(b)
-        this.o.onAciertos?.(J.aciertos)
+        this.o.onAciertos?.(J.aciertos, J.fallos)
       } else {
-        J.racha = 0
+        J.racha = 0; J.fallos++
+        this.o.onAciertos?.(J.aciertos, J.fallos)
         b.el.classList.remove('plop'); b.el.classList.add('mal')
         J.trabadaHasta = J.t + TRABA_SEG; J.pose = 'trabada'; J.poseHasta = J.t + TRABA_SEG
         this.el.aviso.innerHTML = explicarError(this.o.catId, b.palabra, b.tipo, this.o.lang) + '<br>' + this.o.t('bonusTraba')
@@ -265,10 +268,10 @@ export class JuegoBonus {
     this.el.aviso.style.display = 'none'; this.el.recargar.style.display = 'none'
     const t = this.o.t
     this.el.res1.innerHTML = t('bonusReventaste', J.reventadas)
-    this.el.res2.innerHTML = t('bonusMejorRacha', J.mejorRacha) + (this.o.mult > 1 ? ` · Bonus <b>×${this.o.mult}</b>` : '')
-    this.el.total.textContent = `+${J.aciertos * PUNTOS_BURBUJA * this.o.mult}`
+    this.el.res2.innerHTML = t('bonusPunteria', Math.round(punteria(J.aciertos, J.fallos) * 100)) + ' · ' + t('bonusMejorRacha', J.mejorRacha) + (this.o.mult > 1 ? ` · Bonus <b>×${this.o.mult}</b>` : '')
+    this.el.total.textContent = `+${puntosBonus(J.aciertos, this.o.mult, { fallos: J.fallos, preguntas: this.o.preguntas })}`
     this.el.final.classList.remove('bj-oculto')
-    this.o.onAciertos?.(J.aciertos)
+    this.o.onAciertos?.(J.aciertos, J.fallos)
   }
 
   /* ---- bucle ---- */

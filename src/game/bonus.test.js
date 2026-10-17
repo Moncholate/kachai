@@ -1,6 +1,6 @@
 import { LEXICO } from './bonusLexico.js'
 import { describe, it, expect } from 'vitest'
-import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS, ritmoBonus, horasDoradas, BONUS_SEG } from './bonus.js'
+import { preguntaDelBonus, multiplicadores, metaDelCurso, metasLogradas, puntosBonus, CATEGORIAS, explicarError, nuevaPalabra, categoriasPara, AMBIGUAS, ritmoBonus, horasDoradas, BONUS_SEG, valorBurbuja, punteria } from './bonus.js'
 
 describe('ronda bonus', () => {
   it('burbujas doradas: raras, más para el bonus ×2/×3, dentro de la ronda y en orden', () => {
@@ -40,9 +40,20 @@ describe('ronda bonus', () => {
     expect(metasLogradas(31, 30)).toBe(3)
   })
 
-  it('30 puntos por burbuja, por el bonus, nunca negativo', () => {
-    expect(puntosBonus(10, 3)).toBe(900)
-    expect(puntosBonus(-4, 2)).toBe(0)
+  it('puntos: 11 × preguntas jugadas por burbuja, × bonus oculto × puntería², tope 12 para la mitad de arriba', () => {
+    expect(valorBurbuja(5)).toBe(55)
+    expect(puntosBonus(10, 3, { preguntas: 5 })).toBe(1650)            // 10 × 55 × 3, puntería perfecta
+    expect(puntosBonus(10, 2, { fallos: 10, preguntas: 5 })).toBe(275)   // puntería 50 % → ×0,25
+    expect(puntosBonus(18, 1, { preguntas: 5 })).toBe(660)              // mitad de arriba: suman solo 12
+    expect(puntosBonus(18, 2, { preguntas: 5 })).toBe(1980)             // los de abajo no tienen tope
+    expect(puntosBonus(-4, 2, { preguntas: 5 })).toBe(0)
+    expect(puntosBonus(0, 3, { fallos: 8, preguntas: 5 })).toBe(0)      // nunca negativo
+    expect(punteria(9, 1)).toBeCloseTo(0.9)
+  })
+
+  it('el bonus pesa lo mismo en actividades cortas y largas', () => {
+    const peso = (total) => puntosBonus(12, 3, { preguntas: preguntaDelBonus(total) + 1 }) / (preguntaDelBonus(total) + 1)
+    expect(peso(6)).toBe(peso(10)); expect(peso(10)).toBe(peso(16))
   })
 
   it('ninguna palabra está a la vez en el sí y en el no de una categoría', () => {

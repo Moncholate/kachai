@@ -234,15 +234,18 @@ function HostRoom({ store, pin, tema }) {
     })
   }
   const saltarBonus = () => goQuestion(state.qIndex + 1, state.round, {}, state.order ?? null, false)
-  /* Al terminar: 50 puntos por burbuja × el bonus oculto de cada uno, y vuelve el ranking (con los
+  /* Al terminar: los puntos de la ronda (puntosBonus en game/bonus.js: por burbuja, bonus oculto y puntería), y vuelve el ranking (con los
      adelantamientos que provocó la ronda). Luego "Siguiente" sigue con la pregunta que venía. */
   async function aplicarBonus() {
     const hits = (await store.get(`${base}/bonus/hits`)) || {}
+    const fallos = (await store.get(`${base}/bonus/fallos`)) || {}
+    const preguntas = state.qIndex + 1   // las jugadas antes del bonus: así el bonus pesa lo mismo en actividades cortas y largas
     const nextScores = {}
     for (const id of Object.keys(players)) {
       const s0 = scores[id] || {}, aciertos = Number(hits[id]) || 0, mult = state.mult?.[id] || 1
-      const gain = puntosBonus(aciertos, mult)
-      nextScores[id] = { ...s0, total: (s0.total || 0) + gain, gain, bonus: { aciertos, mult, gain } }
+      const f = Number(fallos[id]) || 0
+      const gain = puntosBonus(aciertos, mult, { fallos: f, preguntas })
+      nextScores[id] = { ...s0, total: (s0.total || 0) + gain, gain, bonus: { aciertos, fallos: f, mult, gain } }
     }
     Object.entries(nextScores).sort((a, b) => b[1].total - a[1].total).forEach(([, sc], i) => { sc.rank = i + 1 })
     const ahora = teamMode ? teamRanking(teams, players, nextScores) : individualRanking(players, nextScores)

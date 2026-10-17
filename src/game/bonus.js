@@ -15,7 +15,6 @@
 export const BONUS_SEG = 40          // lo que dura la ronda (sin contar la cuenta regresiva)
 export const BONUS_INTRO_SEG = 7     // llega Lexicón (calza con la intro de Bubble Chase); igual en proyector y celulares
 export const BONUS_FINAL_SEG = 6     // celebración en el proyector antes de volver al ranking
-export const PUNTOS_BURBUJA = 30     // por burbuja correcta, antes del bonus
 export const CARGADOR = 5            // dardos de la ballesta
 export const TRABA_SEG = 1.5         // palabra incorrecta: la ballesta se traba
 export const RECARGA_SEG = 1.5      // también al vaciarse el cargador: el héroe recarga solo
@@ -63,7 +62,27 @@ export function metasLogradas(aciertos, meta) {
   return p >= 1 ? 3 : p >= 2 / 3 ? 2 : p >= 1 / 3 ? 1 : 0
 }
 
-export const puntosBonus = (aciertos, mult = 1) => Math.max(0, Math.floor(aciertos || 0)) * PUNTOS_BURBUJA * (mult || 1)
+/* ── Puntos de la ronda (propuesta F, simulación de tools/simular-puntaje.py, 17-oct-2026) ──
+   Con 30 fijos por burbuja el bonus casi no ayudaba en actividades largas (cerraba 41 % de la brecha del último
+   cuarto con 6 preguntas, 17 % con 15), decidía el podio (el 1.º cambiaba 4 de cada 10 veces con 6 preguntas) y
+   premiaba tocar al azar. Ahora:
+   · cada burbuja vale 11 × las preguntas jugadas antes del bonus: pesa lo mismo en 6, 10 o 15 preguntas;
+   · × el bonus oculto (×1, ×2, ×3);
+   · × puntería² (aciertos ÷ intentos, al cuadrado): tocarlo todo rinde poco, y nunca se resta;
+   · la mitad de arriba (×1) suma como mucho 12 burbujas: el bonus no decide el podio.
+   Resultado simulado: cierra ~40 % de la brecha en cualquier largo y el 1.º cambia ~1 de cada 10. */
+export const PUNTOS_POR_PREGUNTA = 11
+export const TOPE_ARRIBA = 12
+export const valorBurbuja = (preguntas) => PUNTOS_POR_PREGUNTA * Math.max(1, Math.floor(preguntas || 1))
+export const punteria = (aciertos, fallos = 0) => (aciertos > 0 ? aciertos / (aciertos + Math.max(0, fallos || 0)) : 0)
+/* aciertos: burbujas correctas (la dorada cuenta 2) · fallos: palabras incorrectas disparadas · preguntas: jugadas antes */
+export function puntosBonus(aciertos, mult = 1, { fallos = 0, preguntas = 1 } = {}) {
+  const a = Math.max(0, Math.floor(aciertos || 0))
+  if (!a) return 0
+  const m = mult || 1
+  const suman = m === 1 ? Math.min(a, TOPE_ARRIBA) : a
+  return Math.round(suman * punteria(a, fallos) ** 2 * valorBurbuja(preguntas) * m)
+}
 
 /* ── Categorías ─────────────────────────────────────────────────────────────
    si: palabras que se revientan. no: trampas, con el tipo de palabra para
