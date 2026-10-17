@@ -1,15 +1,15 @@
 /* ============================================================================
-   RONDA BONUS, PROYECTOR: la nave del curso contra Lexicón
+   RONDA BONUS, PROYECTOR: la nave del curso contra Lexicon
    ----------------------------------------------------------------------------
    Escena de 320 × 180 (se ve a pantalla completa, pixelada). Fondo y nave en la
-   paleta Apollo (como los escenarios de los duelos); Lexicón, los chibis, las
+   paleta Apollo (como los escenarios de los duelos); Lexicon, los chibis, las
    hojas, burbujas y dardos en Pear36 (como los personajes).
 
    EscenaBonus anima todo en un <canvas> y se alimenta de los datos reales:
      · fase: 'intro' (cuenta regresiva) | 'juego' | 'final'
      · aciertos de cada alumno (rooms/{pin}/bonus/hits): cada acierto nuevo es
        un dardo que sale del chibi de ese alumno y revienta una burbuja
-     · meta del curso: al pasar 1/3, 2/3 y el total, a Lexicón se le vuela el
+     · meta del curso: al pasar 1/3, 2/3 y el total, a Lexicon se le vuela el
        birrete, se le caen los lentes y se rinde. Nunca hay derrota.
    El texto (categoría, barra, reloj) lo pone React encima.
    ========================================================================== */
@@ -37,7 +37,7 @@ function conContorno(px, pts) {
 }
 const elipse = (pts, cx, cy, rx, ry, col) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) pts.push([x, y, typeof col === 'function' ? col(x, y) : col]) }
 
-/* ======================= LEXICÓN ======================= */
+/* ======================= LEXICON ======================= */
 /* Alas abiertas: un abanico de plumas desde el hombro. [ángulo (0 = hacia afuera, negativo = arriba), largo].
    Cada pluma es sólida (dorada, con dos barras rojizas y la punta clara) y lleva su propio contorno:
    así entre pluma y pluma queda una línea oscura, como en una lechuza en vuelo. Se dibujan de abajo
@@ -260,7 +260,7 @@ function casco(px) {
   px(PUNTA - 1, PUNTA_Y - 8, AP.na[4]); px(PUNTA, PUNTA_Y - 8, AP.na[5]); px(PUNTA + 1, PUNTA_Y - 8, AP.na[4]); px(PUNTA, PUNTA_Y - 7, AP.gr[1])
 }
 
-/* La nube de Lexicón: varias bolas blancas con relieve y contorno, para que no se pierda en el mar de nubes */
+/* La nube de Lexicon: varias bolas blancas con relieve y contorno, para que no se pierda en el mar de nubes */
 function nubeLexicon(px, cx, pie) {
   const bolas = [[-30, 12, 5], [-22, 8, 8], [-9, 4, 10], [6, 3, 11], [21, 6, 9], [31, 11, 6], [-2, 11, 11]], fondo = pie + 17
   const dentro = (x, y) => y <= fondo && bolas.some(([a, b, r]) => (x - cx - a) ** 2 + (y - pie - b) ** 2 <= r * r)
@@ -276,13 +276,13 @@ function nubeLexicon(px, cx, pie) {
 export const PW_BONUS = PW, PH_BONUS = PH
 const LX = 268, LP = 124
 
-/* ── La llegada de Lexicón (los 7 s de la intro, en ms desde que se eligió la categoría) ──
+/* ── La llegada de Lexicon (los 7 s de la intro, en ms desde que se eligió la categoría) ──
    0–0,3 s   se abre una franja oscura de lado a lado y la escena se oscurece
    0,2–1,1   zumbido y ululato doble («hu-huu»), sin música todavía
-   0,3–1,1   Lexicón cruza volando de izquierda a derecha, en grande (×3), con estela
+   0,3–1,1   Lexicon cruza volando de izquierda a derecha, en grande (×3), con estela
    0,9       arranca Bubble Chase: su golpe inicial (a los 0,2 s del tema) es el golpe del congelado
    1,1       se congela al centro: destello blanco, halo y rayos girando
-   1,1–4,0   "¡Lexicón ha llegado!" (el texto va en BonusProyector.jsx)
+   1,1–4,0   "¡Lexicon ha llegado!" (el texto va en BonusProyector.jsx)
    4,0–5,4   la franja se cierra y él vuela a su nube, achicándose de a poco de ×3 a ×1
    5,2–7     ya en la nube; la cuenta 3, 2, 1 va encima (BonusProyector.jsx) */
 export const LLEGADA = { franja: 300, musica: 900, cruza: 1100, vuelve: 4000, posa: 5400 }
@@ -313,7 +313,7 @@ const azar = (a, b) => a + Math.random() * (b - a)
 
 export class EscenaBonus {
   constructor(canvas, sonido) {
-    this.sonido = sonido   // sonido(nombre): los efectos de Lexicón salen del proyector
+    this.sonido = sonido   // sonido(nombre): los efectos de Lexicon salen del proyector
     this.cv = canvas; canvas.width = PW * RES; canvas.height = PH * RES
     this.g = canvas.getContext('2d')
     this.g.setTransform(RES, 0, 0, RES, 0, 0); this.g.imageSmoothingEnabled = false   // todo se dibuja en coordenadas de la escena (320 × 180)
@@ -344,7 +344,7 @@ export class EscenaBonus {
     }
     this.datos = { ...this.datos, ...d }
   }
-  /* ms de la llegada de Lexicón; Infinity si ya pasó (o si el proyector se abrió con la ronda empezada) */
+  /* ms de la llegada de Lexicon; Infinity si ya pasó (o si el proyector se abrió con la ronda empezada) */
   llegada(t) {
     if (this.datos.fase !== 'intro') return Infinity
     const b = this.introBase
@@ -382,7 +382,7 @@ export class EscenaBonus {
     if (this.zumbo && ll >= LLEGADA.musica && ll < LLEGADA.vuelve && !this.ululo) { this.ululo = true; this.sonido?.('musica') }
     const enCubierta = this.cubierta()
 
-    /* Lexicón: cada 1,6 s arranca una hoja y la lanza; se deshace en 3–4 burbujas al centro del cielo */
+    /* Lexicon: cada 1,6 s arranca una hoja y la lanza; se deshace en 3–4 burbujas al centro del cielo */
     let modo = 'sopla'
     if (jugando) {
       const e = t - this.inicioJuego, c = e % 1600, n = Math.floor(e / 1600)

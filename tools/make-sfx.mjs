@@ -27,7 +27,7 @@ export const SFX = {
   'times-up': ["Time's up.wav", 750, 60, -15],
   streak: ['Streak.wav', 900, 120, -16],
   double: ['2X.wav', 2450, 650, -14, 200], // golpe del 2X: arranca a los 0,2 s y se apaga hacia los 2,6 s
-  /* Ronda bonus: celulares (pop, tiro, traba, recarga) y proyector (Lexicón) */
+  /* Ronda bonus: celulares (pop, tiro, traba, recarga) y proyector (Lexicon) */
   'bonus-pop1': ['Bonus pop 1.wav', 170, 40, -16],
   'bonus-pop2': ['Bonus pop 2.wav', 280, 60, -16],
   'bonus-gold': ['Bonus gold.wav', 1000, 200, -15],   // la burbuja dorada: pop fuerte a los 0,05 s y destellos que se apagan hacia 1 s

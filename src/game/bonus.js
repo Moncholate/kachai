@@ -1,11 +1,11 @@
 /* ============================================================================
-   RONDA BONUS: LEXICÓN
+   RONDA BONUS: LEXICON
    ----------------------------------------------------------------------------
-   A mitad del juego (tras la pregunta ⌈total/2⌉) aparece Lexicón, un búho
+   A mitad del juego (tras la pregunta ⌈total/2⌉) aparece Lexicon, un búho
    bibliotecario que arranca hojas de su diccionario y las lanza; cada hoja se
    deshace en burbujas con palabras. En el celular, cada alumno revienta con su
    ballesta de ventosas las burbujas de la categoría pedida (irregular verbs,
-   colors…). En el proyector, la nave del curso dispara y Lexicón se va rindiendo
+   colors…). En el proyector, la nave del curso dispara y Lexicon se va rindiendo
    en 3 metas. Sirve para que la mitad de abajo del ranking se acerque: el bonus
    oculto (×2 o ×3) lo ve cada uno solo en su celular. Nunca se restan puntos.
 
@@ -13,7 +13,7 @@
    ========================================================================== */
 
 export const BONUS_SEG = 40          // lo que dura la ronda (sin contar la cuenta regresiva)
-export const BONUS_INTRO_SEG = 7     // llega Lexicón (calza con la intro de Bubble Chase); igual en proyector y celulares
+export const BONUS_INTRO_SEG = 7     // llega Lexicon (calza con la intro de Bubble Chase); igual en proyector y celulares
 export const BONUS_FINAL_SEG = 6     // celebración en el proyector antes de volver al ranking
 export const CARGADOR = 5            // dardos de la ballesta
 export const TRABA_SEG = 1.5         // palabra incorrecta: la ballesta se traba

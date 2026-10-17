@@ -312,10 +312,10 @@ export const TEXTOS = {
   resumenCurso: { es: 'Resumen del curso', en: 'Class summary' },
   jugarOtraVez: { es: 'Jugar otra vez', en: 'Play again' },
 
-  // ── Ronda bonus (Lexicón) ─────────────────────────────────────────────
+  // ── Ronda bonus (Lexicon) ─────────────────────────────────────────────
   rondaBonus: { es: '¡Ronda bonus!', en: 'Bonus round!' },
-  bonusAparecio: { es: 'Lexicón apareció', en: 'Lexicón is here' },
-  bonusLlego: { es: '¡Lexicón ha llegado!', en: 'Lexicón has arrived!' },
+  bonusAparecio: { es: 'Lexicon apareció', en: 'Lexicon is here' },
+  bonusLlego: { es: '¡Lexicon ha llegado!', en: 'Lexicon has arrived!' },
   bonusListos: { es: '¡Prepárense!', en: 'Get ready!' },
   bonusElegir: { es: 'Elige la categoría de palabras', en: 'Choose the word category' },
   bonusEligiendo: { es: 'Tu profe está eligiendo la categoría…', en: 'Your teacher is choosing the category…' },
@@ -330,7 +330,7 @@ export const TEXTOS = {
   bonusPaso3: { es: 'Sin dardos, <b>recargas solo</b>. Si quieres, toca <b>Recargar</b> antes.', en: 'Out of darts? You <b>reload automatically</b>. You can also tap <b>Reload</b> earlier.' },
   bonusPaso4: { es: 'Palabra incorrecta: tu ballesta <b>se traba</b> y <b>baja tu puntería</b>. Disparar a todo no sirve.', en: 'Wrong word: your crossbow <b>jams</b> and <b>your accuracy drops</b>. Shooting everything doesn’t pay.' },
   bonusPaso5: { es: '<b>Burbuja dorada</b>: vale el doble… ¡pero puede ser trampa! Léela bien.', en: '<b>Golden bubble</b>: worth double… but it can be a trap! Read it carefully.' },
-  bonusPaso6: { es: 'Entre todos llenen la barra: en la <b>Meta 3</b>, Lexicón se rinde.', en: 'Fill the bar together: at <b>Goal 3</b>, Lexicón gives up.' },
+  bonusPaso6: { es: 'Entre todos llenen la barra: en la <b>Meta 3</b>, Lexicon se rinde.', en: 'Fill the bar together: at <b>Goal 3</b>, Lexicon gives up.' },
   bonusAJugar: { es: '¡A jugar!', en: 'Let’s play!' },
   bonusMiraReglas: { es: 'Mira las instrucciones en el proyector', en: 'Look at the instructions on the screen' },
   bonusRecargar: { es: 'Recargar', en: 'Reload' },
@@ -342,7 +342,7 @@ export const TEXTOS = {
   bonusPunteria: { es: (n) => `Puntería: <b>${n} %</b>`, en: (n) => `Accuracy: <b>${n}%</b>` },
   bonusBurbujasHud: { es: (n) => `${n} ${n === 1 ? 'burbuja' : 'burbujas'}`, en: (n) => `${n} ${n === 1 ? 'bubble' : 'bubbles'}` },
   bonusMeta: { es: (n) => `Meta ${n}`, en: (n) => `Goal ${n}` },
-  bonusRindio: { es: '¡Lexicón se rindió!', en: 'Lexicón gives up!' },
+  bonusRindio: { es: '¡Lexicon se rindió!', en: 'Lexicon gives up!' },
   bonusParcial: { es: (n) => `¡Lograron ${n} de 3 metas!`, en: (n) => `You reached ${n} of 3 goals!` },
   bonusBurbujas: { es: (n) => `${n} burbujas reventadas`, en: (n) => `${n} bubbles popped` },
   bonusSumando: { es: 'Sumando los puntos…', en: 'Adding up the points…' },

@@ -22,7 +22,7 @@ const TRACKS = {
      Los dos de la última pregunta van ~1,5 dB más arriba, a propósito: medidos
      iguales, en la sala se oían más bajos (bronces y guitarra sostenidos pegan
      menos que los golpes secos del chiptune), y la final merece sobresalir. */
-  bonus: { file: 'bonus.ogg', loop: true, level: 1.25, fadeIn: 0.02 }, // entra sin fundido: su golpe inicial es el golpe de la llegada de Lexicón. Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s). Mide −14,9 LUFS como los demás, pero en la sala se oía más baja (los sintetizadores burbujeantes pegan menos): +2 dB, como los temas de la última pregunta
+  bonus: { file: 'bonus.ogg', loop: true, level: 1.25, fadeIn: 0.02 }, // entra sin fundido: su golpe inicial es el golpe de la llegada de Lexicon. Bubble Chase: la ronda bonus (dura 81 s, más que la ronda de 43 s). Mide −14,9 LUFS como los demás, pero en la sala se oía más baja (los sintetizadores burbujeantes pegan menos): +2 dB, como los temas de la última pregunta
   final: { file: 'final.ogg', loop: true, loopStart: 26.4896, level: 1.26 }, // Final Question
   final2: { file: 'final-2.ogg', loop: true, loopStart: 36.6668, level: 1.22 }, // Final Sprint (las dos final: solo en la última pregunta)
   /* La fanfarria del campeón es música (se detiene con fundido al salir del podio),
@@ -59,12 +59,12 @@ const EFFECTS = {
   join: 'join.ogg', // alguien entró a la sala
   streak: 'streak.ogg', // 🔥 alguien llegó a 3 seguidas, o a 5, 10…
   double: 'double.ogg', // ⚡ el profesor activó el 2X
-  /* Ronda bonus: Lexicón, en el proyector (los de los celulares los carga bonusJuego.js) */
+  /* Ronda bonus: Lexicon, en el proyector (los de los celulares los carga bonusJuego.js) */
   lexiconPage: 'lexicon-page.ogg', lexiconHoot: 'lexicon-hoot.ogg', lexiconGoal: 'lexicon-goal.ogg', lexiconSurrender: 'lexicon-surrender.ogg', lexiconWhoosh: 'lexicon-whoosh.ogg', lexiconImpact: 'lexicon-impact.ogg',
 }
 const MUSIC_LEVEL = 0.8 // deja aire a los efectos por encima de la música
 const DUCKED_LEVEL = 0.25 // últimos segundos: la música se aparta para que se oigan los tics
-export const BONUS_DUCK = 0.5 // ronda bonus: al llegar Lexicón y al rendirse, la música se aparta, pero sigue sonando (bajarla más se sentía como un corte)
+export const BONUS_DUCK = 0.5 // ronda bonus: al llegar Lexicon y al rendirse, la música se aparta, pero sigue sonando (bajarla más se sentía como un corte)
 /* Alguien entra: la música (la del lobby, casi siempre) baja ~8 dB mientras suena el aviso (0,9 s)
    y vuelve sola. Si entran varios seguidos, se queda abajo hasta el último. */
 const JOIN_DUCK = 0.4
@@ -207,7 +207,7 @@ function createSoundEngine() {
     duck(on, nivel = DUCKED_LEVEL) {
       music.gain.setTargetAtTime(on ? nivel : MUSIC_LEVEL, ctx.currentTime, 0.15)
     },
-    /* Aparta la música (sin detenerla) por ms y la devuelve con un fundido: el remate de Lexicón al rendirse
+    /* Aparta la música (sin detenerla) por ms y la devuelve con un fundido: el remate de Lexicon al rendirse
        se oye encima, y la ronda sigue con su música mientras a los celulares les queda tiempo. */
     aparta(ms, nivel = BONUS_DUCK) {
       const t = ctx.currentTime, g = music.gain

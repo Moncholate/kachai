@@ -8,8 +8,8 @@ import { EscenaBonus, LLEGADA } from '../game/bonusProyector.js'
 
 /* La ronda bonus en el proyector (ver game/bonus.js y game/bonusProyector.js).
    'elegir': el profe toca una categoría · 'reglas': cómo se juega, hasta que el
-   profe toca «¡A jugar!» · 'juego': llega Lexicón, cuenta regresiva + 40 s ·
-   'final': Lexicón se rinde (o se cuentan las metas logradas) y se celebra.
+   profe toca «¡A jugar!» · 'juego': llega Lexicon, cuenta regresiva + 40 s ·
+   'final': Lexicon se rinde (o se cuentan las metas logradas) y se celebra.
    Nada de nombres ni errores: solo lo que logra el curso entre todos. */
 
 /* Dibujitos de las instrucciones, iguales a lo que ven en el celular */
@@ -74,7 +74,7 @@ export default function BonusProyector({ state, hits, heroes, now, sugeridas, on
   const conEscena = etapa !== 'elegir' && etapa !== 'reglas'
   useEffect(() => {
     if (!conEscena || !lienzo.current) return
-    /* 'musica': la escena arranca la música de la ronda justo cuando su golpe calza con el congelado de Lexicón */
+    /* 'musica': la escena arranca la música de la ronda justo cuando su golpe calza con el congelado de Lexicon */
     escena.current = new EscenaBonus(lienzo.current, (n) => {
       if (n === 'musica') return getSound().play('bonus')
       if (n === 'lexiconSurrender') onRindio?.()

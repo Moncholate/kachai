@@ -35,7 +35,7 @@ import { Icon } from '../icons.jsx'
    cronómetro, corrige y reparte puntos. La base de datos solo transporta. Todo el
    estado vive en la base, así que recargar esta pestaña retoma la partida. */
 
-/* Lo que dura el remate de Lexicón al rendirse (lexicon-surrender.ogg): la música se aparta ese rato y vuelve,
+/* Lo que dura el remate de Lexicon al rendirse (lexicon-surrender.ogg): la música se aparta ese rato y vuelve,
    porque a los celulares todavía les puede quedar tiempo para reventar burbujas. */
 const REMATE_LEXICON_MS = 4500
 const PIN_KEY = 'kachai-host-pin'
@@ -355,9 +355,9 @@ function HostRoom({ store, pin, tema }) {
   /* La última pregunta tiene su tema propio (Final Question o Final Sprint, según el juego), haya 2X o no. */
   const track = state?.phase === 'end' ? null
     : state?.phase === 'answering' && isLast ? finalTrack(state?.round)
-    /* La ronda bonus: la música la arranca la llegada de Lexicón (ver bonusProyector.js); esto es por si
+    /* La ronda bonus: la música la arranca la llegada de Lexicon (ver bonusProyector.js); esto es por si
        el proyector no la vio desde el principio (se recargó a mitad). */
-    : state?.phase === 'bonus' && state.etapa === 'juego' && now >= state.startedAt + LLEGADA.musica ? 'bonus'   // al rendirse Lexicón la música se aparta mientras suena el remate y vuelve (ver onRindio)
+    : state?.phase === 'bonus' && state.etapa === 'juego' && now >= state.startedAt + LLEGADA.musica ? 'bonus'   // al rendirse Lexicon la música se aparta mientras suena el remate y vuelve (ver onRindio)
     : ({ lobby: 'lobby', answering: answeringTrack(state?.round, state?.qIndex) }[state?.phase] ?? null)
   useEffect(() => { getSound().play(track) }, [track])
   useEffect(() => () => { getSound().play(null) }, [])
